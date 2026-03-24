@@ -12,9 +12,21 @@
     
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @php
-        if (auth()->check() && !session('api_token')) {
-            $__token = auth()->user()->createToken('web-session-token')->plainTextToken;
-            session(['api_token' => $__token]);
+        if (auth()->check()) {
+            $__existingToken = session('api_token');
+            $__tokenValid = false;
+            if ($__existingToken) {
+                $__tokenId = explode('|', $__existingToken)[0];
+                $__tokenValid = \Laravel\Sanctum\PersonalAccessToken::find($__tokenId) !== null;
+            }
+            if (!$__tokenValid) {
+                if ($__existingToken) {
+                    $__tokenId = explode('|', $__existingToken)[0];
+                    \Laravel\Sanctum\PersonalAccessToken::find($__tokenId)?->delete();
+                }
+                $__token = auth()->user()->createToken('web-session-token')->plainTextToken;
+                session(['api_token' => $__token]);
+            }
         }
     @endphp
     <meta name="api-token" content="{{ session('api_token', '') }}">

@@ -998,6 +998,9 @@ class SalesManagerController extends Controller
                     ($task->description ?? '') . ' ' .
                     ($task->notes ?? '')
                 ));
+                $isFollowUpTask = str_contains($taskText, 'follow-up call') ||
+                                  str_contains($taskText, 'follow up call') ||
+                                  str_contains($taskText, 'follow-up scheduled');
                 $isCloserTask = str_contains($taskText, 'closer');
                 $isSiteVisitTask = str_contains($taskText, 'site visit') || str_contains($taskText, 'site-visit');
                 $isMeetingTask = str_contains($taskText, 'meeting id') ||
@@ -1007,7 +1010,9 @@ class SalesManagerController extends Controller
                                   str_contains($taskText, 'prospect verification') ||
                                   str_contains($taskText, 'prospect');
                 $taskCategory = 'other';
-                if ($isCloserTask) {
+                if ($isFollowUpTask) {
+                    $taskCategory = 'follow_up';
+                } elseif ($isCloserTask) {
                     $taskCategory = 'closer';
                 } elseif ($isSiteVisitTask) {
                     $taskCategory = 'site_visit';
@@ -1025,6 +1030,7 @@ class SalesManagerController extends Controller
                     'category' => $taskCategory,
                     'title' => $task->title,
                     'description' => $task->description,
+                    'notes' => $task->notes,
                     'status' => $task->status,
                     'priority' => $task->priority,
                     'scheduled_at' => $task->scheduled_at ? $task->scheduled_at->toDateTimeString() : null,
@@ -1695,6 +1701,7 @@ class SalesManagerController extends Controller
                         'type' => 'phone_call',
                         'title' => "Follow-up call: {$validated['name']}",
                         'description' => "Follow-up call task scheduled for {$followUpDate->format('Y-m-d H:i')}. Prospect requires follow-up call on selected date and time.",
+                        'notes' => $managerRemark ?: "Follow-up scheduled for {$followUpDate->format('Y-m-d H:i')}",
                         'status' => 'pending',
                         'scheduled_at' => $followUpDate,
                         'created_by' => $user->id,
@@ -2579,7 +2586,13 @@ class SalesManagerController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user->isAdmin() && !$user->isCrm() && !$user->isSalesManager() && !$user->isSeniorManager()) {
+            if (
+                !$user->isAdmin() &&
+                !$user->isCrm() &&
+                !$user->isSalesManager() &&
+                !$user->isSeniorManager() &&
+                !$user->isAssistantSalesManager()
+            ) {
                 return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
             }
 
@@ -2657,7 +2670,13 @@ class SalesManagerController extends Controller
     public function updateLeadRequirements(Request $request, \App\Models\Lead $lead)
     {
         $user = $request->user();
-        if (!$user->isAdmin() && !$user->isCrm() && !$user->isSalesManager() && !$user->isSeniorManager()) {
+        if (
+            !$user->isAdmin() &&
+            !$user->isCrm() &&
+            !$user->isSalesManager() &&
+            !$user->isSeniorManager() &&
+            !$user->isAssistantSalesManager()
+        ) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -2669,7 +2688,7 @@ class SalesManagerController extends Controller
             'budget'             => 'nullable|string|max:255',
             'possession'         => 'nullable|string|max:255',
             'purpose'            => 'nullable|string|max:255',
-            'lead_quality'       => 'nullable|in:hot,warm,cold,junk',
+            'lead_quality'       => 'nullable|string|max:50',
             'lead_status'        => 'nullable|string|max:50',
             'form_fields'        => 'nullable|array',
         ]);
@@ -2687,6 +2706,11 @@ class SalesManagerController extends Controller
             // Save dynamic form field values
             if ($request->has('form_fields') && is_array($request->input('form_fields'))) {
                 foreach ($request->input('form_fields') as $key => $value) {
+                    if (is_array($value) || is_object($value)) {
+                        $value = json_encode($value);
+                    } elseif (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
                     \App\Models\LeadFormFieldValue::updateOrCreate(
                         ['lead_id' => $lead->id, 'field_key' => $key],
                         ['field_value' => $value, 'updated_by' => $user->id]

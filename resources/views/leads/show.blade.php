@@ -914,160 +914,49 @@
 
 
 {{-- Lead Requirements Modal --}}
-<div id="leadRequirementsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-            <h2 class="text-lg font-semibold text-slate-800">Lead Detail Form</h2>
-            <button onclick="closeLeadRequirementsModal()" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
-        </div>
-        <div id="leadReqFormBody" class="overflow-y-auto px-6 py-4 flex-1">
-            <div id="leadReqLoading" class="text-center py-10 text-slate-400">Loading...</div>
-            <div id="leadReqFormContent" class="hidden space-y-4"></div>
-            <div id="leadReqError" class="hidden text-red-500 text-sm py-4"></div>
-        </div>
-        <div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
-            <button onclick="closeLeadRequirementsModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm">Cancel</button>
-            <button onclick="submitLeadRequirements()" id="leadReqSubmitBtn" class="px-4 py-2 rounded-lg bg-green-700 hover:bg-green-800 text-white text-sm font-medium">Save Requirements</button>
-        </div>
-    </div>
-</div>
-
-<script>
-let _lrCurrentLeadId = null;
-
-window.openLeadRequirementsModal = async function(leadId) {
-    _lrCurrentLeadId = leadId;
-    const modal = document.getElementById('leadRequirementsModal');
-    modal.style.display = 'flex';
-    document.getElementById('leadReqLoading').style.display = 'block';
-    document.getElementById('leadReqFormContent').style.display = 'none';
-    document.getElementById('leadReqError').style.display = 'none';
-
-    try {
-        const token = document.querySelector('meta[name="csrf-token"]').content;
-        const res = await fetch('/api/leads/' + leadId + '/requirement-form', {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Failed to load');
-
-        renderLeadReqForm(data);
-        document.getElementById('leadReqLoading').style.display = 'none';
-        document.getElementById('leadReqFormContent').style.display = 'block';
-    } catch(e) {
-        document.getElementById('leadReqLoading').style.display = 'none';
-        const err = document.getElementById('leadReqError');
-        err.textContent = e.message;
-        err.style.display = 'block';
-    }
-};
-
-window.closeLeadRequirementsModal = function() {
-    document.getElementById('leadRequirementsModal').style.display = 'none';
-    _lrCurrentLeadId = null;
-};
-
-function renderLeadReqForm(data) {
-    const c = document.getElementById('leadReqFormContent');
-    const v = data.form_values || {};
-    const sel = (name, val, opts) => {
-        const options = opts.map(o => `<option value="${o}" ${v[name]==o?'selected':''}>${o}</option>`).join('');
-        return `<select id="lrf_${name}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px"><option value="">-- Select --</option>${options}</select>`;
-    };
-    c.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Name *</label>
-        <input id="lrf_name" value="${data.lead_name||''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px"></div>
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Mobile *</label>
-        <input id="lrf_phone" value="${data.lead_phone||''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px"></div>
-    </div>
-    <hr style="margin-bottom:16px">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Category</label>
-        ${sel('category', v.category, ['Residential','Commercial','Both','N.A'])}</div>
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Preferred Location</label>
-        ${sel('preferred_location', v.preferred_location, ['Inside City','Sitapur Road','Hardoi Road','Faizabad Road','Sultanpur Road','Shaheed Path','Raebareily Road','Kanpur Road','Outer Ring Road','Bijnor Road','Deva Road','Sushant Golf City','Vrindavan Yojana','N.A'])}</div>
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Purpose</label>
-        ${sel('purpose', v.purpose, ['End Use','Short Term Investment','Long Term Investment','Rental Income','Investment + End Use','N.A'])}</div>
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Possession</label>
-        ${sel('possession', v.possession, ['Under Construction','Ready To Move','Pre Launch','Both','N.A'])}</div>
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Budget</label>
-        ${sel('budget', v.budget, ['Below 50 Lacs','50-75 Lacs','75 Lacs-1 Cr','Above 1 Cr','Above 2 Cr','N.A'])}</div>
-      <div><label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Lead Status</label>
-        ${sel('lead_status', v.lead_status, ['hot','warm','cold','junk'])}</div>
-    </div>`;
-}
-
-window.submitLeadRequirements = async function() {
-    if (!_lrCurrentLeadId) return;
-    const btn = document.getElementById('leadReqSubmitBtn');
-    btn.disabled = true; btn.textContent = 'Saving...';
-    const token = document.querySelector('meta[name="csrf-token"]').content;
-    const payload = {
-        customer_name: document.getElementById('lrf_name')?.value,
-        phone: document.getElementById('lrf_phone')?.value,
-        form_fields: {
-            category: document.getElementById('lrf_category')?.value || '',
-            preferred_location: document.getElementById('lrf_preferred_location')?.value || '',
-            purpose: document.getElementById('lrf_purpose')?.value || '',
-            possession: document.getElementById('lrf_possession')?.value || '',
-            budget: document.getElementById('lrf_budget')?.value || '',
-            lead_status: document.getElementById('lrf_lead_status')?.value || '',
-        }
-    };
-    try {
-        const res = await fetch('/api/leads/' + _lrCurrentLeadId + '/update-requirements', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || 'Save failed');
-        closeLeadRequirementsModal();
-        const t = document.createElement('div');
-        t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#205A44;color:white;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px';
-        t.textContent = 'Requirements saved!';
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 3000);
-    } catch(e) {
-        const err = document.getElementById('leadReqError');
-        err.textContent = e.message; err.style.display = 'block';
-    } finally {
-        btn.disabled = false; btn.textContent = 'Save Requirements';
-    }
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('leadRequirementsModal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) closeLeadRequirementsModal();
-        });
-    }
-});
-</script>
-
-
-{{-- Lead Requirements Modal --}}
-<div id="leadRequirementsModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)">
-    <div style="background:white;border-radius:16px;width:100%;max-width:700px;margin:16px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-        <div style="display:flex;align-items:center;justify-content:between;padding:16px 24px;border-bottom:1px solid #e5e7eb">
-            <h2 id="leadReqModalTitle" style="font-size:18px;font-weight:600;color:#111;flex:1;margin:0">Lead Detail Form</h2>
+<div id="leadRequirementsModal" class="lead-requirements-overlay" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)">
+    <div class="lead-requirements-modal">
+        <div class="lead-requirements-modal-head">
+            <h2 id="leadReqModalTitle">Lead Detail Form</h2>
             <button onclick="closeLeadRequirementsModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;padding:0 0 0 16px">&times;</button>
         </div>
-        <div id="managerLeadFormContainer" style="overflow-y:auto;padding:24px;flex:1">
-            <div id="leadReqLoading" style="text-align:center;padding:40px;color:#666">Loading...</div>
-        </div>
-        <div style="padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:12px">
-            <button onclick="closeLeadRequirementsModal()" style="padding:10px 20px;border:1px solid #ddd;border-radius:8px;background:white;cursor:pointer;font-size:14px">Cancel</button>
-            <button onclick="submitLeadRequirementsFromShow()" id="leadReqSubmitBtn" style="padding:10px 20px;border:none;border-radius:8px;background:#205A44;color:white;cursor:pointer;font-size:14px;font-weight:500">Save Requirements</button>
+        <div class="lead-requirements-modal-body">
+            <div id="managerLeadFormContainer" style="overflow-y:auto;flex:1">
+                <div id="leadReqLoading" style="text-align:center;padding:40px;color:#666">Loading...</div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 let _lrLeadId = null;
+window.managerLeadMeetingCreateUrl = '{{ route("sales-manager.meetings.create") }}';
+window.managerLeadSiteVisitCreateUrl = '{{ route("sales-manager.site-visits.create") }}';
+const LEAD_DETAIL_API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || @json(session('api_token') ?? '');
+
+if (LEAD_DETAIL_API_TOKEN) {
+    localStorage.setItem('sales_manager_token', LEAD_DETAIL_API_TOKEN);
+}
+
+function getLeadRequirementHeaders(includeJson = false) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const apiToken = LEAD_DETAIL_API_TOKEN || localStorage.getItem('sales_manager_token') || '';
+    const headers = {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+
+    if (includeJson) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    if (apiToken) {
+        headers['Authorization'] = `Bearer ${apiToken}`;
+    }
+
+    return headers;
+}
 
 window.openLeadRequirementsModal = async function(leadId) {
     _lrLeadId = leadId;
@@ -1076,9 +965,8 @@ window.openLeadRequirementsModal = async function(leadId) {
     document.getElementById('managerLeadFormContainer').innerHTML = '<div style="text-align:center;padding:40px;color:#666">Loading...</div>';
 
     try {
-        const token = document.querySelector('meta[name="csrf-token"]').content;
         const res = await fetch('/api/leads/' + leadId + '/requirement-form', {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token }
+            headers: getLeadRequirementHeaders()
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Failed to load');
@@ -1104,41 +992,81 @@ window.submitLeadRequirementsFromShow = async function() {
     if (!_lrLeadId) return;
     const btn = document.getElementById('leadReqSubmitBtn');
     btn.disabled = true; btn.textContent = 'Saving...';
-    const token = document.querySelector('meta[name="csrf-token"]').content;
 
-    const getVal = id => document.getElementById(id)?.value || '';
-    const payload = {
-        customer_name: getVal('manager_form_name'),
-        phone: getVal('manager_form_phone'),
-        form_fields: {
-            category: getVal('manager_form_category'),
-            preferred_location: getVal('manager_form_preferred_location'),
-            type: getVal('manager_form_type'),
-            purpose: getVal('manager_form_purpose'),
-            possession: getVal('manager_form_possession'),
-            budget: getVal('manager_form_budget'),
-            lead_status: getVal('manager_form_lead_status'),
-            lead_quality: getVal('manager_form_lead_quality'),
-            customer_job: getVal('manager_form_customer_job'),
-            industry_sector: getVal('manager_form_industry_sector'),
-            buying_frequency: getVal('manager_form_buying_frequency'),
-            living_city: getVal('manager_form_living_city'),
-        }
-    };
+    const payload = window.buildLeadRequirementsPayload
+        ? window.buildLeadRequirementsPayload()
+        : null;
+
+    if (!payload || !payload.customer_name || !payload.phone) {
+        btn.disabled = false; btn.textContent = 'Save Requirements';
+        return;
+    }
+
     try {
         const res = await fetch('/api/leads/' + _lrLeadId + '/update-requirements', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token },
+            headers: getLeadRequirementHeaders(true),
             body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message || 'Save failed');
+
+        const redirectUrl = ['meeting', 'visit'].includes(payload.output_action) && window.collectManagerLeadPayload
+            ? (function () {
+                const raw = window.collectManagerLeadPayload();
+                const baseUrl = payload.output_action === 'meeting'
+                    ? window.managerLeadMeetingCreateUrl
+                    : window.managerLeadSiteVisitCreateUrl;
+                if (!baseUrl) return '';
+                const firstProject = raw.interested_projects.find(item => typeof item === 'object' ? item.name : true);
+                const firstProjectLabel = typeof firstProject === 'object'
+                    ? firstProject.name
+                    : document.querySelector('#project-tags-grid .project-tag.selected .project-tag-text')?.textContent || '';
+                const budgetMap = {
+                    'Below 50 Lacs': 'Under 50 Lac',
+                    '50-75 Lacs': '50 Lac – 1 Cr',
+                    '75 Lacs-1 Cr': '50 Lac – 1 Cr',
+                    'Above 1 Cr': '1 Cr – 2 Cr',
+                    'Above 2 Cr': '2 Cr – 3 Cr',
+                    'N.A': 'Under 50 Lac'
+                };
+                const propertyMap = {
+                    'Plots & Villas': 'Plot/Villa',
+                    'Apartments': 'Flat',
+                    'Retail Shops': 'Commercial',
+                    'Office Space': 'Commercial',
+                    'Studio': 'Flat',
+                    'Farmhouse': 'Plot/Villa',
+                    'Agricultural': 'Plot/Villa',
+                    'Others': 'Just Exploring',
+                    'N.A': 'Just Exploring'
+                };
+                const params = new URLSearchParams();
+                if (raw.lead_id) params.set('lead_id', raw.lead_id);
+                if (raw.prospect_id) params.set('prospect_id', raw.prospect_id);
+                params.set('prefill_name', raw.name);
+                params.set('prefill_phone', raw.phone);
+                if (firstProjectLabel) params.set('prefill_project', firstProjectLabel);
+                if (raw.budget) params.set('prefill_budget', budgetMap[raw.budget] || raw.budget);
+                if (raw.type) params.set('prefill_property_type', propertyMap[raw.type] || 'Just Exploring');
+                params.set('prefill_lead_type', payload.output_action === 'meeting' ? 'Prospect' : 'Meeting');
+                if (raw.manager_remark) params.set('prefill_notes', raw.manager_remark);
+                params.set('prefill_date', new Date().toISOString().split('T')[0]);
+                return `${baseUrl}?${params.toString()}`;
+            })()
+            : '';
+
         closeLeadRequirementsModal();
         const t = document.createElement('div');
         t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#205A44;color:white;padding:12px 20px;border-radius:8px;z-index:99999;font-size:14px';
         t.textContent = 'Requirements saved successfully!';
         document.body.appendChild(t);
         setTimeout(() => t.remove(), 3000);
+        if (redirectUrl) {
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 400);
+        }
     } catch(e) {
         document.getElementById('managerLeadFormContainer').insertAdjacentHTML('afterbegin',
             '<p style="color:red;margin-bottom:12px">' + e.message + '</p>');
@@ -1146,12 +1074,19 @@ window.submitLeadRequirementsFromShow = async function() {
         btn.disabled = false; btn.textContent = 'Save Requirements';
     }
 };
+
+document.getElementById('leadRequirementsModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeLeadRequirementsModal();
+    }
+});
 </script>
 
 <script src="/js/manager-lead-form.js"></script>
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/manager-lead-form.css') }}">
 <style>
     .timeline-item {
         position: relative;

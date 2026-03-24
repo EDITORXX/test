@@ -572,6 +572,37 @@
     if (dateOfVisitInput) dateOfVisitInput.min = new Date().toISOString().split('T')[0];
     if (scheduledAtInput) scheduledAtInput.min = new Date().toISOString().slice(0, 16);
 
+    function prefillSiteVisitFormFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+        const setValue = (id, value) => {
+            const field = document.getElementById(id);
+            if (!field || !value) return;
+            if (field.tagName === 'SELECT') {
+                const match = Array.from(field.options).find(option => normalize(option.value) === normalize(value));
+                field.value = match ? match.value : value;
+                return;
+            }
+            field.value = value;
+        };
+
+        setValue('customer_name', params.get('prefill_name'));
+        setValue('phone', params.get('prefill_phone'));
+        setValue('project', params.get('prefill_project'));
+        setValue('budget_range', params.get('prefill_budget'));
+        setValue('property_type', params.get('prefill_property_type'));
+        setValue('lead_type', params.get('prefill_lead_type'));
+        setValue('visit_notes', params.get('prefill_notes'));
+        setValue('date_of_visit', params.get('prefill_date'));
+
+        const leadId = params.get('lead_id');
+        const prospectId = params.get('prospect_id');
+        if (leadId) setValue('lead_id', leadId);
+        if (prospectId) setValue('prospect_id', prospectId);
+    }
+
+    prefillSiteVisitFormFromQuery();
+
     // Pre-fill form from meeting if meeting_id is in URL
     async function preFillFromMeeting() {
         const urlParams = new URLSearchParams(window.location.search);

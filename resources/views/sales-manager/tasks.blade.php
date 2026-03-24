@@ -4,6 +4,7 @@
 @section('page-title', 'Tasks')
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/manager-lead-form.css') }}">
 <style>
     .tasks-container {
         background: white;
@@ -770,6 +771,7 @@
             <div class="task-type-filter-desktop" style="margin-left: 12px;">
                 <select id="taskTypeFilterDesktop" class="date-filter-select">
                     <option value="all">All Types</option>
+                    <option value="follow_up">Follow Up</option>
                     <option value="meeting">Meeting</option>
                     <option value="site_visit">Site Visit</option>
                     <option value="prospect">Prospect</option>
@@ -813,6 +815,7 @@
         <div class="task-type-filter-mobile" style="display: none; flex: 1; width: 100%; margin-top: 8px;">
             <select id="taskTypeFilterMobile" class="task-filter-select" style="width: 100%;">
                 <option value="all">All Types</option>
+                <option value="follow_up">Follow Up</option>
                 <option value="meeting">Meeting</option>
                 <option value="site_visit">Site Visit</option>
                 <option value="prospect">Prospect</option>
@@ -871,8 +874,8 @@
 </div>
 
 <!-- Step 2: Full Lead Requirement Form Modal (shown after Verify clicked) -->
-<div id="managerLeadRequirementFormModal" class="modal">
-    <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+<div id="managerLeadRequirementFormModal" class="modal manager-lead-modal">
+    <div class="modal-content">
         <div class="modal-header">
             <h3>Lead Requirement Form - Verify Prospect</h3>
             <button class="close-btn" onclick="cancelManagerLeadRequirementForm()">&times;</button>
@@ -1007,6 +1010,8 @@
     // Use relative path to avoid APP_URL misconfig issues
     const API_BASE_URL = '/api/sales-manager';
     const API_TOKEN = '{{ $api_token ?? session("api_token") ?? "" }}';
+    window.managerLeadMeetingCreateUrl = '{{ route("sales-manager.meetings.create") }}';
+    window.managerLeadSiteVisitCreateUrl = '{{ route("sales-manager.site-visits.create") }}';
     
     // Store token in localStorage if available
     if (API_TOKEN) {
@@ -1027,7 +1032,7 @@
     let savedCategory = 'all';
     try {
         const saved = localStorage.getItem('salesManagerTaskCategory');
-        if (saved && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(saved)) {
+        if (saved && ['all', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(saved)) {
             savedCategory = saved;
         }
     } catch (e) {
@@ -1037,6 +1042,10 @@
     let currentStatus = savedFilter;
     let currentCategory = savedCategory;
     let currentTaskId = null;
+    function setCurrentTaskId(value) {
+        currentTaskId = value;
+        window.currentTaskId = value;
+    }
     
     // Attach to window for global access
     window.currentStatus = currentStatus;
@@ -1155,6 +1164,18 @@
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function(char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char];
         });
     }
 
@@ -1307,7 +1328,7 @@
             if (category === 'all') {
                 try {
                     const savedCategory = localStorage.getItem('salesManagerTaskCategory');
-                    if (savedCategory && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
+                    if (savedCategory && ['all', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
                         category = savedCategory;
                     }
                 } catch (e) {
@@ -1473,6 +1494,8 @@
             // Check if task is a site visit reminder
             const isSiteVisitReminder = (task.notes && task.notes.includes('Site Visit Reminder')) || 
                                        (task.title && task.title.includes('Reminder: Site Visit'));
+            const isFollowUpTask = task.category === 'follow_up';
+            const followUpRemark = escapeHtml((task.notes || '').trim());
 
             const cleanPhone = String(leadPhone).replace(/[^0-9]/g, '');
             return `
@@ -1486,6 +1509,7 @@
                             ${isPendingVisit ? '<span class="visit-tag" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">V</span>' : ''}
                             ${isProspectTask ? '<span class="prospect-tag" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">P</span>' : ''}
                             ${isSiteVisitReminder ? '<span class="site-visit-tag" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">S</span>' : ''}
+                            ${isFollowUpTask ? '<span class="followup-tag" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">F</span>' : ''}
                             <span class="status-badge ${statusClass}">${task.status.replace('_', ' ').toUpperCase()}</span>
                         </div>
                     </div>
@@ -1498,6 +1522,18 @@
                             <i class="fas fa-calendar"></i>
                             <span>${scheduledDate}</span>
                         </div>
+                        ${isFollowUpTask ? `
+                        <div class="task-info-row">
+                            <i class="fas fa-clock"></i>
+                            <span>Follow-up at ${scheduledDate}</span>
+                        </div>
+                        ` : ''}
+                        ${isFollowUpTask && followUpRemark ? `
+                        <div class="task-info-row" style="align-items:flex-start;">
+                            <i class="fas fa-note-sticky" style="margin-top:3px;"></i>
+                            <span style="line-height:1.5;">${followUpRemark}</span>
+                        </div>
+                        ` : ''}
                         ${task.notes && task.notes.includes('Pre-meeting reminder') ? '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"><span class="meeting-badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-calendar-check" style="font-size: 10px;"></i> Meeting</span></div>' : ''}
                     </div>
                     <div class="task-actions">
@@ -1562,7 +1598,7 @@
 
     // Handle manager call click - Check if lead has prospect or is direct assignment
     async function handleManagerCallClick(taskId, phoneNumber, hasProspect = null) {
-        currentTaskId = taskId;
+        setCurrentTaskId(taskId);
         
         // First, check if this is a meeting task
         let isMeetingTask = false;
@@ -1694,7 +1730,7 @@
     function cancelVerifyRejectPrompt() {
         // User clicked close/cancel button - reset task ID
         closeVerifyRejectPromptModal();
-        currentTaskId = null;
+        setCurrentTaskId(null);
     }
 
     // Step 2a: Proceed to Verify - Load full form
@@ -1949,7 +1985,7 @@
                     : `New calling task created for ${retryMinutes} minutes later.`;
                 showAlert(`Call Not Picked marked. ${timeMsg}`, 'success', 4000);
                 closeCnpTimeSelectionModal();
-                currentTaskId = null; // Reset after successful submission
+                setCurrentTaskId(null); // Reset after successful submission
                 // Refresh tasks list after a short delay (preserve current filters)
                 setTimeout(() => {
                     const status = window.currentStatus || currentStatus || 'all';
@@ -2000,7 +2036,7 @@
     function cancelRejectReasonModal() {
         // User cancelled - reset task ID and close modal
         closeRejectReasonModal();
-        currentTaskId = null;
+        setCurrentTaskId(null);
     }
 
     // Submit reject
@@ -2047,7 +2083,7 @@
                 
                 showAlert('Prospect rejected successfully', 'success');
                 closeRejectReasonModal();
-                currentTaskId = null; // Reset after successful submission
+                setCurrentTaskId(null); // Reset after successful submission
             } else {
                 showAlert(result?.message || 'Failed to reject prospect', 'error');
             }
@@ -2086,7 +2122,7 @@
         modal.classList.remove('active');
         document.getElementById('managerLeadFormContainer').innerHTML = '';
         // Reset currentTaskId when modal is closed (user cancelled)
-        currentTaskId = null;
+        setCurrentTaskId(null);
     }
     
     function cancelManagerLeadRequirementForm() {
@@ -2873,7 +2909,7 @@
                     : 'Prospect verified successfully!');
                 showAlert(message, 'success', 3000);
                 closeManagerLeadRequirementFormModal();
-                currentTaskId = null; // Reset after successful submission
+                setCurrentTaskId(null); // Reset after successful submission
             } else {
                 showAlert(response?.message || response?.error || 'Failed to process request', 'error');
             }
@@ -2931,7 +2967,7 @@
 
     // View prospect details (read-only)
     async function openProspectDetailModal(taskId, viewMode = false) {
-        currentTaskId = taskId;
+        setCurrentTaskId(taskId);
         const modal = document.getElementById('prospectDetailModal');
         const content = document.getElementById('prospectDetailContent');
         
@@ -3027,7 +3063,7 @@
         const modal = document.getElementById('prospectDetailModal');
         modal.classList.remove('active');
         document.getElementById('prospectDetailContent').innerHTML = '';
-        currentTaskId = null;
+        setCurrentTaskId(null);
     }
 
     // Initialize on page load
@@ -3106,7 +3142,7 @@
 
         try {
             const savedCategory = localStorage.getItem('salesManagerTaskCategory');
-            if (savedCategory && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
+            if (savedCategory && ['all', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
                 if (categoryDropdownDesktop) {
                     categoryDropdownDesktop.value = savedCategory;
                 }
@@ -3126,8 +3162,8 @@
             if (filterDropdown) filterDropdown.value = 'pending';
             currentStatus = 'pending';
             window.currentStatus = 'pending';
-            currentCategory = 'prospect';
-            window.currentCategory = 'prospect';
+            currentCategory = 'follow_up';
+            window.currentCategory = 'follow_up';
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelector('.filter-btn[data-status="pending"]')?.classList.add('active');
         }
@@ -3246,7 +3282,7 @@
                 }
                 savedCustomDate = localStorage.getItem('salesManagerCustomDate');
                 const savedCategory = localStorage.getItem('salesManagerTaskCategory');
-                if (savedCategory && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
+                    if (savedCategory && ['all', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
                     savedCategoryFilter = savedCategory;
                 }
             } catch (e) {
@@ -3255,7 +3291,7 @@
             
             // Use filterTasks instead of loadTasks to restore UI state
             if (focusMode === 'followups') {
-                filterTasks('pending', savedDateFilter, savedCustomDate, 'prospect');
+                filterTasks('pending', savedDateFilter, savedCustomDate, 'follow_up');
             } else {
                 filterTasks(currentStatus, savedDateFilter, savedCustomDate, savedCategoryFilter);
             }
@@ -3281,7 +3317,7 @@
                     console.log('Tasks grid found on retry, calling filterTasks() with saved filter:', currentStatus);
                     // Use filterTasks instead of loadTasks to restore UI state
                     if (focusMode === 'followups') {
-                        filterTasks('pending', 'all', null, 'prospect');
+                        filterTasks('pending', 'all', null, 'follow_up');
                     } else {
                         filterTasks(currentStatus);
                     }
@@ -3366,4 +3402,5 @@
     
     // Note: loadTasks() is called in DOMContentLoaded event listener above (line 1820)
 </script>
+<script src="/js/manager-lead-form.js"></script>
 @endpush
