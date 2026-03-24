@@ -11,6 +11,10 @@
         gap: 1.5rem;
         align-items: stretch;
     }
+    #meetingsContainer.list-view {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
     .meeting-card {
         background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
         padding: 18px;
@@ -41,6 +45,12 @@
         flex-direction: column;
         margin-bottom: 14px;
     }
+    .meeting-topline {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
     .meeting-actions {
         margin-top: auto;
         display: flex;
@@ -62,48 +72,46 @@
     .meeting-subtitle {
         color: #64748b;
         font-size: 0.9rem;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
-    .meeting-meta {
-        display: grid;
-        gap: 8px;
-    }
-    .meeting-meta-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
+    .meeting-remark {
         color: #475569;
         font-size: 0.88rem;
-        line-height: 1.35;
+        line-height: 1.45;
+        background: #f8fbf9;
+        border: 1px solid #e3ece7;
+        border-radius: 12px;
+        padding: 10px 12px;
+        min-height: 64px;
+        margin-bottom: 12px;
     }
-    .meeting-meta-item i {
-        width: 16px;
-        color: #205A44;
-        margin-top: 4px;
-        flex-shrink: 0;
-    }
-    .meeting-meta-item strong {
+    .meeting-remark strong {
         display: block;
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #94a3b8;
-        margin-bottom: 2px;
+        margin-bottom: 6px;
     }
-    .meeting-link {
-        color: #1761A8;
-        font-weight: 600;
-        text-decoration: none;
+    .meeting-secondary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        color: #64748b;
+        font-size: 0.82rem;
+        margin-bottom: 10px;
     }
-    .meeting-link:hover {
-        text-decoration: underline;
+    .meeting-secondary span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
     .meeting-status-row {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 14px;
+        margin-top: 0;
     }
     .badge {
         display: inline-flex;
@@ -206,6 +214,48 @@
         font-size: 0.77rem;
         font-weight: 500;
     }
+    .view-toggle-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #fff;
+        padding: 6px;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(16, 24, 20, 0.08);
+        border: 1px solid #e4e0d7;
+    }
+    .view-toggle-btn {
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 8px 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .view-toggle-btn.active {
+        background: linear-gradient(135deg, #205A44 0%, #0f5132 100%);
+        color: #fff;
+        box-shadow: 0 10px 18px rgba(32, 90, 68, 0.18);
+    }
+    #meetingsContainer.list-view .meeting-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 18px;
+    }
+    #meetingsContainer.list-view .meeting-header {
+        flex: 1 1 auto;
+        margin-bottom: 0;
+    }
+    #meetingsContainer.list-view .meeting-actions {
+        flex: 0 0 230px;
+        margin-top: 0;
+    }
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -273,11 +323,27 @@
             font-size: 1.1rem;
         }
         .meeting-subtitle,
-        .meeting-meta-item {
+        .meeting-secondary,
+        .meeting-remark {
             font-size: 0.84rem;
         }
         .meeting-actions {
             gap: 8px;
+        }
+        .view-toggle-group {
+            width: 100%;
+            justify-content: space-between;
+        }
+        .view-toggle-btn {
+            flex: 1;
+            justify-content: center;
+        }
+        #meetingsContainer.list-view .meeting-card {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        #meetingsContainer.list-view .meeting-actions {
+            flex: 1 1 auto;
         }
         .filters {
             flex-direction: row;
@@ -348,6 +414,14 @@
 <div class="mb-6">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h2 class="text-2xl font-bold text-gray-900">My Meetings</h2>
+        <div class="view-toggle-group" aria-label="Meeting View Toggle">
+            <button type="button" class="view-toggle-btn active" data-view="card" onclick="setMeetingsView('card')">
+                <i class="fas fa-grip"></i>Cards
+            </button>
+            <button type="button" class="view-toggle-btn" data-view="list" onclick="setMeetingsView('list')">
+                <i class="fas fa-list"></i>List
+            </button>
+        </div>
     </div>
 
     <div class="filters">
@@ -651,6 +725,36 @@
         }
     }
 
+    function getMeetingRemark(meeting) {
+        return meeting.meeting_notes || meeting.notes || meeting.feedback || meeting.location || 'No remark added yet.';
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function truncateText(value, maxLength) {
+        const text = String(value || '');
+        return text.length > maxLength ? text.slice(0, maxLength).trim() + '...' : text;
+    }
+
+    function setMeetingsView(view) {
+        const container = document.getElementById('meetingsContainer');
+        if (!container) return;
+        container.classList.toggle('list-view', view === 'list');
+        document.querySelectorAll('.view-toggle-btn[data-view]').forEach((btn) => {
+            btn.classList.toggle('active', btn.getAttribute('data-view') === view);
+        });
+        try {
+            localStorage.setItem('asm_meetings_view', view);
+        } catch (e) {}
+    }
+
     async function loadMeetings() {
         const container = document.getElementById('meetingsContainer');
         container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
@@ -697,27 +801,26 @@
                 const confirmationStatusBadge = meeting.customer_confirmation_status === 'confirmed' ? 'badge-confirmed' :
                                               meeting.customer_confirmation_status === 'cancelled' ? 'badge-cancelled-conf' : 'badge-pending-conf';
                 const confirmationStatusText = meeting.customer_confirmation_status || 'pending';
+                const remark = truncateText(getMeetingRemark(meeting), 120);
 
                 return `
                     <div class="meeting-card ${statusClass}">
                         <div class="meeting-header">
                             <div class="meeting-info">
-                                <h3>${meeting.customer_name || 'N/A'}</h3>
-                                <div class="meeting-subtitle">${meeting.phone || 'Phone not available'}</div>
-                                <div class="meeting-meta">
-                                    <div class="meeting-meta-item">
-                                        <i class="fas fa-calendar"></i>
-                                        <div><strong>Scheduled</strong>${new Date(meeting.scheduled_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                <div class="meeting-topline">
+                                    <div>
+                                        <h3>${meeting.customer_name || 'N/A'}</h3>
+                                        <div class="meeting-subtitle">${meeting.phone || 'Phone not available'}</div>
                                     </div>
-                                    ${meeting.completed_at ? `<div class="meeting-meta-item"><i class="fas fa-check-circle"></i><div><strong>Completed</strong>${new Date(meeting.completed_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>` : ''}
-                                    <div class="meeting-meta-item">
-                                        <i class="fas fa-tag"></i>
-                                        <div><strong>Budget</strong>${meeting.budget_range || 'N/A'}</div>
-                                    </div>
-                                    ${meeting.property_type ? `<div class="meeting-meta-item"><i class="fas fa-building"></i><div><strong>Property</strong>${meeting.property_type}</div></div>` : ''}
-                                    ${meeting.meeting_mode ? `<div class="meeting-meta-item"><i class="fas ${meeting.meeting_mode === 'online' ? 'fa-video' : 'fa-map-marker-alt'}"></i><div><strong>Mode</strong>${meeting.meeting_mode === 'online' ? 'Online meeting' : 'Offline meeting'}</div></div>` : ''}
-                                    ${meeting.location ? `<div class="meeting-meta-item"><i class="fas fa-map-marker-alt"></i><div><strong>Location</strong>${meeting.location}</div></div>` : ''}
-                                    ${meeting.meeting_link ? `<div class="meeting-meta-item"><i class="fas fa-link"></i><div><strong>Join Link</strong><a href="${meeting.meeting_link}" target="_blank" class="meeting-link">Open meeting link</a></div></div>` : ''}
+                                </div>
+                                <div class="meeting-remark">
+                                    <strong>Remark</strong>
+                                    ${escapeHtml(remark)}
+                                </div>
+                                <div class="meeting-secondary">
+                                    <span><i class="fas fa-calendar"></i>${new Date(meeting.scheduled_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                    ${meeting.meeting_mode ? `<span><i class="fas ${meeting.meeting_mode === 'online' ? 'fa-video' : 'fa-map-marker-alt'}"></i>${meeting.meeting_mode === 'online' ? 'Online' : 'Offline'}</span>` : ''}
+                                    ${meeting.property_type ? `<span><i class="fas fa-building"></i>${meeting.property_type}</span>` : ''}
                                 </div>
                                 <div class="meeting-status-row">
                                     <span class="badge ${statusBadge}">${meeting.status}</span>
@@ -733,14 +836,6 @@
                                 </a>
                             ` : ''}
                             ${meeting.status === 'scheduled' && meeting.customer_confirmation_status !== 'cancelled' ? `
-                                ${meeting.customer_confirmation_status === 'pending' ? `
-                                    <button class="btn btn-warning" onclick="rescheduleMeeting(${meeting.id})">
-                                        <i class="fas fa-calendar"></i>Reschedule
-                                    </button>
-                                    <button class="btn btn-danger" onclick="cancelMeeting(${meeting.id})">
-                                        <i class="fas fa-times"></i>Cancel Meeting
-                                    </button>
-                                ` : ''}
                                 <button class="btn btn-success" onclick="showCompleteMeetingModal(${meeting.id})">
                                     <i class="fas fa-check"></i>Complete
                                 </button>
@@ -760,9 +855,7 @@
                                         ${meeting.pending_verification_with ? `<small>Pending with: ${(meeting.pending_verification_with || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</small>` : ''}
                                     </div>
                                 ` : ''}
-                                <button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})">
-                                    <i class="fas fa-skull"></i>Mark as Dead
-                                </button>
+                                ${meeting.verification_status !== 'pending' ? `<button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})"><i class="fas fa-skull"></i>Mark as Dead</button>` : ''}
                             ` : ''}
                         </div>
                     </div>
@@ -1564,6 +1657,10 @@
 
     // Initialize
     (function() {
+        const savedView = (() => {
+            try { return localStorage.getItem('asm_meetings_view') || 'card'; } catch (e) { return 'card'; }
+        })();
+        setMeetingsView(savedView);
         loadMeetings();
     })();
 </script>

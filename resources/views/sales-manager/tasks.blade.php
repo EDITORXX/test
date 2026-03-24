@@ -3036,6 +3036,8 @@
         console.log('API_BASE_URL:', API_BASE_URL);
         console.log('API_TOKEN available:', !!API_TOKEN);
         console.log('API_TOKEN value:', API_TOKEN ? API_TOKEN.substring(0, 20) + '...' : 'null');
+        const pageParams = new URLSearchParams(window.location.search);
+        const focusMode = pageParams.get('focus');
         
         // Set up event delegation for filter buttons (instead of inline onclick)
         document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -3116,6 +3118,18 @@
             }
         } catch (e) {
             console.error('Error reading saved task category:', e);
+        }
+
+        if (focusMode === 'followups') {
+            if (categoryDropdownDesktop) categoryDropdownDesktop.value = 'prospect';
+            if (categoryDropdownMobile) categoryDropdownMobile.value = 'prospect';
+            if (filterDropdown) filterDropdown.value = 'pending';
+            currentStatus = 'pending';
+            window.currentStatus = 'pending';
+            currentCategory = 'prospect';
+            window.currentCategory = 'prospect';
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.filter-btn[data-status="pending"]')?.classList.add('active');
         }
         
         // Set up date dropdown filters (mobile and desktop)
@@ -3240,7 +3254,11 @@
             }
             
             // Use filterTasks instead of loadTasks to restore UI state
-            filterTasks(currentStatus, savedDateFilter, savedCustomDate, savedCategoryFilter);
+            if (focusMode === 'followups') {
+                filterTasks('pending', savedDateFilter, savedCustomDate, 'prospect');
+            } else {
+                filterTasks(currentStatus, savedDateFilter, savedCustomDate, savedCategoryFilter);
+            }
             
             // Auto-refresh every 60 seconds (1 minute) to move tasks from Rescheduled to Pending
             // Only refresh when page/tab is visible (not hidden)
@@ -3262,7 +3280,11 @@
                 if (retryEl) {
                     console.log('Tasks grid found on retry, calling filterTasks() with saved filter:', currentStatus);
                     // Use filterTasks instead of loadTasks to restore UI state
-                    filterTasks(currentStatus);
+                    if (focusMode === 'followups') {
+                        filterTasks('pending', 'all', null, 'prospect');
+                    } else {
+                        filterTasks(currentStatus);
+                    }
                     
                     // Auto-refresh every 60 seconds (1 minute) to move tasks from Rescheduled to Pending
                     // Only refresh when page/tab is visible (not hidden)

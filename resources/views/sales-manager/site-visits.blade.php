@@ -11,6 +11,10 @@
         gap: 1.5rem;
         align-items: stretch;
     }
+    #visitsContainer.list-view {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
     .visit-card {
         background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
         padding: 18px;
@@ -41,6 +45,12 @@
         flex-direction: column;
         margin-bottom: 14px;
     }
+    .visit-topline {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
     .visit-actions {
         margin-top: auto;
         display: flex;
@@ -62,40 +72,46 @@
     .visit-subtitle {
         color: #64748b;
         font-size: 0.9rem;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
-    .visit-meta {
-        display: grid;
-        gap: 8px;
-    }
-    .visit-meta-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
+    .visit-remark {
         color: #475569;
         font-size: 0.88rem;
-        line-height: 1.35;
+        line-height: 1.45;
+        background: #f7fbfe;
+        border: 1px solid #deebf8;
+        border-radius: 12px;
+        padding: 10px 12px;
+        min-height: 64px;
+        margin-bottom: 12px;
     }
-    .visit-meta-item i {
-        width: 16px;
-        color: #1761A8;
-        margin-top: 4px;
-        flex-shrink: 0;
-    }
-    .visit-meta-item strong {
+    .visit-remark strong {
         display: block;
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #94a3b8;
-        margin-bottom: 2px;
+        margin-bottom: 6px;
+    }
+    .visit-secondary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        color: #64748b;
+        font-size: 0.82rem;
+        margin-bottom: 10px;
+    }
+    .visit-secondary span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
     .visit-status-row {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 14px;
+        margin-top: 0;
     }
     .badge {
         display: inline-flex;
@@ -182,6 +198,48 @@
         font-weight: 600;
         border: 1px solid #bfdbfe;
     }
+    .view-toggle-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #fff;
+        padding: 6px;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(16, 24, 20, 0.08);
+        border: 1px solid #e4e0d7;
+    }
+    .view-toggle-btn {
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 8px 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .view-toggle-btn.active {
+        background: linear-gradient(135deg, #1761A8 0%, #124a82 100%);
+        color: #fff;
+        box-shadow: 0 10px 18px rgba(23, 97, 168, 0.18);
+    }
+    #visitsContainer.list-view .visit-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 18px;
+    }
+    #visitsContainer.list-view .visit-header {
+        flex: 1 1 auto;
+        margin-bottom: 0;
+    }
+    #visitsContainer.list-view .visit-actions {
+        flex: 0 0 230px;
+        margin-top: 0;
+    }
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -248,11 +306,27 @@
             font-size: 1.1rem;
         }
         .visit-subtitle,
-        .visit-meta-item {
+        .visit-secondary,
+        .visit-remark {
             font-size: 0.84rem;
         }
         .visit-actions {
             gap: 8px;
+        }
+        .view-toggle-group {
+            width: 100%;
+            justify-content: space-between;
+        }
+        .view-toggle-btn {
+            flex: 1;
+            justify-content: center;
+        }
+        #visitsContainer.list-view .visit-card {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        #visitsContainer.list-view .visit-actions {
+            flex: 1 1 auto;
         }
         .filters {
             flex-direction: row;
@@ -303,9 +377,19 @@
 <div class="mb-6">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h2 class="text-2xl font-bold" style="color: #063A1C;">Site Visits</h2>
-        <a href="{{ route('sales-manager.site-visits.create') }}" class="btn btn-primary desktop-text">
-            <i class="fas fa-plus mr-2"></i>Schedule Site Visit
-        </a>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div class="view-toggle-group" aria-label="Visit View Toggle">
+                <button type="button" class="view-toggle-btn active" data-view="card" onclick="setVisitsView('card')">
+                    <i class="fas fa-grip"></i>Cards
+                </button>
+                <button type="button" class="view-toggle-btn" data-view="list" onclick="setVisitsView('list')">
+                    <i class="fas fa-list"></i>List
+                </button>
+            </div>
+            <a href="{{ route('sales-manager.site-visits.create') }}" class="btn btn-primary desktop-text">
+                <i class="fas fa-plus mr-2"></i>Schedule Site Visit
+            </a>
+        </div>
     </div>
 
     <div class="filters">
@@ -436,6 +520,36 @@
         return 'Above 3 Cr';
     }
 
+    function getVisitRemark(visit) {
+        return visit.visit_notes || visit.notes || visit.feedback || visit.property_address || visit.project || 'No remark added yet.';
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function truncateText(value, maxLength) {
+        const text = String(value || '');
+        return text.length > maxLength ? text.slice(0, maxLength).trim() + '...' : text;
+    }
+
+    function setVisitsView(view) {
+        const container = document.getElementById('visitsContainer');
+        if (!container) return;
+        container.classList.toggle('list-view', view === 'list');
+        document.querySelectorAll('.view-toggle-btn[data-view]').forEach((btn) => {
+            btn.classList.toggle('active', btn.getAttribute('data-view') === view);
+        });
+        try {
+            localStorage.setItem('asm_visits_view', view);
+        } catch (e) {}
+    }
+
     async function loadSiteVisits() {
         const container = document.getElementById('visitsContainer');
         container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
@@ -503,25 +617,26 @@
                 const budget = visit.budget_range || (visit.lead && visit.lead.budget ? formatBudget(visit.lead.budget) : null) || 'N/A';
                 const propertyType = visit.property_type || (visit.lead && visit.lead.property_type) || 'N/A';
                 const project = visit.property_name || visit.project || (visit.lead && visit.lead.preferred_projects) || 'N/A';
+                const remark = truncateText(getVisitRemark(visit), 120);
 
                 return `
                     <div class="visit-card ${statusClass}">
                         <div class="visit-header">
                             <div class="visit-info">
-                                <h3>${customerName}</h3>
-                                <div class="visit-subtitle">${phone}</div>
-                                <div class="visit-meta">
-                                    <div class="visit-meta-item">
-                                        <i class="fas fa-calendar"></i>
-                                        <div><strong>Scheduled</strong>${new Date(visit.scheduled_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                <div class="visit-topline">
+                                    <div>
+                                        <h3>${customerName}</h3>
+                                        <div class="visit-subtitle">${phone}</div>
                                     </div>
-                                    ${visit.completed_at ? `<div class="visit-meta-item"><i class="fas fa-check-circle"></i><div><strong>Completed</strong>${new Date(visit.completed_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>` : ''}
-                                    <div class="visit-meta-item">
-                                        <i class="fas fa-tag"></i>
-                                        <div><strong>Budget</strong>${budget}</div>
-                                    </div>
-                                    ${propertyType !== 'N/A' ? `<div class="visit-meta-item"><i class="fas fa-building"></i><div><strong>Property</strong>${propertyType}</div></div>` : ''}
-                                    ${project !== 'N/A' ? `<div class="visit-meta-item"><i class="fas fa-map-marker-alt"></i><div><strong>Project</strong>${project}</div></div>` : ''}
+                                </div>
+                                <div class="visit-remark">
+                                    <strong>Remark</strong>
+                                    ${escapeHtml(remark)}
+                                </div>
+                                <div class="visit-secondary">
+                                    <span><i class="fas fa-calendar"></i>${new Date(visit.scheduled_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                    ${project !== 'N/A' ? `<span><i class="fas fa-map-marker-alt"></i>${project}</span>` : ''}
+                                    ${propertyType !== 'N/A' ? `<span><i class="fas fa-building"></i>${propertyType}</span>` : ''}
                                 </div>
                                 <div class="visit-status-row">
                                     <span class="badge ${statusBadge}">${visit.status}</span>
@@ -534,9 +649,6 @@
                             ${visit.status === 'scheduled' ? `
                                 <button class="btn btn-success" onclick="showCompleteSiteVisitModal(${visit.id})">
                                     <i class="fas fa-check"></i>Complete
-                                </button>
-                                <button class="btn btn-warning" onclick="showRescheduleSiteVisitModal(${visit.id})">
-                                    <i class="fas fa-calendar-alt"></i>Reschedule
                                 </button>
                                 <button class="btn btn-danger" onclick="showMarkDeadModal('site-visit', ${visit.id})">
                                     <i class="fas fa-skull"></i>Mark as Dead
@@ -1258,6 +1370,10 @@
 
     // Initialize
     (function() {
+        const savedView = (() => {
+            try { return localStorage.getItem('asm_visits_view') || 'card'; } catch (e) { return 'card'; }
+        })();
+        setVisitsView(savedView);
         loadSiteVisits();
     })();
 </script>

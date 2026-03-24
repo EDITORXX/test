@@ -977,7 +977,7 @@
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="{{ route('sales-manager.tasks') }}" class="sidebar-link {{ request()->routeIs('sales-manager.tasks*') ? 'active' : '' }}" data-label="Tasks">
+            <a href="{{ route('sales-manager.tasks') }}" class="sidebar-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') !== 'followups' ? 'active' : '' }}" data-label="Tasks">
                 <i class="fas fa-tasks"></i>
                 <span>Tasks</span>
             </a>
@@ -992,6 +992,10 @@
             <a href="{{ route('sales-manager.meetings') }}" class="sidebar-link {{ request()->routeIs('sales-manager.meetings*') ? 'active' : '' }}" data-label="Meetings">
                 <i class="fas fa-handshake"></i>
                 <span>Meetings</span>
+            </a>
+            <a href="{{ route('sales-manager.tasks', ['focus' => 'followups']) }}" class="sidebar-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') === 'followups' ? 'active' : '' }}" data-label="Followups">
+                <i class="fas fa-phone-volume"></i>
+                <span>Followups</span>
             </a>
             <a href="{{ route('sales-manager.site-visits') }}" class="sidebar-link {{ request()->routeIs('sales-manager.site-visits*') ? 'active' : '' }}" data-label="Site Visits">
                 <i class="fas fa-map-marker-alt"></i>
@@ -1046,7 +1050,7 @@
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
         </a>
-        <a href="{{ route('sales-manager.tasks') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') ? 'active' : '' }}">
+        <a href="{{ route('sales-manager.tasks') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') !== 'followups' ? 'active' : '' }}">
             <i class="fas fa-tasks"></i>
             <span>Tasks</span>
         </a>
@@ -1061,6 +1065,10 @@
         <a href="{{ route('sales-manager.meetings') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.meetings*') ? 'active' : '' }}">
             <i class="fas fa-handshake"></i>
             <span>Meetings</span>
+        </a>
+        <a href="{{ route('sales-manager.tasks', ['focus' => 'followups']) }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') === 'followups' ? 'active' : '' }}">
+            <i class="fas fa-phone-volume"></i>
+            <span>Follow</span>
         </a>
         <a href="{{ route('sales-manager.site-visits') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.site-visits*') ? 'active' : '' }}">
             <i class="fas fa-map-marker-alt"></i>
