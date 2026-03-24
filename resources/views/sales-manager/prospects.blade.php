@@ -403,6 +403,17 @@
                 <option value="">All Users</option>
                 <!-- Options will be populated dynamically -->
             </select>
+            <select
+                id="leadStatusFilter"
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                style="flex: 1; min-width: 0; max-width: 25%; box-sizing: border-box;"
+                onchange="loadProspects()"
+            >
+                <option value="all">All Temperature</option>
+                <option value="hot">Hot</option>
+                <option value="warm">Warm</option>
+                <option value="cold">Cold</option>
+            </select>
         </div>
         <div class="prospect-view-toggle">
             <button type="button" id="prospectCardsViewBtn" class="active" onclick="setProspectView('cards')">
@@ -626,6 +637,7 @@
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
             const assignedTo = document.getElementById('userFilter')?.value || '';
+            const leadStatus = document.getElementById('leadStatusFilter')?.value || 'all';
             
             const params = new URLSearchParams({
                 page: page,
@@ -642,6 +654,10 @@
             
             if (assignedTo) {
                 params.append('assigned_to', assignedTo);
+            }
+
+            if (leadStatus && leadStatus !== 'all') {
+                params.append('lead_status', leadStatus);
             }
 
             const response = await fetch(`${API_BASE_URL}/prospects?${params}`, {

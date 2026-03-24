@@ -670,6 +670,11 @@ class SalesManagerController extends Controller
                   ->orWhere('assigned_manager', $assignedToId);
             });
         }
+
+        // Filter by lead temperature/status
+        if ($request->has('lead_status') && $request->lead_status && $request->lead_status !== 'all') {
+            $query->where('lead_status', $request->lead_status);
+        }
         
         // Order by created_at descending (newest first)
         $prospects = $query->latest('created_at')->paginate($request->get('per_page', 15));
