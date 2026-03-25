@@ -606,6 +606,13 @@
             padding: 20px;
             margin: 20px auto;
         }
+        #managerLeadRequirementFormModal .modal-header {
+            margin: -20px -20px 20px -20px;
+            padding: 16px 20px;
+        }
+        #managerLeadRequirementFormModal .modal-header h3 {
+            font-size: 22px;
+        }
     }
     .modal-header {
         display: flex;
@@ -619,6 +626,31 @@
         margin: 0;
         font-size: 24px;
         color: #063A1C;
+    }
+    #managerLeadRequirementFormModal .modal-header {
+        background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);
+        margin: -30px -30px 24px -30px;
+        padding: 20px 30px;
+        border-bottom: none;
+        border-radius: 12px 12px 0 0;
+    }
+    #managerLeadRequirementFormModal .modal-header h3 {
+        color: #ffffff;
+        font-size: 28px;
+    }
+    #managerLeadRequirementFormModal .modal-header .close-btn {
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+    }
+    #managerLeadRequirementFormModal .modal-header .close-btn:hover {
+        background: rgba(255, 255, 255, 0.22);
     }
     .close-modal {
         background: none;
