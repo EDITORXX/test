@@ -22,6 +22,35 @@
         margin-bottom: 20px;
         flex-wrap: wrap;
     }
+    .task-filter-layout {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .task-filter-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .task-filter-main .task-type-filter-desktop,
+    .task-filter-main .date-filter-desktop {
+        margin-left: 0 !important;
+    }
+    .task-filter-main .date-filter-select,
+    .task-filter-main .task-filter-select {
+        min-height: 48px;
+    }
+    .task-filter-extra {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: auto;
+    }
     .filter-btn {
         padding: 10px 20px;
         border: 2px solid #e0e0e0;
@@ -225,6 +254,19 @@
             gap: 8px;
             align-items: center;
         }
+        .task-filter-layout {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .task-filter-main {
+            width: 100%;
+        }
+        .task-filter-extra {
+            width: 100%;
+            justify-content: flex-end;
+            margin-left: 0;
+        }
         
         /* Hide desktop buttons on mobile */
         .filter-buttons-desktop {
@@ -282,7 +324,7 @@
         
         .btn-remove-overdue {
             width: auto;
-            margin-left: 8px;
+            margin-left: 0;
             padding: 10px 16px;
             font-size: 12px;
             justify-content: center;
@@ -327,6 +369,9 @@
     
     /* Desktop: Show buttons, hide mobile dropdowns */
     @media (min-width: 769px) {
+        .task-filter-main {
+            flex-wrap: nowrap;
+        }
         .filter-buttons-desktop {
             display: flex !important;
         }
@@ -883,16 +928,17 @@
 @section('content')
 <div class="tasks-container">
     <!-- Filter Bar -->
-    <div class="filter-bar" style="display: flex; align-items: center; justify-content: space-between;">
+    <div class="filter-bar">
+        <div class="task-filter-layout">
         <!-- Desktop: Button Filters -->
-        <div class="filter-buttons-desktop" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <div class="task-filter-main filter-buttons-desktop">
             <button class="filter-btn active" data-status="all">All Tasks</button>
             <button class="filter-btn" data-status="pending">Pending</button>
             <button class="filter-btn" data-status="overdue">Overdue</button>
             <button class="filter-btn" data-status="rescheduled">Rescheduled</button>
             <button class="filter-btn" data-status="completed">Completed</button>
 
-            <div class="task-type-filter-desktop" style="margin-left: 12px;">
+            <div class="task-type-filter-desktop">
                 <select id="taskTypeFilterDesktop" class="date-filter-select">
                     <option value="all">All Types</option>
                     <option value="follow_up">Follow Up</option>
@@ -905,7 +951,7 @@
             </div>
             
             <!-- Desktop Date Filter -->
-            <div class="date-filter-desktop" style="margin-left: 12px;">
+            <div class="date-filter-desktop">
                 <select id="dateFilterDropdownDesktop" class="date-filter-select">
                     <option value="all">All Dates</option>
                     <option value="today">Today</option>
@@ -918,15 +964,15 @@
         </div>
         
         <!-- Mobile: Dropdown Filters (50% each) -->
-        <div class="filter-dropdowns-mobile" style="display: none; flex: 1; gap: 8px; width: 100%;">
-            <select id="taskFilterDropdown" class="task-filter-select" style="flex: 1; width: 50%;">
+        <div class="task-filter-main filter-dropdowns-mobile" style="display: none;">
+            <select id="taskFilterDropdown" class="task-filter-select">
                 <option value="all">All Tasks</option>
                 <option value="pending">Pending</option>
                 <option value="overdue">Overdue</option>
                 <option value="rescheduled">Rescheduled</option>
                 <option value="completed">Completed</option>
             </select>
-            <select id="dateFilterDropdown" class="date-filter-select" style="flex: 1;">
+            <select id="dateFilterDropdown" class="date-filter-select">
                 <option value="all">All Dates</option>
                 <option value="today">Today</option>
                 <option value="tomorrow">Tomorrow</option>
@@ -936,8 +982,8 @@
             </select>
         </div>
 
-        <div class="task-type-filter-mobile" style="display: none; flex: 1; width: 100%; margin-top: 8px;">
-            <select id="taskTypeFilterMobile" class="task-filter-select" style="width: 100%;">
+        <div class="task-type-filter-mobile" style="display: none;">
+            <select id="taskTypeFilterMobile" class="task-filter-select">
                 <option value="all">All Types</option>
                 <option value="follow_up">Follow Up</option>
                 <option value="meeting">Meeting</option>
@@ -948,13 +994,16 @@
             </select>
         </div>
         
-        <!-- Custom Date Picker (hidden by default) -->
-        <input type="date" id="customDatePicker" style="display: none; margin-left: 8px; padding: 8px 12px; border: 2px solid #205A44; border-radius: 8px; font-size: 14px;">
-        
-        <button id="removeAllOverdueBtn" class="btn-remove-overdue" onclick="removeAllOverdueTasks()" style="display: none;">
-            <i class="fas fa-trash-alt"></i>
-            Remove All Overdue
-        </button>
+        <div class="task-filter-extra">
+            <!-- Custom Date Picker (hidden by default) -->
+            <input type="date" id="customDatePicker" style="display: none; margin-left: 8px; padding: 8px 12px; border: 2px solid #205A44; border-radius: 8px; font-size: 14px;">
+            
+            <button id="removeAllOverdueBtn" class="btn-remove-overdue" onclick="removeAllOverdueTasks()" style="display: none;">
+                <i class="fas fa-trash-alt"></i>
+                Remove All Overdue
+            </button>
+        </div>
+        </div>
     </div>
 
     <!-- Tasks Grid -->

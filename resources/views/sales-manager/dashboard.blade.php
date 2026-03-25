@@ -917,17 +917,6 @@
     </div>
 </div>
 
-<!-- Recent Tasks Section (Mobile View) -->
-<div class="bg-white rounded-lg shadow p-6 mb-6 recent-tasks-mobile">
-    <h2 class="text-xl font-bold text-gray-900 mb-4">Recent Tasks</h2>
-    <div id="recentTasksGrid" class="recent-tasks-grid">
-        <div class="text-center py-8">
-            <i class="fas fa-spinner fa-spin text-gray-400 text-2xl mb-2"></i>
-            <p class="text-gray-500 text-sm">Loading tasks...</p>
-        </div>
-    </div>
-</div>
-
 <!-- Team Call Statistics -->
 <div class="bg-white rounded-lg shadow p-6 mb-6" id="teamCallStatsSection" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
@@ -1645,17 +1634,9 @@
     // Initialize on page load
     (function() {
         loadDashboardData();
-        loadRecentTasks();
 
         const smPendingDateRange = document.getElementById('sm-leads-pending-date-range');
         if (smPendingDateRange) smPendingDateRange.addEventListener('change', loadSmLeadsPendingResponse);
-        
-        // Reload recent tasks on window resize
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(loadRecentTasks, 200);
-        });
     })();
 </script>
 @endpush
