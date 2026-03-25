@@ -563,7 +563,7 @@
     }
     .asm-hero-side {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 14px;
         align-items: stretch;
     }
@@ -636,15 +636,9 @@
         color: rgba(255,255,255,0.58);
         margin-bottom: 10px;
     }
-    .asm-focus-panel h3 {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
+    .asm-focus-panel h3,
     .asm-focus-panel p {
-        font-size: 13px;
-        color: rgba(255,255,255,0.76);
-        line-height: 1.6;
+        display: none;
     }
     .asm-mini-metrics {
         display: grid;
@@ -781,13 +775,9 @@
     <div class="asm-hero-copy">
         <div class="asm-hero-kicker">Dashboard</div>
         <h2>Good morning, <span>{{ auth()->user()->name }}</span></h2>
-    </div>
-    <div class="asm-hero-side">
-        <div class="asm-focus-panel">
+        <div class="asm-focus-panel" style="margin-top: 22px;">
             <div>
                 <div class="eyebrow">Today Focus</div>
-                <h3>Lead response, verification queue, and overdue follow-ups.</h3>
-                <p>Section order ab operational priority ke hisaab se hai, decorative clutter ke hisaab se nahi.</p>
             </div>
             <div class="asm-mini-metrics">
                 <div><strong id="pendingTasksHero">0</strong><span>Pending</span></div>
@@ -795,6 +785,8 @@
                 <div><strong id="pendingVerificationsHero">0</strong><span>Verify</span></div>
             </div>
         </div>
+    </div>
+    <div class="asm-hero-side">
         <div class="asm-favorites-panel">
             <div>
                 <div class="eyebrow">Favorites</div>
