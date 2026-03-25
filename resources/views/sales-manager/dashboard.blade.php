@@ -780,9 +780,9 @@
                 <div class="eyebrow">Today Focus</div>
             </div>
             <div class="asm-mini-metrics">
-                <div><strong id="pendingTasksHero">0</strong><span>Pending</span></div>
+                <div><strong id="freshLeadsHero">0</strong><span>Fresh Leads</span></div>
                 <div><strong id="overdueTasksHero">0</strong><span>Overdue</span></div>
-                <div><strong id="pendingVerificationsHero">0</strong><span>Verify</span></div>
+                <div><strong id="todayMvfHero">M 0 | V 0 | F 0</strong><span>Today M/V/F</span></div>
             </div>
         </div>
     </div>
@@ -1292,12 +1292,15 @@
                 document.getElementById('pendingTasks').textContent = profile.team_stats.pending_tasks || 0;
                 // Get overdue tasks count
                 document.getElementById('overdueTasks').textContent = profile.team_stats.overdue_tasks || 0;
-                const pendingTasksHero = document.getElementById('pendingTasksHero');
+                const freshLeadsHero = document.getElementById('freshLeadsHero');
                 const overdueTasksHero = document.getElementById('overdueTasksHero');
-                const pendingVerificationsHero = document.getElementById('pendingVerificationsHero');
-                if (pendingTasksHero) pendingTasksHero.textContent = profile.team_stats.pending_tasks || 0;
+                const todayMvfHero = document.getElementById('todayMvfHero');
+                const todayMeetings = profile.team_stats.today_meetings_count || 0;
+                const todayVisits = profile.team_stats.today_visits_count || 0;
+                const todayFollowups = profile.team_stats.today_followups_count || 0;
+                if (freshLeadsHero) freshLeadsHero.textContent = profile.team_stats.fresh_leads_today || 0;
                 if (overdueTasksHero) overdueTasksHero.textContent = profile.team_stats.overdue_tasks || 0;
-                if (pendingVerificationsHero) pendingVerificationsHero.textContent = profile.team_stats.pending_verifications || 0;
+                if (todayMvfHero) todayMvfHero.textContent = `M ${todayMeetings} | V ${todayVisits} | F ${todayFollowups}`;
                 renderFavoriteLeads(profile.favorite_leads || []);
                 console.log('Team stats updated:', profile.team_stats);
             } else {

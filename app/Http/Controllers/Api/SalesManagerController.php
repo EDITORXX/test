@@ -12,6 +12,9 @@ use App\Models\Lead;
 use App\Models\LeadFavorite;
 use App\Models\LeadFormField;
 use App\Models\LeadAssignment;
+use App\Models\Meeting;
+use App\Models\SiteVisit;
+use App\Models\FollowUp;
 use App\Models\Task;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -328,6 +331,27 @@ class SalesManagerController extends Controller
             ->where('scheduled_at', '<', $tenMinutesAgo)
             ->count();
 
+        // Hero counters (ASM scope only: logged-in user)
+        $freshLeadsTodayCount = LeadAssignment::where('assigned_to', $user->id)
+            ->whereDate('created_at', Carbon::today())
+            ->distinct()
+            ->count('lead_id');
+
+        $todayMeetingsCount = Meeting::where('assigned_to', $user->id)
+            ->whereDate('scheduled_at', Carbon::today())
+            ->where('status', 'scheduled')
+            ->count();
+
+        $todayVisitsCount = SiteVisit::where('assigned_to', $user->id)
+            ->whereDate('scheduled_at', Carbon::today())
+            ->where('status', 'scheduled')
+            ->count();
+
+        $todayFollowUpsCount = FollowUp::where('created_by', $user->id)
+            ->whereDate('scheduled_at', Carbon::today())
+            ->where('status', 'scheduled')
+            ->count();
+
         // Log for debugging
         \Log::info('Senior Manager pending tasks count', [
             'user_id' => $user->id,
@@ -350,6 +374,10 @@ class SalesManagerController extends Controller
             'assigned_leads' => $assignedLeadsCount,
             'pending_tasks' => $pendingTasksCount,
             'overdue_tasks' => $overdueTasksCount,
+            'fresh_leads_today' => $freshLeadsTodayCount,
+            'today_meetings_count' => $todayMeetingsCount,
+            'today_visits_count' => $todayVisitsCount,
+            'today_followups_count' => $todayFollowUpsCount,
         ];
         $favoriteLeads = $this->getFavoriteLeadPayload($user, 5);
 
