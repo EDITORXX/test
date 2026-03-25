@@ -1503,6 +1503,270 @@ class SalesManagerController extends Controller
     }
 
     /**
+     * Submit ASM task outcome through a single endpoint.
+     */
+    public function submitTaskOutcome(Request $request, Task $task)
+    {
+        $user = $request->user();
+
+        if ((int) $task->assigned_to !== (int) $user->id && !$user->isAdmin() && !$user->isCrm()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized access to task',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'outcome' => 'required|in:interested,not_interested,follow_up,cnp,junk',
+            'next_datetime' => 'nullable|date|after:now',
+            'remark' => 'nullable|string|max:2000',
+            'lead_form_payload' => 'nullable|array',
+        ]);
+
+        $outcome = $validated['outcome'];
+
+        if (in_array($outcome, ['follow_up', 'cnp'], true) && empty($validated['next_datetime'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => ['next_datetime' => ['Please select a future date and time.']],
+            ], 422);
+        }
+
+        if ($outcome === 'junk' && blank($validated['remark'] ?? null)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => ['remark' => ['Remark is required for junk outcome.']],
+            ], 422);
+        }
+
+        if ($outcome === 'interested') {
+            $payload = $request->input('lead_form_payload', []);
+            if (!is_array($payload) || empty($payload)) {
+                $payload = $request->except(['outcome', 'next_datetime', 'remark', 'lead_form_payload']);
+            }
+
+            $payload['output_action'] = $payload['output_action'] ?? 'interested';
+            $payload['follow_up_required'] = $payload['follow_up_required'] ?? '0';
+
+            $childRequest = Request::create('/', 'POST', $payload);
+            $childRequest->setUserResolver(fn () => $user);
+
+            $response = $this->verifyProspectFromTask($childRequest, $task);
+            $body = $response->getData(true);
+
+            if (($body['success'] ?? false) !== true || $response->getStatusCode() >= 300) {
+                return $response;
+            }
+
+            $task->refresh();
+            $this->recordTaskOutcome($task, 'interested');
+
+            $body['outcome'] = 'interested';
+
+            return response()->json($body, $response->getStatusCode());
+        }
+
+        if ($outcome === 'cnp') {
+            $childRequest = Request::create('/', 'POST', [
+                'retry_at' => $validated['next_datetime'],
+            ]);
+            $childRequest->setUserResolver(fn () => $user);
+
+            $response = $this->markAsCNP($childRequest, $task);
+            $body = $response->getData(true);
+
+            if (($body['success'] ?? false) !== true || $response->getStatusCode() >= 300) {
+                return $response;
+            }
+
+            $task->refresh();
+            $this->recordTaskOutcome($task, 'cnp', null, Carbon::parse($validated['next_datetime']));
+
+            $body['outcome'] = 'cnp';
+
+            return response()->json($body, $response->getStatusCode());
+        }
+
+        [$lead, $prospect] = $this->getOrCreateTaskLeadAndProspect($task, $user, $request);
+
+        if (!$lead) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Lead not found',
+            ], 404);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            if ($outcome === 'not_interested') {
+                $reason = 'Not Interested';
+
+                $lead->status = 'closed';
+                $lead->next_followup_at = null;
+                $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: Not Interested');
+                $lead->disableAutoUpdate();
+                $lead->save();
+
+                $prospect->update([
+                    'verification_status' => 'rejected',
+                    'lead_status' => 'cold',
+                    'manager_remark' => $reason,
+                    'rejection_reason' => $reason,
+                    'verified_at' => now(),
+                    'verified_by' => $user->id,
+                ]);
+
+                $this->deactivateLeadAssignments($lead);
+                $task->markAsCompleted();
+                $this->recordTaskOutcome($task, 'not_interested', $reason);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Lead marked as not interested and removed from ASM tasks.',
+                    'outcome' => 'not_interested',
+                ]);
+            }
+
+            if ($outcome === 'follow_up') {
+                $nextAt = Carbon::parse($validated['next_datetime']);
+                $remark = trim((string) ($validated['remark'] ?? ''));
+
+                $followUpTask = Task::create([
+                    'lead_id' => $lead->id,
+                    'assigned_to' => $user->id,
+                    'type' => 'phone_call',
+                    'title' => "Follow-up call: {$lead->name}",
+                    'description' => "Follow-up call task scheduled for {$nextAt->format('Y-m-d H:i')}.",
+                    'status' => 'pending',
+                    'scheduled_at' => $nextAt,
+                    'created_by' => $user->id,
+                    'notes' => $remark ?: "Follow-up scheduled for {$nextAt->format('Y-m-d H:i')}",
+                ]);
+
+                $lead->next_followup_at = $nextAt;
+                $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: Follow Up scheduled for ' . $nextAt->format('Y-m-d H:i:s'));
+                $lead->save();
+
+                $prospect->update([
+                    'verification_status' => 'pending_verification',
+                    'manager_remark' => $remark ?: "Follow-up scheduled for {$nextAt->format('Y-m-d H:i')}",
+                ]);
+
+                $task->markAsCompleted();
+                $this->recordTaskOutcome($task, 'follow_up', $remark ?: null, $nextAt);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Follow-up task created successfully.',
+                    'outcome' => 'follow_up',
+                    'task' => $followUpTask,
+                ]);
+            }
+
+            $junkRemark = trim((string) ($validated['remark'] ?? ''));
+
+            $lead->status = 'junk';
+            $lead->next_followup_at = null;
+            $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: Junk - ' . $junkRemark);
+            $lead->disableAutoUpdate();
+            $lead->save();
+
+            $prospect->update([
+                'verification_status' => 'rejected',
+                'lead_status' => 'junk',
+                'manager_remark' => $junkRemark,
+                'rejection_reason' => $junkRemark,
+                'verified_at' => now(),
+                'verified_by' => $user->id,
+            ]);
+
+            $this->deactivateLeadAssignments($lead);
+            $task->markAsCompleted();
+            $this->recordTaskOutcome($task, 'junk', $junkRemark);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lead marked as junk and removed from the active ASM queue.',
+                'outcome' => 'junk',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Submit Task Outcome Error', [
+                'task_id' => $task->id,
+                'outcome' => $outcome,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to submit task outcome: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function getOrCreateTaskLeadAndProspect(Task $task, User $user, Request $request): array
+    {
+        $lead = $task->lead;
+        if (!$lead) {
+            return [null, null];
+        }
+
+        $prospect = $lead->prospects()->latest()->first();
+
+        if (!$prospect) {
+            $prospect = Prospect::create([
+                'lead_id' => $lead->id,
+                'customer_name' => $request->input('name', $lead->name),
+                'phone' => $request->input('phone', $lead->phone),
+                'manager_id' => $user->id,
+                'assigned_manager' => $user->id,
+                'created_by' => $user->id,
+                'verification_status' => 'pending_verification',
+            ]);
+        }
+
+        return [$lead, $prospect];
+    }
+
+    private function deactivateLeadAssignments(Lead $lead): void
+    {
+        $lead->assignments()
+            ->where('is_active', true)
+            ->update([
+                'is_active' => false,
+                'unassigned_at' => now(),
+            ]);
+    }
+
+    private function recordTaskOutcome(Task $task, string $outcome, ?string $remark = null, ?Carbon $nextActionAt = null): void
+    {
+        $task->update([
+            'outcome' => $outcome,
+            'outcome_remark' => $remark,
+            'outcome_recorded_at' => now(),
+            'next_action_at' => $nextActionAt,
+        ]);
+    }
+
+    private function appendNote(?string $existing, string $entry): string
+    {
+        $existing = trim((string) $existing);
+
+        return $existing !== '' ? $existing . "\n\n" . $entry : $entry;
+    }
+
+    /**
      * Verify prospect from task (with full form data)
      */
     public function verifyProspectFromTask(Request $request, Task $task)

@@ -61,6 +61,10 @@
         return 'lead';
     }
 
+    function getTaskOutcomeContext() {
+        return window.managerTaskOutcomeContext || null;
+    }
+
     function getModalTitleElement() {
         return document.getElementById('leadReqModalTitle')
             || document.querySelector('#managerLeadRequirementFormModal .modal-header h3');
@@ -156,11 +160,13 @@
         const existingPurpose = formValues.purpose || '';
         const existingPossession = formValues.possession || '';
         const existingBudget = formValues.budget || '';
-        const selectedAction = getSelectedAction(formValues, context);
+        const outcomeContext = getTaskOutcomeContext();
+        const isInterestedOutcomeFlow = context === 'task' && outcomeContext && outcomeContext.outcome === 'interested';
+        const selectedAction = isInterestedOutcomeFlow ? 'interested' : getSelectedAction(formValues, context);
         const modalTitle = getModalTitleElement();
 
         if (modalTitle) {
-            modalTitle.textContent = 'Lead Detail Form';
+            modalTitle.textContent = 'Lead Form';
         }
 
         container.dataset.leadId = data.lead_id || '';
@@ -168,7 +174,9 @@
         container.dataset.formContext = context;
 
         const deadDisabled = context !== 'task';
-        const footerLabel = context === 'task' ? 'Save & continue' : 'Save requirements';
+        const footerLabel = isInterestedOutcomeFlow
+            ? 'Save & complete'
+            : (context === 'task' ? 'Save & continue' : 'Save requirements');
 
         container.innerHTML = `
             <div class="manager-lead-shell">
@@ -372,6 +380,7 @@
                             </div>
                         </div>
                     </section>
+                    ${isInterestedOutcomeFlow ? '' : `
                     <section class="manager-lead-section">
                         <div class="manager-lead-section-head">
                             <div class="manager-lead-section-icon manager-lead-section-icon-green"><i class="fas fa-check"></i></div>
@@ -408,6 +417,7 @@
                             </div>
                         </div>
                     </section>
+                    `}
                 </form>
             </div>
 
@@ -612,7 +622,10 @@
             return field ? field.value.trim() : '';
         };
 
-        const outputAction = getValue('manager_form_output_action');
+        const outcomeContext = getTaskOutcomeContext();
+        const outputAction = outcomeContext && outcomeContext.outcome === 'interested'
+            ? 'interested'
+            : getValue('manager_form_output_action');
         const interestedProjects = updateSelectedProjects();
         const isFollowUp = outputAction === 'follow_up';
 
@@ -663,7 +676,7 @@
         }
 
         if (!payload.interested_projects.length) return 'Please select at least one Interested Project';
-        if (context === 'task' && !payload.output_action) return 'Please select the next action';
+        if (context === 'task' && !(getTaskOutcomeContext() && getTaskOutcomeContext().outcome === 'interested') && !payload.output_action) return 'Please select the next action';
 
         if (payload.output_action === 'follow_up') {
             if (!payload.follow_up_date) return 'Please select a Follow Up Date & Time';
@@ -726,9 +739,17 @@
         }
 
         try {
-            const response = await apiCall(`/tasks/${window.currentTaskId}/verify`, {
+            const isInterestedOutcomeFlow = getTaskOutcomeContext() && getTaskOutcomeContext().outcome === 'interested';
+            const endpoint = isInterestedOutcomeFlow
+                ? `/tasks/${window.currentTaskId}/outcome`
+                : `/tasks/${window.currentTaskId}/verify`;
+            const body = isInterestedOutcomeFlow
+                ? { outcome: 'interested', lead_form_payload: payload }
+                : payload;
+
+            const response = await apiCall(endpoint, {
                 method: 'POST',
-                body: JSON.stringify(payload)
+                body: JSON.stringify(body)
             });
 
             if (!response || !response.success) {
@@ -747,7 +768,9 @@
             }
 
             closeManagerLeadRequirementFormModal();
-            const message = payload.output_action === 'follow_up'
+            const message = isInterestedOutcomeFlow
+                ? 'Lead form submitted successfully'
+                : payload.output_action === 'follow_up'
                 ? 'Follow-up task created successfully'
                 : 'Lead requirements saved successfully';
             window.showAlert ? window.showAlert(message, 'success', 3000) : alert(message);
@@ -775,6 +798,7 @@
             }
 
             window.currentTaskId = null;
+            window.managerTaskOutcomeContext = null;
         } catch (error) {
             console.error('Error submitting manager lead requirement form:', error);
             window.showAlert ? window.showAlert(error.message || 'Failed to process request', 'error') : alert('Failed to process request');

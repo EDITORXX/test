@@ -222,6 +222,7 @@
 .s-visit_scheduled,.s-visit_done,.s-revisited_scheduled,.s-revisited_completed { background:#fff7ed;color:#c2410c;border-color:#fdba74; }
 .s-closed          { background:#f0fdf4;color:#065f46;border-color:#6ee7b7; }
 .s-dead            { background:#fef2f2;color:#991b1b;border-color:#fca5a5; }
+.s-junk            { background:#fff7ed;color:#9a3412;border-color:#fdba74; }
 .s-on_hold         { background:#f8fafc;color:#475569;border-color:#cbd5e1; }
 
 /* ── Empty ── */
@@ -277,6 +278,7 @@
         'revisited_completed'  => 'Revisit Done',
         'closed'               => 'Closed',
         'dead'                 => 'Dead',
+        'junk'                 => 'Junk',
         'on_hold'              => 'On Hold',
     ];
     $sourceLabels = [

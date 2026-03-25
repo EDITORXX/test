@@ -842,32 +842,35 @@
     </div>
 </div>
 
-<!-- Step 1: Verify/Reject Prompt Modal -->
+<!-- Step 1: Call Outcome Modal -->
 <div id="verifyRejectPromptModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-            <h3>Verify, Reject, or CNP Prospect</h3>
-            <button class="close-modal" onclick="cancelVerifyRejectPrompt()">&times;</button>
+            <h3>Call Outcome</h3>
+            <button class="close-modal" onclick="closeTaskOutcomeModal()">&times;</button>
         </div>
         <div class="modal-body">
             <div style="padding: 20px; text-align: center;">
                 <p style="font-size: 16px; color: #333; margin-bottom: 30px;">
-                    Please choose an action for this prospect:
+                    Select the outcome for this completed ASM call:
                 </p>
                 <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                    <button type="button" class="btn-verify" onclick="proceedToVerifyForm()" style="padding: 12px 24px; background: #205A44; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
-                        <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify
+                    <button type="button" class="btn-verify" onclick="selectTaskOutcome('interested')" style="padding: 12px 24px; background: #205A44; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-thumbs-up" style="margin-right: 8px;"></i>Interested
                     </button>
-                    <button type="button" class="btn-reject" onclick="proceedToReject()" style="padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
-                        <i class="fas fa-times-circle" style="margin-right: 8px;"></i>Reject
+                    <button type="button" class="btn-reject" onclick="selectTaskOutcome('not_interested')" style="padding: 12px 24px; background: #6b7280; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-user-slash" style="margin-right: 8px;"></i>Not Interested
                     </button>
-                    <button type="button" class="btn-cnp" onclick="proceedToCNP()" style="padding: 12px 24px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                    <button type="button" class="btn-cnp" onclick="selectTaskOutcome('follow_up')" style="padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-clock" style="margin-right: 8px;"></i>Follow Up
+                    </button>
+                    <button type="button" class="btn-cnp" onclick="selectTaskOutcome('cnp')" style="padding: 12px 24px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-phone-slash" style="margin-right: 8px;"></i>CNP
                     </button>
+                    <button type="button" class="btn-reject" onclick="selectTaskOutcome('junk')" style="padding: 12px 24px; background: #dc2626; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-trash" style="margin-right: 8px;"></i>Junk
+                    </button>
                 </div>
-                <p style="font-size: 12px; color: #666; margin-top: 16px; font-style: italic;">
-                    CNP: Call Not Picked - Will create a retry task for 2 hours later
-                </p>
             </div>
         </div>
     </div>
@@ -891,36 +894,36 @@
     </div>
 </div>
 
-<!-- Reject Modal (shown after Reject clicked) -->
+<!-- Junk Remark Modal -->
 <div id="rejectReasonModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-            <h3>Reject Prospect</h3>
-            <button class="close-modal" onclick="cancelRejectReasonModal()">&times;</button>
+            <h3>Mark Lead as Junk</h3>
+            <button class="close-modal" onclick="cancelJunkRemarkModal()">&times;</button>
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label for="rejectReasonInput">Rejection Reason <span class="required">*</span></label>
-                <textarea id="rejectReasonInput" rows="4" required placeholder="Enter reason for rejection..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
+                <label for="rejectReasonInput">Remark <span class="required">*</span></label>
+                <textarea id="rejectReasonInput" rows="4" required placeholder="Enter junk remark..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
             </div>
             <div class="form-footer" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" class="btn-cancel" onclick="cancelRejectReasonModal()">Cancel</button>
-                <button type="button" class="btn-reject" onclick="submitRejectProspect()">Confirm Reject</button>
+                <button type="button" class="btn-cancel" onclick="cancelJunkRemarkModal()">Cancel</button>
+                <button type="button" class="btn-reject" onclick="submitJunkOutcome()">Mark Junk</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- CNP Time Selection Modal -->
+<!-- Outcome Date/Time Modal -->
 <div id="cnpTimeSelectionModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-            <h3>Select Retry Time for CNP</h3>
-            <button class="close-modal" onclick="cancelCnpTimeSelection()">&times;</button>
+            <h3 id="outcomeDateTimeModalTitle">Select Retry Time for CNP</h3>
+            <button class="close-modal" onclick="cancelOutcomeDateTimeModal()">&times;</button>
         </div>
         <div class="modal-body">
             <div style="padding: 20px;">
-                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                <p id="outcomeDateTimeModalText" style="font-size: 14px; color: #666; margin-bottom: 20px;">
                     Choose when to retry this call:
                 </p>
                 
@@ -967,7 +970,7 @@
                                style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                     </div>
                     <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">
-                        Select a future date and time for the retry call
+                        Select a future date and time
                     </small>
                 </div>
                 
@@ -980,10 +983,10 @@
             </div>
         </div>
         <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
-            <button type="button" onclick="cancelCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+            <button type="button" onclick="cancelOutcomeDateTimeModal()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
                 Cancel
             </button>
-            <button type="button" onclick="confirmCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+            <button type="button" id="outcomeDateTimeConfirmBtn" onclick="confirmOutcomeDateTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
                 Confirm
             </button>
         </div>
@@ -994,7 +997,7 @@
 <div id="prospectDetailModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 id="modalTitle">View Prospect Details</h3>
+            <h3 id="modalTitle">Lead Form</h3>
             <button class="close-modal" onclick="closeProspectDetailModal()">&times;</button>
         </div>
         <div id="prospectDetailContent" style="padding: 24px;">
@@ -1541,13 +1544,9 @@
                             <i class="fas fa-phone"></i>
                             <span>Call</span>
                         </button>
-                        <button class="task-action-btn btn-whatsapp" onclick="openWhatsApp('${cleanPhone}')" title="WhatsApp">
-                            <i class="fab fa-whatsapp"></i>
-                            <span>WhatsApp</span>
-                        </button>
-                        <button class="task-action-btn btn-view-detail" onclick="openProspectDetailModal(${task.id}, true)" title="View Detail">
-                            <i class="fas fa-eye"></i>
-                            <span>Detail</span>
+                        <button class="task-action-btn btn-view-detail" onclick="openTaskOutcomeModal(${task.id})" title="Mark Complete">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Mark Complete</span>
                         </button>
                     </div>
                 </div>
@@ -1849,7 +1848,8 @@
             hour12: true
         });
         
-        document.getElementById('selectedTimeText').textContent = `Retry call in ${minutes} minutes (${formattedTime})`;
+        const quickPrefix = selectedTaskOutcome === 'follow_up' ? 'Follow up in' : 'Retry call in';
+        document.getElementById('selectedTimeText').textContent = `${quickPrefix} ${minutes} minutes (${formattedTime})`;
         document.getElementById('selectedTimeDisplay').style.display = 'block';
     }
     
@@ -1906,7 +1906,8 @@
                             minute: '2-digit',
                             hour12: true
                         });
-                        document.getElementById('selectedTimeText').textContent = `Retry call on ${formattedTime}`;
+                        const customPrefix = selectedTaskOutcome === 'follow_up' ? 'Follow up on' : 'Retry call on';
+                        document.getElementById('selectedTimeText').textContent = `${customPrefix} ${formattedTime}`;
                         document.getElementById('selectedTimeDisplay').style.display = 'block';
                         selectedCnpCustomDateTime = dateTime.toISOString();
                     } else {
@@ -2121,6 +2122,7 @@
         const modal = document.getElementById('managerLeadRequirementFormModal');
         modal.classList.remove('active');
         document.getElementById('managerLeadFormContainer').innerHTML = '';
+        window.managerTaskOutcomeContext = null;
         // Reset currentTaskId when modal is closed (user cancelled)
         setCurrentTaskId(null);
     }
@@ -2138,7 +2140,7 @@
         const modalTitle = document.querySelector('#managerLeadRequirementFormModal .modal-header h3');
         if (modalTitle) {
             const hasProspect = data.has_prospect === true;
-            modalTitle.textContent = hasProspect ? 'Prospect Verification' : 'Lead Detail Form';
+            modalTitle.textContent = 'Lead Form';
         }
         
         const formValues = data.form_values || {};
@@ -3372,13 +3374,13 @@
     // Close modals on outside click (backdrop click)
     document.getElementById('verifyRejectPromptModal')?.addEventListener('click', function(e) {
         if (e.target === this) {
-            cancelVerifyRejectPrompt();
+            closeTaskOutcomeModal();
         }
     });
     
     document.getElementById('rejectReasonModal')?.addEventListener('click', function(e) {
         if (e.target === this) {
-            cancelRejectReasonModal();
+            cancelJunkRemarkModal();
         }
     });
     
@@ -3390,7 +3392,7 @@
     
     document.getElementById('cnpTimeSelectionModal')?.addEventListener('click', function(e) {
         if (e.target === this) {
-            cancelCnpTimeSelection();
+            cancelOutcomeDateTimeModal();
         }
     });
     
@@ -3399,6 +3401,202 @@
             closeProspectDetailModal();
         }
     });
+
+    // ASM task outcome overrides
+    let selectedTaskOutcome = null;
+
+    async function handleManagerCallClick(taskId, phoneNumber) {
+        setCurrentTaskId(taskId);
+
+        if (!phoneNumber || phoneNumber === 'N/A') {
+            showAlert('Phone number not available', 'warning');
+            return;
+        }
+
+        const cleanPhone = String(phoneNumber).replace(/[^0-9]/g, '');
+        if (cleanPhone.length < 10) {
+            showAlert('Phone number not available', 'warning');
+            return;
+        }
+
+        window.location.href = `tel:${cleanPhone}`;
+    }
+
+    function openTaskOutcomeModal(taskId) {
+        setCurrentTaskId(taskId);
+        selectedTaskOutcome = null;
+        document.getElementById('verifyRejectPromptModal')?.classList.add('active');
+    }
+
+    function closeTaskOutcomeModal() {
+        document.getElementById('verifyRejectPromptModal')?.classList.remove('active');
+    }
+
+    function cancelVerifyRejectPrompt() {
+        closeTaskOutcomeModal();
+        setCurrentTaskId(null);
+    }
+
+    async function selectTaskOutcome(outcome) {
+        closeTaskOutcomeModal();
+
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+
+        if (outcome === 'interested') {
+            window.managerTaskOutcomeContext = { outcome: 'interested' };
+            await openManagerLeadRequirementFormModal(currentTaskId);
+            return;
+        }
+
+        if (outcome === 'not_interested') {
+            await submitTaskOutcome(outcome);
+            return;
+        }
+
+        if (outcome === 'follow_up' || outcome === 'cnp') {
+            selectedTaskOutcome = outcome;
+            const title = document.getElementById('outcomeDateTimeModalTitle');
+            const text = document.getElementById('outcomeDateTimeModalText');
+            const confirmBtn = document.getElementById('outcomeDateTimeConfirmBtn');
+
+            if (title) {
+                title.textContent = outcome === 'follow_up' ? 'Schedule Follow Up' : 'Select Retry Time for CNP';
+            }
+
+            if (text) {
+                text.textContent = outcome === 'follow_up'
+                    ? 'Choose when the next follow-up call should happen:'
+                    : 'Choose when to retry this call:';
+            }
+
+            if (confirmBtn) {
+                confirmBtn.textContent = outcome === 'follow_up' ? 'Schedule Follow Up' : 'Confirm CNP';
+                confirmBtn.style.background = outcome === 'follow_up' ? '#2563eb' : '#f59e0b';
+            }
+
+            openCnpTimeSelectionModal();
+            return;
+        }
+
+        if (outcome === 'junk') {
+            document.getElementById('rejectReasonInput').value = '';
+            document.getElementById('rejectReasonModal')?.classList.add('active');
+        }
+    }
+
+    async function confirmOutcomeDateTimeSelection() {
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+
+        let nextDateTime = null;
+
+        if (isCustomTimeSelected) {
+            const date = document.getElementById('cnpCustomDate')?.value;
+            const time = document.getElementById('cnpCustomTime')?.value;
+
+            if (!date || !time) {
+                showAlert('Please select both date and time', 'warning');
+                return;
+            }
+
+            const selectedDateTime = new Date(`${date}T${time}`);
+            if (selectedDateTime <= new Date()) {
+                showAlert('Please select a future date and time', 'warning');
+                return;
+            }
+
+            nextDateTime = selectedDateTime.toISOString();
+        } else if (selectedCnpMinutes !== null) {
+            nextDateTime = new Date(Date.now() + (selectedCnpMinutes * 60 * 1000)).toISOString();
+        } else {
+            showAlert('Please select a time option', 'warning');
+            return;
+        }
+
+        const result = await submitTaskOutcome(selectedTaskOutcome, {
+            next_datetime: nextDateTime
+        }, false);
+
+        if (result?.success) {
+            closeCnpTimeSelectionModal();
+        }
+    }
+
+    function cancelOutcomeDateTimeModal() {
+        closeCnpTimeSelectionModal();
+    }
+
+    function closeJunkRemarkModal() {
+        document.getElementById('rejectReasonModal')?.classList.remove('active');
+        document.getElementById('rejectReasonInput').value = '';
+    }
+
+    function cancelJunkRemarkModal() {
+        closeJunkRemarkModal();
+    }
+
+    async function submitJunkOutcome() {
+        const remark = document.getElementById('rejectReasonInput').value.trim();
+        if (!remark) {
+            showAlert('Please enter a junk remark', 'warning');
+            return;
+        }
+
+        const result = await submitTaskOutcome('junk', { remark });
+        if (result?.success) {
+            closeJunkRemarkModal();
+        }
+    }
+
+    async function submitTaskOutcome(outcome, extraData = {}, closeOutcomeModal = true) {
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return null;
+        }
+
+        const result = await apiCall(`/tasks/${currentTaskId}/outcome`, {
+            method: 'POST',
+            body: JSON.stringify({
+                outcome,
+                ...extraData
+            })
+        });
+
+        if (!result || !result.success) {
+            showAlert(result?.message || result?.error || 'Failed to update task outcome', 'error');
+            return result;
+        }
+
+        const taskCard = document.getElementById(`task-card-${currentTaskId}`);
+        if (taskCard) {
+            taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+            taskCard.style.opacity = '0';
+            taskCard.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                taskCard.remove();
+                const status = window.currentStatus || currentStatus || 'all';
+                const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all';
+                const customDate = document.getElementById('customDatePicker')?.value || null;
+                loadTasks(status, dateFilter, customDate);
+            }, 300);
+        } else {
+            loadTasks();
+        }
+
+        if (closeOutcomeModal) {
+            closeTaskOutcomeModal();
+        }
+
+        setCurrentTaskId(null);
+        selectedTaskOutcome = null;
+        showAlert(result.message || 'Outcome submitted successfully', 'success');
+        return result;
+    }
     
     // Note: loadTasks() is called in DOMContentLoaded event listener above (line 1820)
 </script>

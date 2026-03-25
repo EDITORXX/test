@@ -144,7 +144,7 @@ class LeadController extends Controller
             'state' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:10',
             'source' => 'nullable|in:website,referral,walk_in,call,social_media,other',
-            'status' => 'sometimes|in:new,connected,verified_prospect,meeting_scheduled,meeting_completed,visit_scheduled,visit_done,revisited_scheduled,revisited_completed,closed,dead,on_hold',
+            'status' => 'sometimes|in:new,connected,verified_prospect,meeting_scheduled,meeting_completed,visit_scheduled,visit_done,revisited_scheduled,revisited_completed,closed,dead,junk,on_hold',
             'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
             'budget_min' => 'nullable|numeric|min:0',
             'budget_max' => 'nullable|numeric|min:0|gte:budget_min',
@@ -159,11 +159,11 @@ class LeadController extends Controller
             $newStatus = $validated['status'];
             
             // If manager manually sets to 'dead' or 'closed', disable auto-updates
-            if (in_array($newStatus, ['dead', 'closed'])) {
+            if (in_array($newStatus, ['dead', 'closed', 'junk'])) {
                 $lead->disableAutoUpdate();
             }
-            // If changing from 'dead'/'closed' to something else, enable auto-updates
-            elseif (in_array($oldStatus, ['dead', 'closed'])) {
+            // If changing from a terminal status to something else, enable auto-updates
+            elseif (in_array($oldStatus, ['dead', 'closed', 'junk'])) {
                 $lead->enableAutoUpdate();
             }
         }

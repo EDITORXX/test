@@ -216,6 +216,15 @@
     padding: 28px 24px 0;
 }
 
+.manager-lead-header,
+.manager-lead-progress {
+    display: none;
+}
+
+.manager-lead-shell {
+    padding-top: 0;
+}
+
 .manager-lead-section {
     background: #fff;
     border: 1px solid #ededea;

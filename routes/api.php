@@ -251,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tasks/schedule-call', [\App\Http\Controllers\Api\SalesManagerController::class, 'scheduleCallTask']);
         Route::post('/tasks/{task}/update-lead', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateLeadFromTask']);
         Route::get('/tasks/{task}/lead-requirement-form', [\App\Http\Controllers\Api\SalesManagerController::class, 'getLeadRequirementFormForTask']);
+        Route::post('/tasks/{task}/outcome', [\App\Http\Controllers\Api\SalesManagerController::class, 'submitTaskOutcome']);
         Route::post('/tasks/{task}/verify', [\App\Http\Controllers\Api\SalesManagerController::class, 'verifyProspectFromTask']);
         Route::post('/tasks/{task}/reject', [\App\Http\Controllers\Api\SalesManagerController::class, 'rejectProspectFromTask']);
         Route::post('/tasks/{task}/cnp', [\App\Http\Controllers\Api\SalesManagerController::class, 'markAsCNP']);
@@ -937,4 +938,3 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{identifier}/submit', [\App\Http\Controllers\Api\DynamicFormController::class, 'submitForm']);
     });
 });
-

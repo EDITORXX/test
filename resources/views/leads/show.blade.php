@@ -917,7 +917,7 @@
 <div id="leadRequirementsModal" class="lead-requirements-overlay" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)">
     <div class="lead-requirements-modal">
         <div class="lead-requirements-modal-head">
-            <h2 id="leadReqModalTitle">Lead Detail Form</h2>
+            <h2 id="leadReqModalTitle">Lead Form</h2>
             <button onclick="closeLeadRequirementsModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;padding:0 0 0 16px">&times;</button>
         </div>
         <div class="lead-requirements-modal-body">

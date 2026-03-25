@@ -161,7 +161,7 @@ class LeadController extends Controller
         }
         $leads = $query->latest()->paginate($perPage);
 
-        $statuses = ['new', 'connected', 'verified_prospect', 'meeting_scheduled', 'meeting_completed', 'visit_scheduled', 'visit_done', 'revisited_scheduled', 'revisited_completed', 'closed', 'dead', 'on_hold'];
+        $statuses = ['new', 'connected', 'verified_prospect', 'meeting_scheduled', 'meeting_completed', 'visit_scheduled', 'visit_done', 'revisited_scheduled', 'revisited_completed', 'closed', 'dead', 'junk', 'on_hold'];
 
         // Filter by User dropdown: all users except Admin, CRM, HR, Finance
         $excludeRolesForFilter = [Role::ADMIN, Role::CRM, Role::HR_MANAGER, Role::FINANCE_MANAGER];
@@ -749,4 +749,3 @@ class LeadController extends Controller
         }
     }
 }
-
