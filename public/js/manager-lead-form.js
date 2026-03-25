@@ -164,7 +164,7 @@
         const isInterestedOutcomeFlow = context === 'task' && outcomeContext && outcomeContext.outcome === 'interested';
         const selectedAction = isInterestedOutcomeFlow ? 'interested' : getSelectedAction(formValues, context);
         const modalTitle = getModalTitleElement();
-        const showHeroSection = context === 'task';
+        const showHeroSection = false;
 
         if (modalTitle) {
             modalTitle.textContent = 'Lead Form';
