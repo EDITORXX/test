@@ -208,6 +208,27 @@
         box-shadow: 0 10px 24px rgba(16, 24, 20, 0.08);
         border: 1px solid #e4e0d7;
     }
+    .asm-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .asm-page-title {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #063A1C;
+        letter-spacing: -0.02em;
+        margin: 0;
+    }
+    .asm-page-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
     .view-toggle-btn {
         border: none;
         background: transparent;
@@ -292,6 +313,22 @@
         }
     }
     @media (max-width: 768px) {
+        .asm-page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .asm-page-title {
+            text-align: center;
+            font-size: 1.75rem;
+        }
+        .asm-page-toolbar {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
         #visitsContainer {
             grid-template-columns: 1fr;
             gap: 1rem;
@@ -331,33 +368,29 @@
         .filters {
             flex-direction: row;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
+            border: 1px solid #dbe6f3;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+            box-shadow: 0 8px 24px rgba(30, 64, 175, 0.08);
         }
         .filters .filter-select,
         .filters .filter-btn {
-            width: calc(50% - 4px);
-            flex: 1 1 calc(50% - 4px);
+            width: calc(50% - 5px);
+            flex: 1 1 calc(50% - 5px);
             padding: 10px 12px;
             font-size: 13px;
             box-sizing: border-box;
         }
         .filters .filter-btn.btn.btn-primary {
             display: flex !important;
+            width: 100%;
+            flex: 1 1 100%;
+            min-height: 44px;
         }
         .filters .filter-closer {
             width: 100%;
             flex: 1 1 100%;
-        }
-        div[style*="display: flex"][style*="justify-content: space-between"] {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 12px;
-        }
-        div[style*="display: flex"][style*="justify-content: space-between"] > div:last-child {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
         }
         .mobile-text {
             display: inline;
@@ -380,9 +413,9 @@
 
 @section('content')
 <div class="mb-6">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-        <h2 class="text-2xl font-bold" style="color: #063A1C;">Site Visits</h2>
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <div class="asm-page-header">
+        <h2 class="asm-page-title">Site Visits</h2>
+        <div class="asm-page-toolbar">
             <div class="view-toggle-group" aria-label="Visit View Toggle">
                 <button type="button" class="view-toggle-btn active" data-view="card" onclick="setVisitsView('card')">
                     <i class="fas fa-grip"></i>Cards
@@ -405,7 +438,7 @@
             <option value="cancelled">Cancelled</option>
         </select>
         <select id="verificationFilter" class="filter-select" onchange="loadSiteVisits()">
-            <option value="">All Verifica</option>
+            <option value="">All Verification</option>
             <option value="pending">Pending</option>
             <option value="verified">Verified</option>
             <option value="rejected">Rejected</option>

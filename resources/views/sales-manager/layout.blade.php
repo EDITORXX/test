@@ -1124,10 +1124,6 @@
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Site Visits</span>
             </a>
-            <a href="{{ route('sales-manager.team') }}" class="sidebar-link {{ request()->routeIs('sales-manager.team') ? 'active' : '' }}" data-label="My Team">
-                <i class="fas fa-users"></i>
-                <span>My Team</span>
-            </a>
             <a href="{{ route('sales-manager.profile') }}" class="sidebar-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}" data-label="Profile">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
@@ -1193,10 +1189,6 @@
         <a href="{{ route('sales-manager.site-visits') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.site-visits*') ? 'active' : '' }}">
             <i class="fas fa-map-marker-alt"></i>
             <span>Visits</span>
-        </a>
-        <a href="{{ route('sales-manager.team') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.team') ? 'active' : '' }}">
-            <i class="fas fa-users"></i>
-            <span>Team</span>
         </a>
         <a href="{{ route('sales-manager.profile') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}">
             <i class="fas fa-user"></i>

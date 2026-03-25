@@ -106,7 +106,7 @@
                     
                     <!-- Edit Requirements Button - Show for roles that can use centralized form -->
                     @if($user)
-                        <button onclick="openLeadRequirementsModal({{ $lead->id }})" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[140px] sm:min-w-0">
+                        <button type="button" onclick="openLeadRequirementsModal({{ $lead->id }})" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[140px] sm:min-w-0">
                             <i class="fas fa-edit text-xs sm:text-sm"></i>
                             <span>Edit Requirements</span>
                         </button>
@@ -917,8 +917,8 @@
 <div id="leadRequirementsModal" class="lead-requirements-overlay" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)">
     <div class="lead-requirements-modal">
         <div class="lead-requirements-modal-head">
-            <h2 id="leadReqModalTitle">Lead Form</h2>
-            <button onclick="closeLeadRequirementsModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666;padding:0 0 0 16px">&times;</button>
+            <h2 id="leadReqModalTitle">Lead Detail Form</h2>
+            <button onclick="closeLeadRequirementsModal()" class="lead-requirements-close-btn" aria-label="Close lead detail form">&times;</button>
         </div>
         <div class="lead-requirements-modal-body">
             <div id="managerLeadFormContainer" style="overflow-y:auto;flex:1">
@@ -1088,6 +1088,57 @@ document.getElementById('leadRequirementsModal')?.addEventListener('click', func
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/manager-lead-form.css') }}">
 <style>
+    #leadRequirementsModal .lead-requirements-modal {
+        width: min(1100px, calc(100vw - 24px));
+        max-height: calc(100vh - 24px);
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.35);
+        border: 1px solid rgba(15, 23, 42, 0.14);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    #leadRequirementsModal .lead-requirements-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    #leadRequirementsModal .lead-requirements-modal-head h2 {
+        color: #ffffff;
+        font-size: 1.85rem;
+        line-height: 1.1;
+        font-weight: 700;
+        margin: 0;
+    }
+    #leadRequirementsModal .lead-requirements-close-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        background: rgba(255, 255, 255, 0.14);
+        color: #ffffff;
+        font-size: 28px;
+        line-height: 1;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #leadRequirementsModal .lead-requirements-modal-body {
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+    #leadRequirementsModal #managerLeadFormContainer {
+        height: 100%;
+        overflow-y: auto !important;
+        padding: 14px;
+        background: #f8faf9;
+    }
+
     .timeline-item {
         position: relative;
     }
@@ -1300,6 +1351,29 @@ document.getElementById('leadRequirementsModal')?.addEventListener('click', func
     #meetingModal .bg-white {
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
+    }
+
+    @media (max-width: 1024px) {
+        #leadRequirementsModal .lead-requirements-modal {
+            width: calc(100vw - 16px);
+            max-height: calc(100vh - 16px);
+            border-radius: 12px;
+        }
+        #leadRequirementsModal .lead-requirements-modal-head {
+            padding: 12px 14px;
+        }
+        #leadRequirementsModal .lead-requirements-modal-head h2 {
+            font-size: 1.2rem;
+        }
+        #leadRequirementsModal .lead-requirements-close-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            font-size: 24px;
+        }
+        #leadRequirementsModal #managerLeadFormContainer {
+            padding: 10px;
+        }
     }
 </style>
 @endpush
