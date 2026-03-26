@@ -472,11 +472,6 @@
         text-align: right;
         font-weight: 600;
     }
-    .section-caption {
-        margin: -8px 0 18px;
-        color: #6b7f75;
-        font-size: 14px;
-    }
     .activity-table {
         width: 100%;
         border-collapse: collapse;
@@ -540,11 +535,6 @@
         font-weight: 800;
         color: #063A1C;
         margin: 0;
-    }
-    .profile-section-title p {
-        margin: 0;
-        color: #6b7f75;
-        font-size: 14px;
     }
     .save-button {
         min-width: 170px;
@@ -651,11 +641,6 @@
         font-size: 18px;
         color: #063A1C;
     }
-    .logout-copy p {
-        margin: 0;
-        color: #6b7f75;
-        font-size: 14px;
-    }
     .btn-danger {
         background: #b42318;
         color: #fff;
@@ -675,7 +660,6 @@
         <div class="edit-header">
             <div class="profile-section-title">
                 <h2>Profile</h2>
-                <p>Account details, team snapshot, password controls aur recent activity ek jagah.</p>
             </div>
             <div class="edit-actions">
                 <button type="button" id="saveChangesBtn" class="btn btn-success save-button" onclick="saveAllChanges()">
@@ -738,7 +722,6 @@
                 <div class="card-title">
                     <span class="card-title-text"><i class="fas fa-user"></i> Personal Information</span>
                 </div>
-                <div class="section-caption">Basic contact details aur reporting hierarchy yahan visible hai.</div>
                 <div id="personalInfoAlert"></div>
                 <form id="personalInfoForm">
                     <div class="profile-form-grid">
@@ -776,7 +759,6 @@
                     <span class="card-title-text"><i class="fas fa-users"></i> My Team</span>
                     <span class="stat-badge" id="teamStatsTotal">0 members</span>
                 </div>
-                <div class="section-caption">Assigned members ki availability aur daily output yahan track hoti hai.</div>
                 <div class="team-summary-grid">
                     <div class="team-summary-card">
                         <div class="team-summary-label">Total</div>
@@ -807,7 +789,6 @@
         <div class="card-title">
             <span class="card-title-text"><i class="fas fa-lock"></i> Change Password</span>
         </div>
-        <div class="section-caption">Password update ke liye current password aur naya secure password enter karein.</div>
         <div id="passwordAlert"></div>
         <form id="passwordForm">
             <div class="form-group">
@@ -846,7 +827,6 @@
         <div class="card-title">
             <span class="card-title-text"><i class="fas fa-history"></i> Recent Activity</span>
         </div>
-        <div class="section-caption">Latest account actions aur access history ka quick log.</div>
         <div id="activityHistory">
             <div class="empty-state">Loading...</div>
         </div>
@@ -860,7 +840,6 @@
         <div class="logout-panel">
             <div class="logout-copy">
                 <h3>Logout</h3>
-                <p>Current device se session close karne ke liye logout use karein.</p>
             </div>
             <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
                 @csrf
