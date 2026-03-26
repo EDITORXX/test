@@ -593,7 +593,8 @@
             
             /* Footer Navigation for Mobile */
             #mobileFooterNav {
-                display: flex;
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
                 position: fixed;
                 bottom: 0;
                 left: 0;
@@ -603,10 +604,10 @@
                 border-top: 1px solid #e0e0e0;
                 box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
                 z-index: 1000;
-                padding: 8px 0;
-                justify-content: space-around;
+                padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
                 align-items: center;
-                height: 60px;
+                gap: 8px;
+                min-height: 68px;
             }
             
             .footer-nav-link {
@@ -616,23 +617,28 @@
                 justify-content: center;
                 text-decoration: none;
                 color: #666;
-                padding: 6px 4px;
-                border-radius: 8px;
+                padding: 8px 4px;
+                border-radius: 12px;
                 transition: all 0.3s;
-                flex: 1;
-                max-width: 60px;
+                min-width: 0;
+                width: 100%;
+                border: none;
+                background: transparent;
+                font: inherit;
+                cursor: pointer;
             }
             
             .footer-nav-link i {
-                font-size: 18px;
-                margin-bottom: 2px;
+                font-size: 17px;
+                margin-bottom: 4px;
             }
             
             .footer-nav-link span {
-                font-size: 9px;
+                font-size: 10px;
                 color: #666;
                 text-align: center;
-                line-height: 1.2;
+                line-height: 1.1;
+                white-space: nowrap;
             }
             
             .footer-nav-link:hover,
@@ -647,6 +653,109 @@
             
             .footer-nav-link.active span {
                 color: #205A44;
+            }
+
+            .footer-nav-link.more-trigger {
+                appearance: none;
+                -webkit-appearance: none;
+            }
+
+            .footer-nav-link.more-trigger .fa-ellipsis-h {
+                font-size: 15px;
+            }
+
+            .asm-more-menu {
+                position: fixed;
+                left: 16px;
+                right: 16px;
+                bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+                background: #ffffff;
+                border: 1px solid #dce8e1;
+                border-radius: 20px;
+                box-shadow: 0 18px 42px rgba(12, 41, 30, 0.16);
+                padding: 12px;
+                z-index: 1105;
+                opacity: 0;
+                pointer-events: none;
+                transform: translateY(12px);
+                transition: opacity 0.2s ease, transform 0.2s ease;
+            }
+
+            .asm-more-menu.open {
+                opacity: 1;
+                pointer-events: auto;
+                transform: translateY(0);
+            }
+
+            .asm-more-menu-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 4px 4px 10px;
+                color: #063A1C;
+                font-size: 14px;
+                font-weight: 700;
+            }
+
+            .asm-more-menu-close {
+                border: none;
+                background: #f3f7f4;
+                color: #205A44;
+                width: 30px;
+                height: 30px;
+                border-radius: 999px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+
+            .asm-more-menu-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+
+            .asm-more-link {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 14px;
+                border-radius: 14px;
+                text-decoration: none;
+                background: #f8fbf9;
+                border: 1px solid #e2ece6;
+                color: #294739;
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            .asm-more-link i {
+                width: 18px;
+                text-align: center;
+                color: #205A44;
+            }
+
+            .asm-more-link.active {
+                background: #edf5f0;
+                border-color: #c6ddd1;
+                color: #063A1C;
+            }
+
+            .asm-more-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(7, 24, 18, 0.24);
+                z-index: 1104;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+            }
+
+            .asm-more-overlay.open {
+                opacity: 1;
+                pointer-events: auto;
             }
         }
         
@@ -1177,39 +1286,55 @@
 
     <!-- Mobile Footer Navigation -->
     <nav id="mobileFooterNav">
-        <a href="{{ route('sales-manager.dashboard') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.dashboard') ? 'active' : '' }}">
+        <a href="{{ route('sales-manager.dashboard') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.dashboard') ? 'active' : '' }}" data-nav-order="0" data-nav-key="dashboard">
             <i class="fas fa-home"></i>
-            <span>Dashboard</span>
+            <span>Dash</span>
         </a>
-        <a href="{{ route('sales-manager.tasks') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') !== 'followups' ? 'active' : '' }}">
+        <a href="{{ route('sales-manager.tasks') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') !== 'followups' ? 'active' : '' }}" data-nav-order="1" data-nav-key="tasks">
             <i class="fas fa-tasks"></i>
             <span>Tasks</span>
         </a>
-        <a href="{{ route('sales-manager.prospects') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.prospects') ? 'active' : '' }}">
-            <i class="fas fa-star"></i>
-            <span>Prospects</span>
-        </a>
-        <a href="{{ route('sales-manager.leads') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && (auth()->user()->isSalesManager() || auth()->user()->isAssistantSalesManager())) ? 'active' : '' }}">
+        <a href="{{ route('sales-manager.leads') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && (auth()->user()->isSalesManager() || auth()->user()->isAssistantSalesManager())) ? 'active' : '' }}" data-nav-order="2" data-nav-key="leads">
             <i class="fas fa-user-friends"></i>
             <span>Leads</span>
         </a>
-        <a href="{{ route('sales-manager.meetings') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.meetings*') ? 'active' : '' }}">
-            <i class="fas fa-handshake"></i>
-            <span>Meetings</span>
-        </a>
-        <a href="{{ route('sales-manager.tasks', ['focus' => 'followups']) }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') === 'followups' ? 'active' : '' }}">
+        <a href="{{ route('sales-manager.tasks', ['focus' => 'followups']) }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') === 'followups' ? 'active' : '' }}" data-nav-order="3" data-nav-key="follow">
             <i class="fas fa-phone-volume"></i>
             <span>Follow</span>
         </a>
-        <a href="{{ route('sales-manager.site-visits') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.site-visits*') ? 'active' : '' }}">
-            <i class="fas fa-map-marker-alt"></i>
-            <span>Visits</span>
-        </a>
-        <a href="{{ route('sales-manager.profile') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-        </a>
+        <button type="button" id="asmMoreMenuTrigger" class="footer-nav-link more-trigger {{ request()->routeIs('sales-manager.prospects') || request()->routeIs('sales-manager.meetings*') || request()->routeIs('sales-manager.site-visits*') || request()->routeIs('sales-manager.profile') ? 'active' : '' }}" aria-expanded="false" aria-controls="asmMoreMenu">
+            <i class="fas fa-ellipsis-h"></i>
+            <span>More</span>
+        </button>
     </nav>
+
+    <div id="asmMoreOverlay" class="asm-more-overlay" hidden></div>
+    <div id="asmMoreMenu" class="asm-more-menu" aria-hidden="true" hidden>
+        <div class="asm-more-menu-header">
+            <span>More</span>
+            <button type="button" id="asmMoreMenuClose" class="asm-more-menu-close" aria-label="Close more menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="asm-more-menu-grid">
+            <a href="{{ route('sales-manager.prospects') }}" class="asm-more-link {{ request()->routeIs('sales-manager.prospects') ? 'active' : '' }}" data-nav-order="4" data-nav-key="prospects">
+                <i class="fas fa-star"></i>
+                <span>Prospects</span>
+            </a>
+            <a href="{{ route('sales-manager.meetings') }}" class="asm-more-link {{ request()->routeIs('sales-manager.meetings*') ? 'active' : '' }}" data-nav-order="5" data-nav-key="meetings">
+                <i class="fas fa-handshake"></i>
+                <span>Meetings</span>
+            </a>
+            <a href="{{ route('sales-manager.site-visits') }}" class="asm-more-link {{ request()->routeIs('sales-manager.site-visits*') ? 'active' : '' }}" data-nav-order="6" data-nav-key="visits">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Visits</span>
+            </a>
+            <a href="{{ route('sales-manager.profile') }}" class="asm-more-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}" data-nav-order="7" data-nav-key="profile">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+    </div>
 
     <!-- Custom Notification System -->
     <div id="notificationOverlay" class="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center" style="display: none;">
@@ -1470,6 +1595,10 @@
             const mobileMenuToggle = document.getElementById('asmMobileMenuToggle');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
             const sidebarLinks = document.querySelectorAll('#sidebar .sidebar-link');
+            const moreMenuTrigger = document.getElementById('asmMoreMenuTrigger');
+            const moreMenu = document.getElementById('asmMoreMenu');
+            const moreMenuClose = document.getElementById('asmMoreMenuClose');
+            const moreOverlay = document.getElementById('asmMoreOverlay');
 
             function getAsmMobileUiMode() {
                 if (document.body.classList.contains('asm-ui-classic')) return 'classic';
@@ -1490,11 +1619,41 @@
                 sidebarOverlay.classList.add('active');
                 document.body.classList.add('mobile-drawer-open');
             }
+
+            function closeMoreMenu() {
+                if (!moreMenu || !moreOverlay || !moreMenuTrigger) return;
+                moreMenu.classList.remove('open');
+                moreOverlay.classList.remove('open');
+                moreMenu.hidden = true;
+                moreOverlay.hidden = true;
+                moreMenu.setAttribute('aria-hidden', 'true');
+                moreMenuTrigger.setAttribute('aria-expanded', 'false');
+            }
+
+            function openMoreMenu() {
+                if (!moreMenu || !moreOverlay || !moreMenuTrigger) return;
+                moreMenu.hidden = false;
+                moreOverlay.hidden = false;
+                moreMenu.classList.add('open');
+                moreOverlay.classList.add('open');
+                moreMenu.setAttribute('aria-hidden', 'false');
+                moreMenuTrigger.setAttribute('aria-expanded', 'true');
+            }
+
+            function toggleMoreMenu() {
+                if (!moreMenu) return;
+                if (moreMenu.classList.contains('open')) closeMoreMenu();
+                else openMoreMenu();
+            }
             
             function updateLayout() {
                 const isMobile = window.innerWidth <= 767;
                 const isCollapsed = !isMobile && document.body.classList.contains('sidebar-collapsed');
                 const uiMode = getAsmMobileUiMode();
+
+                if (!isMobile || uiMode !== 'classic') {
+                    closeMoreMenu();
+                }
                 
                 if (sidebar) {
                     if (isMobile) {
@@ -1515,6 +1674,7 @@
                         sidebar.classList.remove('sidebar-expanded', 'sidebar-hidden');
                         sidebar.style.width = isCollapsed ? '78px' : '232px';
                         sidebar.style.display = 'block';
+                        closeMoreMenu();
                     }
                 }
                 if (sidebarToggle) {
@@ -1566,6 +1726,31 @@
             if (sidebarOverlay) {
                 sidebarOverlay.addEventListener('click', closeMobileDrawer);
             }
+
+            if (moreMenuTrigger) {
+                moreMenuTrigger.addEventListener('click', function() {
+                    if (window.innerWidth > 767) return;
+                    toggleMoreMenu();
+                });
+            }
+
+            if (moreMenuClose) {
+                moreMenuClose.addEventListener('click', closeMoreMenu);
+            }
+
+            if (moreOverlay) {
+                moreOverlay.addEventListener('click', closeMoreMenu);
+            }
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeMoreMenu();
+                }
+            });
+
+            document.querySelectorAll('.asm-more-link').forEach(function(link) {
+                link.addEventListener('click', closeMoreMenu);
+            });
 
             sidebarLinks.forEach(function(link) {
                 link.addEventListener('click', function() {
@@ -1647,9 +1832,12 @@
             }
 
             function getMobileNavLinks() {
-                return Array.from(document.querySelectorAll('#mobileFooterNav .footer-nav-link'))
+                return Array.from(document.querySelectorAll('[data-nav-order]'))
                     .filter(function(link) {
                         return link instanceof HTMLAnchorElement && !!link.href;
+                    })
+                    .sort(function(a, b) {
+                        return Number(a.dataset.navOrder || 0) - Number(b.dataset.navOrder || 0);
                     });
             }
 
