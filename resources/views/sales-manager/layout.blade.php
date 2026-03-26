@@ -1574,6 +1574,197 @@
                     }
                 });
             });
+
+            const swipeState = {
+                startX: 0,
+                startY: 0,
+                target: null,
+                navigating: false,
+                cooldownUntil: 0
+            };
+
+            function isAsmMobileSwipeEnabled() {
+                return window.innerWidth <= 767 && ['classic', 'modern'].includes(getAsmMobileUiMode());
+            }
+
+            function isTextSelectionActive() {
+                const selection = window.getSelection ? window.getSelection() : null;
+                return !!(selection && String(selection).trim().length);
+            }
+
+            function isWithinIgnoredSwipeArea(node) {
+                if (!(node instanceof Element)) return false;
+
+                const ignoredSelector = [
+                    'input',
+                    'textarea',
+                    'select',
+                    'option',
+                    'button',
+                    'label',
+                    'a',
+                    '[contenteditable=""]',
+                    '[contenteditable="true"]',
+                    '[role="button"]',
+                    '[role="dialog"]',
+                    '.modal',
+                    '.modal-content',
+                    '.sidebar-overlay',
+                    '#sidebar',
+                    '#mobileFooterNav',
+                    '#asmMobileMenuToggle'
+                ].join(', ');
+
+                if (node.closest(ignoredSelector)) {
+                    return true;
+                }
+
+                let current = node;
+                while (current && current !== document.body) {
+                    if (!(current instanceof HTMLElement)) {
+                        current = current.parentElement;
+                        continue;
+                    }
+
+                    const style = window.getComputedStyle(current);
+                    const overflowX = style.overflowX;
+                    const canScrollHorizontally = /(auto|scroll)/.test(overflowX) && current.scrollWidth > current.clientWidth + 4;
+                    const hasNoSwipeFlag = current.hasAttribute('data-swipe-ignore');
+
+                    if (canScrollHorizontally || hasNoSwipeFlag) {
+                        return true;
+                    }
+
+                    current = current.parentElement;
+                }
+
+                return false;
+            }
+
+            function normalizePathname(pathname) {
+                if (!pathname) return '/';
+                return pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+            }
+
+            function getMobileNavLinks() {
+                return Array.from(document.querySelectorAll('#mobileFooterNav .footer-nav-link'))
+                    .filter(function(link) {
+                        return link instanceof HTMLAnchorElement && !!link.href;
+                    });
+            }
+
+            function getBestActiveNavIndex(navLinks) {
+                if (!navLinks.length) return -1;
+
+                const activeClassIndex = navLinks.findIndex(function(link) {
+                    return link.classList.contains('active');
+                });
+                if (activeClassIndex !== -1) return activeClassIndex;
+
+                const currentUrl = new URL(window.location.href);
+                const currentPath = normalizePathname(currentUrl.pathname);
+                const currentSearch = currentUrl.search;
+
+                let bestIndex = -1;
+                let bestScore = -1;
+
+                navLinks.forEach(function(link, index) {
+                    let score = 0;
+
+                    try {
+                        const linkUrl = new URL(link.href, window.location.origin);
+                        const linkPath = normalizePathname(linkUrl.pathname);
+
+                        if (linkPath === currentPath) {
+                            score += 4;
+                        } else if (currentPath.indexOf(linkPath + '/') === 0) {
+                            score += 2;
+                        }
+
+                        if (linkUrl.search && linkUrl.search === currentSearch) {
+                            score += 3;
+                        } else if (!linkUrl.search && !currentSearch) {
+                            score += 1;
+                        }
+                    } catch (e) {
+                        score = 0;
+                    }
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestIndex = index;
+                    }
+                });
+
+                return bestScore > 0 ? bestIndex : -1;
+            }
+
+            function navigateBySwipeDirection(direction) {
+                if (!isAsmMobileSwipeEnabled() || swipeState.navigating) return;
+
+                const navLinks = getMobileNavLinks();
+                if (!navLinks.length) return;
+
+                const activeIndex = getBestActiveNavIndex(navLinks);
+                if (activeIndex === -1) return;
+
+                const targetIndex = activeIndex + direction;
+                if (targetIndex < 0 || targetIndex >= navLinks.length) return;
+
+                const targetLink = navLinks[targetIndex];
+                if (!(targetLink instanceof HTMLAnchorElement) || !targetLink.href) return;
+
+                swipeState.navigating = true;
+                swipeState.cooldownUntil = Date.now() + 700;
+                window.location.assign(targetLink.href);
+            }
+
+            document.addEventListener('touchstart', function(event) {
+                if (!isAsmMobileSwipeEnabled() || event.touches.length !== 1) return;
+                if (Date.now() < swipeState.cooldownUntil || isTextSelectionActive()) return;
+
+                const touch = event.touches[0];
+                const target = event.target instanceof Element ? event.target : null;
+                if (!target || isWithinIgnoredSwipeArea(target)) return;
+
+                swipeState.startX = touch.clientX;
+                swipeState.startY = touch.clientY;
+                swipeState.target = target;
+            }, { passive: true });
+
+            document.addEventListener('touchend', function(event) {
+                if (!isAsmMobileSwipeEnabled() || event.changedTouches.length !== 1) return;
+                if (!swipeState.target || Date.now() < swipeState.cooldownUntil || isTextSelectionActive()) {
+                    swipeState.target = null;
+                    return;
+                }
+
+                const touch = event.changedTouches[0];
+                const deltaX = touch.clientX - swipeState.startX;
+                const deltaY = touch.clientY - swipeState.startY;
+                const absDeltaX = Math.abs(deltaX);
+                const absDeltaY = Math.abs(deltaY);
+                const horizontalThreshold = 70;
+                const verticalTolerance = 45;
+
+                if (absDeltaX < horizontalThreshold || absDeltaY > verticalTolerance || absDeltaX <= absDeltaY) {
+                    swipeState.target = null;
+                    return;
+                }
+
+                if (isWithinIgnoredSwipeArea(swipeState.target)) {
+                    swipeState.target = null;
+                    return;
+                }
+
+                const direction = deltaX < 0 ? 1 : -1;
+                swipeState.target = null;
+                navigateBySwipeDirection(direction);
+            }, { passive: true });
+
+            document.addEventListener('touchcancel', function() {
+                swipeState.target = null;
+            }, { passive: true });
             
             // Initial setup
             updateLayout();
