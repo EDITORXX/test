@@ -1033,14 +1033,14 @@
                 transform: translateX(0);
             }
             body.asm-shell.asm-ui-modern #mobileFooterNav {
-                display: none !important;
+                display: grid !important;
             }
             body.asm-shell.asm-ui-modern #mainContent,
             body.asm-shell.asm-ui-modern div#mainContent,
             body.asm-shell.asm-ui-modern html body #mainContent {
                 margin-left: 0 !important;
                 width: 100% !important;
-                padding-bottom: 0 !important;
+                padding-bottom: 78px !important;
             }
             body.asm-shell.asm-ui-modern .sidebar-overlay {
                 display: none;
@@ -1651,7 +1651,7 @@
                 const isCollapsed = !isMobile && document.body.classList.contains('sidebar-collapsed');
                 const uiMode = getAsmMobileUiMode();
 
-                if (!isMobile || uiMode !== 'classic') {
+                if (!isMobile) {
                     closeMoreMenu();
                 }
                 
