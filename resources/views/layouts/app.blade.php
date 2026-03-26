@@ -914,6 +914,10 @@
                     <i class="fas fa-download" style="margin-right: 10px; width: 20px;"></i>
                     Export
                 </a>
+                <a href="{{ route('admin.lead-download-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.lead-download-requests.*') ? 'active' : '' }}" data-tooltip="Lead Downloads" title="Lead Downloads">
+                    <i class="fas fa-file-arrow-down" style="margin-right: 10px; width: 20px;"></i>
+                    Lead Downloads
+                </a>
                 <a href="{{ route('admin.forms.index') }}" class="sidebar-link {{ request()->routeIs('admin.forms.*') ? 'active' : '' }}" data-tooltip="Forms" title="Forms">
                     <i class="fas fa-wpforms" style="margin-right: 10px; width: 20px;"></i>
                     Forms
@@ -1871,4 +1875,3 @@
     </script>
 </body>
 </html>
-

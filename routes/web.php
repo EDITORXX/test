@@ -332,6 +332,9 @@ Route::middleware(['auth'])->prefix('sales-manager')->name('sales-manager.')->gr
     Route::get('/dashboard', [\App\Http\Controllers\SalesManagerController::class, 'dashboard'])->name('dashboard');
     Route::get('/team', [\App\Http\Controllers\SalesManagerController::class, 'team'])->name('team');
     Route::get('/leads', [\App\Http\Controllers\SalesManagerController::class, 'leads'])->name('leads');
+    Route::get('/lead-downloads', [\App\Http\Controllers\SalesManagerLeadDownloadController::class, 'index'])->name('lead-downloads.index');
+    Route::post('/lead-downloads', [\App\Http\Controllers\SalesManagerLeadDownloadController::class, 'store'])->name('lead-downloads.store');
+    Route::get('/lead-downloads/{leadDownloadRequest}/download', [\App\Http\Controllers\SalesManagerLeadDownloadController::class, 'download'])->name('lead-downloads.download');
     Route::get('/prospects', [\App\Http\Controllers\SalesManagerController::class, 'prospects'])->name('prospects');
     Route::get('/prospects/{id}', [\App\Http\Controllers\SalesManagerController::class, 'showProspect'])->name('prospects.show');
     Route::get('/prospects/{id}/edit', [\App\Http\Controllers\SalesManagerController::class, 'editProspect'])->name('prospects.edit');
@@ -663,6 +666,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'dashboard'])->name('dashboard');
         Route::get('/dashboard/data', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'getDashboardData'])->name('dashboard.data');
         Route::get('/profile', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'profile'])->name('profile');
+        Route::get('/lead-download-requests', [\App\Http\Controllers\Admin\LeadDownloadRequestController::class, 'index'])->name('lead-download-requests.index');
+        Route::post('/lead-download-requests/{leadDownloadRequest}/approve', [\App\Http\Controllers\Admin\LeadDownloadRequestController::class, 'approve'])->name('lead-download-requests.approve');
+        Route::post('/lead-download-requests/{leadDownloadRequest}/reject', [\App\Http\Controllers\Admin\LeadDownloadRequestController::class, 'reject'])->name('lead-download-requests.reject');
         
         // Flow Testing (Admin and CRM)
         Route::get('/flow-test', [\App\Http\Controllers\Admin\FlowTestController::class, 'index'])->name('flow-test');
@@ -899,4 +905,3 @@ Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
     Route::put('/conversations/{id}/read', [\App\Http\Controllers\WhatsAppChatController::class, 'markAsRead'])->name('conversations.read');
     Route::delete('/conversations/{id}', [\App\Http\Controllers\WhatsAppChatController::class, 'deleteConversation'])->name('conversations.delete');
 });
-

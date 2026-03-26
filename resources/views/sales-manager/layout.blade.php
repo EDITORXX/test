@@ -1240,6 +1240,10 @@
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Site Visits</span>
             </a>
+            <a href="{{ route('sales-manager.lead-downloads.index') }}" class="sidebar-link {{ request()->routeIs('sales-manager.lead-downloads.*') ? 'active' : '' }}" data-label="Download Leads">
+                <i class="fas fa-file-arrow-down"></i>
+                <span>Download Leads</span>
+            </a>
             <a href="{{ route('sales-manager.profile') }}" class="sidebar-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}" data-label="Profile">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
@@ -1302,7 +1306,7 @@
             <i class="fas fa-phone-volume"></i>
             <span>Follow</span>
         </a>
-        <button type="button" id="asmMoreMenuTrigger" class="footer-nav-link more-trigger {{ request()->routeIs('sales-manager.prospects') || request()->routeIs('sales-manager.meetings*') || request()->routeIs('sales-manager.site-visits*') || request()->routeIs('sales-manager.profile') ? 'active' : '' }}" aria-expanded="false" aria-controls="asmMoreMenu">
+        <button type="button" id="asmMoreMenuTrigger" class="footer-nav-link more-trigger {{ request()->routeIs('sales-manager.prospects') || request()->routeIs('sales-manager.meetings*') || request()->routeIs('sales-manager.site-visits*') || request()->routeIs('sales-manager.profile') || request()->routeIs('sales-manager.lead-downloads.*') ? 'active' : '' }}" aria-expanded="false" aria-controls="asmMoreMenu">
             <i class="fas fa-ellipsis-h"></i>
             <span>More</span>
         </button>
@@ -1332,6 +1336,10 @@
             <a href="{{ route('sales-manager.profile') }}" class="asm-more-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}" data-nav-order="7" data-nav-key="profile">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
+            </a>
+            <a href="{{ route('sales-manager.lead-downloads.index') }}" class="asm-more-link {{ request()->routeIs('sales-manager.lead-downloads.*') ? 'active' : '' }}" data-nav-order="8" data-nav-key="lead-downloads">
+                <i class="fas fa-file-arrow-down"></i>
+                <span>Download</span>
             </a>
         </div>
     </div>
