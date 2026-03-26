@@ -162,7 +162,7 @@
         const existingBudget = formValues.budget || '';
         const outcomeContext = getTaskOutcomeContext();
         const isInterestedOutcomeFlow = context === 'task' && outcomeContext && outcomeContext.outcome === 'interested';
-        const selectedAction = isInterestedOutcomeFlow ? 'interested' : getSelectedAction(formValues, context);
+        const selectedAction = getSelectedAction(formValues, context);
         const modalTitle = getModalTitleElement();
         const showHeroSection = false;
 
@@ -383,7 +383,6 @@
                             </div>
                         </div>
                     </section>
-                    ${isInterestedOutcomeFlow ? '' : `
                     <section class="manager-lead-section">
                         <div class="manager-lead-section-head">
                             <div class="manager-lead-section-icon manager-lead-section-icon-green"><i class="fas fa-check"></i></div>
@@ -420,7 +419,6 @@
                             </div>
                         </div>
                     </section>
-                    `}
                 </form>
             </div>
 
@@ -625,10 +623,7 @@
             return field ? field.value.trim() : '';
         };
 
-        const outcomeContext = getTaskOutcomeContext();
-        const outputAction = outcomeContext && outcomeContext.outcome === 'interested'
-            ? 'interested'
-            : getValue('manager_form_output_action');
+        const outputAction = getValue('manager_form_output_action');
         const interestedProjects = updateSelectedProjects();
         const isFollowUp = outputAction === 'follow_up';
 
@@ -679,7 +674,7 @@
         }
 
         if (!payload.interested_projects.length) return 'Please select at least one Interested Project';
-        if (context === 'task' && !(getTaskOutcomeContext() && getTaskOutcomeContext().outcome === 'interested') && !payload.output_action) return 'Please select the next action';
+        if (context === 'task' && !payload.output_action) return 'Please select the next action';
 
         if (payload.output_action === 'follow_up') {
             if (!payload.follow_up_date) return 'Please select a Follow Up Date & Time';
