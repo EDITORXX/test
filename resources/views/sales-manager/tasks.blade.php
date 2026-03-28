@@ -1512,43 +1512,13 @@
         localStorage.setItem('sales_manager_token', API_TOKEN);
     }
     
-    // Initialize currentStatus from localStorage or default to 'all'
-    let savedFilter = 'all';
-    try {
-        const saved = localStorage.getItem('salesManagerTasksFilter');
-        if (saved && ['all', 'pending', 'overdue', 'rescheduled', 'completed'].includes(saved)) {
-            savedFilter = saved;
-        }
-    } catch (e) {
-        console.error('Failed to read filter from localStorage:', e);
-    }
-
-    let savedCategory = 'all';
-    try {
-        const saved = localStorage.getItem('salesManagerTaskCategory');
-        if (saved && ['all', 'fresh_lead', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(saved)) {
-            savedCategory = saved;
-        }
-    } catch (e) {
-        console.error('Failed to read task category from localStorage:', e);
-    }
-
-    if (IS_ASSISTANT_SALES_MANAGER) {
-        savedFilter = 'pending';
-        try {
-            localStorage.setItem('salesManagerTasksFilter', 'pending');
-        } catch (e) {
-            console.error('Failed to persist ASM default filter:', e);
-        }
-    }
-
-    let currentStatus = savedFilter;
-    let currentCategory = savedCategory;
+    let currentStatus = 'all';
+    let currentCategory = 'all';
     let currentTaskId = null;
     let currentTasksView = 'card';
     function normalizeTaskStatusFilter(status) {
         if (!status) {
-            return 'pending';
+            return 'all';
         }
         return status;
     }
@@ -1826,44 +1796,15 @@
         if (dateFilter === null) {
             const dateDropdown = document.getElementById('dateFilterDropdown') || document.getElementById('dateFilterDropdownDesktop');
             dateFilter = dateDropdown ? dateDropdown.value : 'all';
-            // Try to get from localStorage if dropdown not found
-            if (dateFilter === 'all') {
-                try {
-                    const saved = localStorage.getItem('salesManagerDateFilter');
-                    if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
-                        dateFilter = saved;
-                    }
-                } catch (e) {
-                    console.error('Error reading saved date filter:', e);
-                }
-            }
         }
         if (dateFilter === 'custom' && customDate === null) {
             const customDatePicker = document.getElementById('customDatePicker');
             customDate = customDatePicker && customDatePicker.value ? customDatePicker.value : null;
-            // Try to get from localStorage if picker not found
-            if (!customDate) {
-                try {
-                    customDate = localStorage.getItem('salesManagerCustomDate');
-                } catch (e) {
-                    console.error('Error reading saved custom date:', e);
-                }
-            }
         }
 
         if (category === null) {
             const categoryDropdown = document.getElementById('taskTypeFilterDesktop') || document.getElementById('taskTypeFilterMobile');
             category = categoryDropdown ? categoryDropdown.value : (currentCategory || 'all');
-            if (category === 'all') {
-                try {
-                    const savedCategory = localStorage.getItem('salesManagerTaskCategory');
-                    if (savedCategory && ['all', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
-                        category = savedCategory;
-                    }
-                } catch (e) {
-                    console.error('Error reading saved category filter:', e);
-                }
-            }
         }
         
         console.log('Setting loading state...');
@@ -3638,20 +3579,6 @@
             window.currentStatus = normalizedRequestedStatus;
         }
 
-        try {
-            const saved = localStorage.getItem('salesManagerTasksFilter');
-            if (saved && ['all', 'pending', 'overdue', 'rescheduled', 'completed'].includes(saved)) {
-                if (filterDropdown) {
-                    filterDropdown.value = saved;
-                }
-                if (filterDropdownDesktop) {
-                    filterDropdownDesktop.value = saved;
-                }
-            }
-        } catch (e) {
-            console.error('Error reading saved filter:', e);
-        }
-
         const categoryDropdownDesktop = document.getElementById('taskTypeFilterDesktop');
         const categoryDropdownMobile = document.getElementById('taskTypeFilterMobile');
 
@@ -3678,25 +3605,9 @@
             });
         }
 
-        try {
-            const savedCategory = localStorage.getItem('salesManagerTaskCategory');
-            if (savedCategory && ['all', 'fresh_lead', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
-                if (categoryDropdownDesktop) {
-                    categoryDropdownDesktop.value = savedCategory;
-                }
-                if (categoryDropdownMobile) {
-                    categoryDropdownMobile.value = savedCategory;
-                }
-                currentCategory = savedCategory;
-                window.currentCategory = currentCategory;
-            }
-        } catch (e) {
-            console.error('Error reading saved task category:', e);
-        }
-
         if (focusMode === 'followups') {
-            if (categoryDropdownDesktop) categoryDropdownDesktop.value = 'prospect';
-            if (categoryDropdownMobile) categoryDropdownMobile.value = 'prospect';
+            if (categoryDropdownDesktop) categoryDropdownDesktop.value = 'follow_up';
+            if (categoryDropdownMobile) categoryDropdownMobile.value = 'follow_up';
             if (!hasRequestedStatus) {
                 if (filterDropdown) filterDropdown.value = 'pending';
                 if (filterDropdownDesktop) filterDropdownDesktop.value = 'pending';
@@ -3749,17 +3660,7 @@
             if (hasRequestedDateFilter) {
                 dateDropdownMobile.value = requestedDateFilter;
             } else {
-                try {
-                    const saved = localStorage.getItem('salesManagerDateFilter');
-                    if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
-                        dateDropdownMobile.value = saved;
-                        if (saved === 'custom') {
-                            handleDateFilterChange('custom');
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error reading saved date filter:', e);
-                }
+                dateDropdownMobile.value = 'all';
             }
         }
         
@@ -3771,17 +3672,7 @@
             if (hasRequestedDateFilter) {
                 dateDropdownDesktop.value = requestedDateFilter;
             } else {
-                try {
-                    const saved = localStorage.getItem('salesManagerDateFilter');
-                    if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
-                        dateDropdownDesktop.value = saved;
-                        if (saved === 'custom') {
-                            handleDateFilterChange('custom');
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error reading saved date filter:', e);
-                }
+                dateDropdownDesktop.value = 'all';
             }
         }
         
@@ -3815,28 +3706,12 @@
         console.log('Tasks grid element found:', !!tasksGridEl);
         
         if (tasksGridEl) {
-            console.log('Calling filterTasks() with saved filter:', currentStatus);
-            // Restore date filter
-            let savedDateFilter = 'all';
-            let savedCustomDate = null;
-            let savedCategoryFilter = 'all';
-            try {
-                const saved = localStorage.getItem('salesManagerDateFilter');
-                if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
-                    savedDateFilter = saved;
-                }
-                savedCustomDate = localStorage.getItem('salesManagerCustomDate');
-                const savedCategory = localStorage.getItem('salesManagerTaskCategory');
-                    if (savedCategory && ['all', 'fresh_lead', 'follow_up', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
-                    savedCategoryFilter = savedCategory;
-                }
-            } catch (e) {
-                console.error('Error reading saved date filter:', e);
-            }
-
+            console.log('Calling filterTasks() with current filter:', currentStatus);
+            let initialDateFilter = 'all';
+            let initialCustomDate = null;
             if (hasRequestedDateFilter) {
-                savedDateFilter = requestedDateFilter;
-                savedCustomDate = requestedDateFilter === 'custom' ? requestedCustomDate : null;
+                initialDateFilter = requestedDateFilter;
+                initialCustomDate = requestedDateFilter === 'custom' ? requestedCustomDate : null;
                 if (customDatePicker) {
                     if (requestedDateFilter === 'custom') {
                         customDatePicker.style.display = 'block';
@@ -3851,9 +3726,9 @@
             
             // Use filterTasks instead of loadTasks to restore UI state
             if (focusMode === 'followups') {
-                filterTasks('pending', savedDateFilter, savedCustomDate, 'follow_up');
+                filterTasks('pending', initialDateFilter, initialCustomDate, 'follow_up');
             } else {
-                filterTasks(currentStatus, savedDateFilter, savedCustomDate, savedCategoryFilter);
+                filterTasks(currentStatus, initialDateFilter, initialCustomDate, currentCategory || 'all');
             }
             
             // Auto-refresh every 60 seconds (1 minute) to move tasks from Rescheduled to Pending
@@ -3874,7 +3749,7 @@
             setTimeout(function() {
                 const retryEl = document.getElementById('tasksGrid');
                 if (retryEl) {
-                    console.log('Tasks grid found on retry, calling filterTasks() with saved filter:', currentStatus);
+                    console.log('Tasks grid found on retry, calling filterTasks() with current filter:', currentStatus);
                     // Use filterTasks instead of loadTasks to restore UI state
                     if (focusMode === 'followups') {
                         filterTasks('pending', 'all', null, 'follow_up');
@@ -3907,7 +3782,7 @@
         setTimeout(function() {
             const tasksGridEl = document.getElementById('tasksGrid');
             if (tasksGridEl) {
-                console.log('Tasks grid found in fallback, calling filterTasks() with saved filter:', currentStatus);
+                console.log('Tasks grid found in fallback, calling filterTasks() with current filter:', currentStatus);
                 // Use filterTasks instead of loadTasks to restore UI state
                 filterTasks(currentStatus);
             }

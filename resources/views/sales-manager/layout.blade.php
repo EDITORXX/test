@@ -594,7 +594,7 @@
             /* Footer Navigation for Mobile */
             #mobileFooterNav {
                 display: grid;
-                grid-template-columns: repeat(5, minmax(0, 1fr));
+                grid-template-columns: repeat(6, minmax(0, 1fr));
                 position: fixed;
                 bottom: 0;
                 left: 0;
@@ -1297,19 +1297,23 @@
             <i class="fas fa-home"></i>
             <span>Dash</span>
         </a>
-        <a href="{{ route('sales-manager.leads') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && (auth()->user()->isSalesManager() || auth()->user()->isAssistantSalesManager())) ? 'active' : '' }}" data-nav-order="1" data-nav-key="leads">
+        <a href="{{ route('sales-manager.tasks') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') !== 'followups' ? 'active' : '' }}" data-nav-order="1" data-nav-key="tasks">
+            <i class="fas fa-tasks"></i>
+            <span>Tasks</span>
+        </a>
+        <a href="{{ route('sales-manager.leads') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && (auth()->user()->isSalesManager() || auth()->user()->isAssistantSalesManager())) ? 'active' : '' }}" data-nav-order="2" data-nav-key="leads">
             <i class="fas fa-user-friends"></i>
             <span>Leads</span>
         </a>
-        <a href="{{ route('sales-manager.prospects') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.prospects') ? 'active' : '' }}" data-nav-order="2" data-nav-key="prospects">
+        <a href="{{ route('sales-manager.prospects') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.prospects') ? 'active' : '' }}" data-nav-order="3" data-nav-key="prospects">
             <i class="fas fa-star"></i>
             <span>Prospect</span>
         </a>
-        <a href="{{ route('sales-manager.tasks', ['focus' => 'followups']) }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') === 'followups' ? 'active' : '' }}" data-nav-order="3" data-nav-key="follow">
+        <a href="{{ route('sales-manager.tasks', ['focus' => 'followups']) }}" class="footer-nav-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') === 'followups' ? 'active' : '' }}" data-nav-order="4" data-nav-key="follow">
             <i class="fas fa-phone-volume"></i>
             <span>Follow</span>
         </a>
-        <button type="button" id="asmMoreMenuTrigger" class="footer-nav-link more-trigger {{ request()->routeIs('sales-manager.meetings*') || request()->routeIs('sales-manager.site-visits*') || request()->routeIs('sales-manager.closed') || (request()->routeIs('sales-manager.tasks*') && request('focus') !== 'followups') || request()->routeIs('sales-manager.profile') || request()->routeIs('sales-manager.settings') || request()->routeIs('sales-manager.lead-downloads.*') ? 'active' : '' }}" aria-expanded="false" aria-controls="asmMoreMenu">
+        <button type="button" id="asmMoreMenuTrigger" class="footer-nav-link more-trigger {{ request()->routeIs('sales-manager.meetings*') || request()->routeIs('sales-manager.site-visits*') || request()->routeIs('sales-manager.closed') || request()->routeIs('sales-manager.profile') || request()->routeIs('sales-manager.settings') || request()->routeIs('sales-manager.lead-downloads.*') ? 'active' : '' }}" data-nav-order="5" data-nav-key="more" aria-expanded="false" aria-controls="asmMoreMenu">
             <i class="fas fa-ellipsis-h"></i>
             <span>More</span>
         </button>
@@ -1335,10 +1339,6 @@
             <a href="{{ route('sales-manager.closed') }}" class="asm-more-link {{ request()->routeIs('sales-manager.closed') ? 'active' : '' }}" data-nav-order="6" data-nav-key="closed">
                 <i class="fas fa-circle-check"></i>
                 <span>Closed</span>
-            </a>
-            <a href="{{ route('sales-manager.tasks') }}" class="asm-more-link {{ request()->routeIs('sales-manager.tasks*') && request('focus') !== 'followups' ? 'active' : '' }}" data-nav-order="7" data-nav-key="tasks">
-                <i class="fas fa-tasks"></i>
-                <span>Tasks</span>
             </a>
             <a href="{{ route('sales-manager.lead-downloads.index') }}" class="asm-more-link {{ request()->routeIs('sales-manager.lead-downloads.*') ? 'active' : '' }}" data-nav-order="8" data-nav-key="lead-downloads">
                 <i class="fas fa-file-arrow-down"></i>

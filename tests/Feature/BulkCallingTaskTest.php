@@ -109,8 +109,11 @@ class BulkCallingTaskTest extends TestCase
         ]));
 
         $preview->assertOk();
-        $preview->assertJsonCount(1, 'data');
-        $this->assertSame($readyLead->id, $preview->json('data.0.id'));
+        $preview->assertJsonCount(2, 'data');
+        $previewIds = collect($preview->json('data'))->pluck('id')->all();
+        $this->assertSame([$readyLead->id, $duplicateLead->id], $previewIds);
+        $duplicatePreview = collect($preview->json('data'))->firstWhere('id', $duplicateLead->id);
+        $this->assertTrue((bool) ($duplicatePreview['has_open_call_task'] ?? false));
 
         $response = $this->actingAs($crm)->postJson(route('lead-assignment.calling-tasks.store'), [
             'assigned_user_id' => $assignee->id,

@@ -34,7 +34,7 @@ class CrmBulkCallingTaskController extends Controller
             return response()->json(['message' => 'Selected user cannot receive bulk calling tasks.'], 422);
         }
 
-        $leads = $this->service->previewLeads($assignedUser, [], false, (int) ($validated['per_page'] ?? 50));
+        $leads = $this->service->previewLeads($assignedUser, [], true, (int) ($validated['per_page'] ?? 50));
 
         return response()->json($leads);
     }
