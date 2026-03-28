@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\LeadAssigned;
 use App\Models\Lead;
 use App\Models\LeadAssignment;
+use App\Models\Role;
 use App\Models\SourceAutomationRule;
 use App\Models\SourceAutomationRuleUser;
 use App\Models\User;
@@ -53,6 +54,16 @@ class SourceAutomationService
                 return false;
             }
 
+            $assignedUser = User::with('role')->find($userId);
+            if (!$assignedUser) {
+                Log::warning("SourceAutomationService: selected user missing", [
+                    'rule_id' => $rule->id,
+                    'lead_id' => $lead->id,
+                    'user_id' => $userId,
+                ]);
+                return false;
+            }
+
             DB::beginTransaction();
 
             // Create LeadAssignment record
@@ -67,8 +78,14 @@ class SourceAutomationService
                 'is_active'         => true,
             ]);
 
-            // Update lead's assigned_to field
-            $lead->update(['assigned_to' => $userId]);
+            // Mark leads routed to HR through hiring automation as hiring candidates.
+            if (($assignedUser->role->slug ?? null) === Role::HR_MANAGER && $source === 'facebook_lead_ads') {
+                $lead->update([
+                    'is_hiring_candidate' => true,
+                    'hiring_status' => $lead->hiring_status ?: 'new',
+                ]);
+                $lead->refresh();
+            }
 
             // Increment daily counter for rule user
             $this->incrementRuleUserCount($rule, $userId);
@@ -79,9 +96,8 @@ class SourceAutomationService
                     Event::dispatch(new LeadAssigned($lead, $userId, $rule->created_by));
 
                     // Send chatbot notification
-                    $assignedUser = User::with('role')->find($userId);
                     if ($assignedUser) {
-                        $leadUrl = route('leads.show', $lead->id);
+                        $leadUrl = $this->getLeadActionUrl($assignedUser, $lead);
                         $this->notificationService->notifyNewLead($assignedUser, $lead, $leadUrl);
                     }
                 } catch (\Exception $e) {
@@ -93,9 +109,8 @@ class SourceAutomationService
             } else {
                 // No task creation — just send notification
                 try {
-                    $assignedUser = User::with('role')->find($userId);
                     if ($assignedUser) {
-                        $leadUrl = route('leads.show', $lead->id);
+                        $leadUrl = $this->getLeadActionUrl($assignedUser, $lead);
                         $this->notificationService->notifyNewLead($assignedUser, $lead, $leadUrl);
                     }
                 } catch (\Exception $e) {
@@ -293,5 +308,14 @@ class SourceAutomationService
         if ($ruleUser) {
             $ruleUser->incrementCount();
         }
+    }
+
+    protected function getLeadActionUrl(User $user, Lead $lead): string
+    {
+        if ($user->isHrManager() && $lead->is_hiring_candidate) {
+            return route('hr-manager.hiring.show', $lead);
+        }
+
+        return route('leads.show', $lead);
     }
 }

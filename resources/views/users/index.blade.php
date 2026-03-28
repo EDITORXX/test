@@ -12,12 +12,12 @@
 @section('header-actions')
     @if(auth()->user()->isAdmin())
     <button onclick="document.getElementById('hierarchyModal').style.display='flex'"
-        class="px-4 py-2 border border-[#205A44] text-[#205A44] rounded-lg hover:bg-[#f0fdf4] transition-colors duration-200 text-sm font-medium flex items-center gap-2">
+        class="uc-header-action px-4 py-2 border border-[#205A44] text-[#205A44] rounded-lg hover:bg-[#f0fdf4] transition-colors duration-200 text-sm font-medium flex items-center gap-2">
         <i class="fas fa-sitemap"></i> View Hierarchy
     </button>
     @endif
     @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
-    <a href="{{ route('users.create') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+    <a href="{{ route('users.create') }}" class="uc-header-action px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
         Create User
     </a>
     @endif
@@ -25,11 +25,18 @@
 
 @push('styles')
 <style>
+.uc-header-action {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:42px;
+    white-space:nowrap;
+}
 .uc-stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
 .uc-stat-card {
     background:#fff; border-radius:14px; padding:20px 24px;
     border:1px solid #e5e7eb; display:flex; align-items:center; gap:16px;
-    box-shadow:0 1px 4px rgba(0,0,0,.05);
+    box-shadow:0 1px 4px rgba(0,0,0,.05); min-width:0;
 }
 .uc-stat-icon { width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
 .uc-stat-val { font-size:26px;font-weight:700;color:#111827;line-height:1; }
@@ -38,7 +45,7 @@
 .uc-toolbar {
     background:#fff; border-radius:14px; border:1px solid #e5e7eb;
     padding:14px 20px; margin-bottom:22px; display:flex; gap:12px; align-items:center;
-    box-shadow:0 1px 4px rgba(0,0,0,.05); flex-wrap:wrap;
+    box-shadow:0 1px 4px rgba(0,0,0,.05); flex-wrap:wrap; min-width:0;
 }
 .uc-search-wrap { flex:1;min-width:200px;position:relative; }
 .uc-search-wrap i { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px; }
@@ -64,10 +71,16 @@
 }
 .uc-btn-clear:hover { background:#e5e7eb; }
 
-.uc-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px; }
+.uc-toolbar-form {
+    display:flex;gap:10px;flex:1;align-items:center;flex-wrap:wrap;min-width:0;
+}
+.uc-toolbar-count {
+    font-size:12px;color:#9ca3af;white-space:nowrap;padding-left:4px;
+}
+.uc-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px; min-width:0; }
 .uc-card {
     background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;
-    box-shadow:0 2px 8px rgba(0,0,0,.06);transition:all .25s;cursor:default;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);transition:all .25s;cursor:default; min-width:0;
 }
 .uc-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.12);transform:translateY(-3px);border-color:#c8e6c9; }
 .uc-card-banner { height:68px;position:relative; }
@@ -90,9 +103,9 @@
     display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
     font-size:11px;font-weight:600;margin-bottom:14px;border:1px solid;
 }
-.uc-info-row { display:flex;align-items:center;gap:8px;font-size:12.5px;color:#6b7280;margin-bottom:8px; }
+.uc-info-row { display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#6b7280;margin-bottom:8px; min-width:0; }
 .uc-info-row i { width:14px;text-align:center;color:#9ca3af;flex-shrink:0; }
-.uc-info-row span { color:#374151; }
+.uc-info-row span { color:#374151; min-width:0; overflow-wrap:anywhere; word-break:break-word; }
 .uc-card-footer {
     border-top:1px solid #f3f4f6;padding:14px 16px;
     display:flex;gap:8px;background:#fafafa;
@@ -134,10 +147,42 @@
 }
 .uc-pagination { margin-top:22px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;padding:12px 20px;box-shadow:0 1px 4px rgba(0,0,0,.04); }
 
+@media(max-width:767px){
+    .header.main-header > div:last-child .uc-header-action{
+        width:100%;
+        min-width:0;
+        font-size:13px !important;
+        padding:10px 12px !important;
+    }
+    .header.main-header > div:last-child{
+        min-width:0;
+    }
+}
+
 @media(max-width:640px){
-    .uc-stats-grid{grid-template-columns:1fr 1fr;}
-    .uc-toolbar{flex-direction:column;align-items:stretch;}
-    .uc-role-select,.uc-btn-search{width:100%;}
+    .uc-stats-grid{grid-template-columns:1fr;gap:12px;margin-bottom:18px;}
+    .uc-stat-card{padding:14px 16px;gap:12px;border-radius:12px;}
+    .uc-stat-icon{width:40px;height:40px;border-radius:10px;}
+    .uc-stat-val{font-size:22px;}
+    .uc-stat-lbl{font-size:11px;}
+    .uc-toolbar{flex-direction:column;align-items:stretch;padding:14px;gap:10px;margin-bottom:18px;}
+    .uc-toolbar-form{flex-direction:column;align-items:stretch;gap:10px;}
+    .uc-search-wrap,.uc-role-select,.uc-btn-search,.uc-btn-clear{width:100%;min-width:0;}
+    .uc-search-wrap{min-width:0;}
+    .uc-role-select{min-width:0;}
+    .uc-toolbar-count{width:100%;padding-left:0;white-space:normal;font-size:11px;}
+    .uc-grid{grid-template-columns:1fr;gap:16px;}
+    .uc-card-body{padding:34px 16px 14px;}
+    .uc-card-footer{padding:12px;}
+    .uc-card-footer > div:first-child{flex-direction:column;}
+    .uc-action{width:100%;min-height:42px;font-size:12px;}
+    .uc-card-meta{padding:9px 10px;}
+    .uc-empty{padding:48px 16px;}
+}
+
+@media(min-width:401px) and (max-width:640px){
+    .uc-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .uc-stats-grid > :first-child{grid-column:1 / -1;}
 }
 </style>
 @endpush
@@ -189,7 +234,7 @@
         <div class="uc-stat-icon" style="background:linear-gradient(135deg,#063A1C,#205A44);">
             <i class="fas fa-users" style="color:#fff;font-size:18px;"></i>
         </div>
-        <div>
+        <div style="min-width:0;">
             <div class="uc-stat-val">{{ $totalCount }}</div>
             <div class="uc-stat-lbl">Total Users</div>
         </div>
@@ -198,7 +243,7 @@
         <div class="uc-stat-icon" style="background:linear-gradient(135deg,#065f46,#15803d);">
             <i class="fas fa-user-check" style="color:#fff;font-size:18px;"></i>
         </div>
-        <div>
+        <div style="min-width:0;">
             <div class="uc-stat-val" style="color:#065f46;">{{ $activeCount }}</div>
             <div class="uc-stat-lbl">Active (this page)</div>
         </div>
@@ -207,7 +252,7 @@
         <div class="uc-stat-icon" style="background:linear-gradient(135deg,#991b1b,#dc2626);">
             <i class="fas fa-user-times" style="color:#fff;font-size:18px;"></i>
         </div>
-        <div>
+        <div style="min-width:0;">
             <div class="uc-stat-val" style="color:#991b1b;">{{ $inactiveCount }}</div>
             <div class="uc-stat-lbl">Inactive (this page)</div>
         </div>
@@ -216,7 +261,7 @@
 
 {{-- Toolbar --}}
 <div class="uc-toolbar">
-    <form method="GET" action="{{ route('users.index') }}" style="display:flex;gap:10px;flex:1;align-items:center;flex-wrap:wrap;">
+    <form method="GET" action="{{ route('users.index') }}" class="uc-toolbar-form">
         <div class="uc-search-wrap">
             <i class="fas fa-search"></i>
             <input type="text" name="search" class="uc-search-input"
@@ -240,7 +285,7 @@
         </a>
         @endif
     </form>
-    <div style="font-size:12px;color:#9ca3af;white-space:nowrap;padding-left:4px;">
+    <div class="uc-toolbar-count">
         {{ $users->firstItem() ?? 0 }}–{{ $users->lastItem() ?? 0 }} of {{ $totalCount }} users
     </div>
 </div>
@@ -277,7 +322,7 @@
 
             <div class="uc-info-row">
                 <i class="fas fa-envelope"></i>
-                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="{{ $user->email }}">{{ $user->email }}</span>
+                <span title="{{ $user->email }}">{{ $user->email }}</span>
             </div>
             <div class="uc-info-row">
                 <i class="fas fa-phone"></i>
@@ -403,7 +448,7 @@
         {{-- Legend --}}
         <div style="padding:10px 28px;border-bottom:1px solid #f3f4f6;display:flex;gap:14px;flex-wrap:wrap;flex-shrink:0;align-items:center;">
             <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;">Roles:</span>
-            @foreach([['#7c3aed','Admin'],['#1d4ed8','CRM'],['#0369a1','HR / Finance'],['#be185d','Sales Head'],['#065f46','Sales Manager'],['#15803d','Senior Manager'],['#ca8a04','Asst. SM'],['#b45309','Sales Executive']] as $l)
+            @foreach([['#7c3aed','Admin'],['#1d4ed8','CRM'],['#0369a1','HR / Finance'],['#be185d','Associate Director'],['#065f46','Sales Manager'],['#15803d','Senior Manager'],['#ca8a04','Asst. SM'],['#b45309','Sales Executive']] as $l)
             <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
                 <span style="width:10px;height:10px;border-radius:3px;background:{{ $l[0] }};display:inline-block;"></span> {{ $l[1] }}
             </div>
@@ -425,7 +470,7 @@ const demoUsers = [
     { id:2,  name:'Priya Singh',    role:'CRM Manager',             role_slug:'crm',                     manager_id:1,    avatar:'P', children:[] },
     { id:3,  name:'Anita Verma',    role:'HR Manager',              role_slug:'hr_manager',              manager_id:1,    avatar:'A', children:[] },
     { id:4,  name:'Suresh Gupta',   role:'Finance Manager',         role_slug:'finance_manager',         manager_id:1,    avatar:'S', children:[] },
-    { id:5,  name:'Arjun Kapoor',   role:'Sales Head',              role_slug:'sales_head',              manager_id:1,    avatar:'A', children:[] },
+    { id:5,  name:'Arjun Kapoor',   role:'Associate Director',      role_slug:'sales_head',              manager_id:1,    avatar:'A', children:[] },
     { id:14, name:'Mohan Yadav',    role:'Sales Manager',           role_slug:'sales_manager',           manager_id:5,    avatar:'M', children:[] },
     { id:6,  name:'Deepak Kumar',   role:'Senior Manager',          role_slug:'senior_manager',          manager_id:14,   avatar:'D', children:[] },
     { id:7,  name:'Neha Joshi',     role:'Senior Manager',          role_slug:'senior_manager',          manager_id:14,   avatar:'N', children:[] },

@@ -546,7 +546,13 @@ class LeadAssignmentService
      */
     protected function getLeadDetailUrl(User $user, int $leadId): string
     {
-        // All users use the same lead detail route - the view handles role-based layout
+        if ($user->isHrManager()) {
+            $lead = Lead::find($leadId);
+            if ($lead && $lead->is_hiring_candidate) {
+                return route('hr-manager.hiring.show', $lead);
+            }
+        }
+
         return route('leads.show', $leadId);
     }
 

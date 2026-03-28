@@ -269,6 +269,7 @@ class LoginController extends Controller
             'senior_manager' => route('sales-manager.dashboard'),  // Manager role → Sales Manager dashboard
             'assistant_sales_manager' => route('sales-manager.dashboard'),
             'admin' => route('admin.dashboard'),
+            'hr_manager' => route('hr-manager.hiring.index'),
             'crm' => route('dashboard'),
             default => '/',
         };

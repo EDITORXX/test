@@ -34,9 +34,11 @@ class LeadAssignedNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         $leadName = $this->lead->name ?? 'Lead';
-        $actionUrl = $notifiable->isTelecaller() || $notifiable->isSalesExecutive()
-            ? AppUrl::to('/telecaller/tasks?status=pending')
-            : AppUrl::to('/leads');
+        $actionUrl = $notifiable->isHrManager() && $this->lead->is_hiring_candidate
+            ? AppUrl::to('/hr-manager/hiring/' . $this->lead->id)
+            : ($notifiable->isTelecaller() || $notifiable->isSalesExecutive()
+                ? AppUrl::to('/telecaller/tasks?status=pending')
+                : AppUrl::to('/leads'));
 
         return (new MailMessage)
             ->subject('New lead assigned: ' . $leadName)

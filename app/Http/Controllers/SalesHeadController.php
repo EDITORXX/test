@@ -8,8 +8,11 @@ use App\Models\Lead;
 use App\Models\SiteVisit;
 use App\Models\FollowUp;
 use App\Models\LeadAssignment;
+use App\Models\Target;
+use App\Models\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class SalesHeadController extends Controller
 {
@@ -74,6 +77,13 @@ class SalesHeadController extends Controller
             ->with('role')
             ->get();
 
+        $assistantSalesManagers = User::whereIn('id', $allTeamMemberIds)
+            ->whereHas('role', function($q) {
+                $q->where('slug', Role::ASSISTANT_SALES_MANAGER);
+            })
+            ->with(['role', 'manager'])
+            ->get();
+
         // Get all Sales Executives
         $salesExecutives = User::whereIn('manager_id', array_merge([$user->id], $salesManagers->pluck('id')->toArray()))
             ->whereHas('role', function($q) {
@@ -103,16 +113,23 @@ class SalesHeadController extends Controller
         $leadIdsArray = $leadIds->toArray();
         $closedWonCount = $leadCount > 0 && !empty($leadIdsArray) ? Lead::whereIn('id', $leadIdsArray)->where('status', 'closed_won')->count() : 0;
         
+        $pendingVerificationsQuery = $leadCount > 0 && !empty($leadIdsArray)
+            ? Lead::whereIn('id', $leadIdsArray)->where('needs_verification', true)
+            : Lead::whereRaw('1 = 0');
+
         $stats = [
             'total_leads' => $leadCount > 0 && !empty($leadIdsArray) ? Lead::whereIn('id', $leadIdsArray)->count() : 0,
             'new_leads' => $leadCount > 0 && !empty($leadIdsArray) ? Lead::whereIn('id', $leadIdsArray)->where('status', 'new')->count() : 0,
             'qualified_leads' => $leadCount > 0 && !empty($leadIdsArray) ? Lead::whereIn('id', $leadIdsArray)->where('status', 'qualified')->count() : 0,
             'closed_won' => $closedWonCount,
             'conversion_rate' => $leadCount > 0 ? round(($closedWonCount / $leadCount) * 100, 2) : 0,
+            'direct_managers' => $salesManagers->count(),
             'active_sales_managers' => $salesManagers->count(),
+            'active_asms' => $assistantSalesManagers->count(),
             'active_sales_executives' => $salesExecutives->count(),
             'active_telecallers' => $telecallers->count(),
-            'pending_verifications' => Lead::where('needs_verification', true)->count(),
+            'total_team_members' => count($allTeamMemberIds),
+            'pending_verifications' => (clone $pendingVerificationsQuery)->count(),
             'today_leads' => $leadCount > 0 && !empty($leadIdsArray) ? Lead::whereIn('id', $leadIdsArray)->whereDate('created_at', today())->count() : 0,
             'today_conversions' => $leadCount > 0 && !empty($leadIdsArray) ? Lead::whereIn('id', $leadIdsArray)
                 ->where('status', 'closed_won')
@@ -130,6 +147,47 @@ class SalesHeadController extends Controller
                 ->where('scheduled_at', '>=', now())
                 ->count() : 0,
         ];
+
+        $currentMonth = Carbon::now()->startOfMonth();
+        $targets = !empty($allTeamMemberIds)
+            ? Target::with(['user.role'])
+                ->whereIn('user_id', $allTeamMemberIds)
+                ->whereDate('target_month', $currentMonth)
+                ->get()
+            : collect();
+
+        $targetOverview = [
+            'users_with_targets' => $targets->count(),
+            'meetings_target' => 0,
+            'meetings_achieved' => 0,
+            'visits_target' => 0,
+            'visits_achieved' => 0,
+            'closers_target' => 0,
+            'closers_achieved' => 0,
+        ];
+
+        foreach ($targets as $target) {
+            $meetings = $target->getAchievementProgress('meetings');
+            $visits = $target->getAchievementProgress('visits');
+            $closers = $target->getAchievementProgress('closers');
+
+            $targetOverview['meetings_target'] += (int) ($meetings['target'] ?? 0);
+            $targetOverview['meetings_achieved'] += (int) ($meetings['achieved'] ?? 0);
+            $targetOverview['visits_target'] += (int) ($visits['target'] ?? 0);
+            $targetOverview['visits_achieved'] += (int) ($visits['achieved'] ?? 0);
+            $targetOverview['closers_target'] += (int) ($closers['target'] ?? 0);
+            $targetOverview['closers_achieved'] += (int) ($closers['achieved'] ?? 0);
+        }
+
+        $targetOverview['meetings_percentage'] = $targetOverview['meetings_target'] > 0
+            ? round(($targetOverview['meetings_achieved'] / $targetOverview['meetings_target']) * 100, 2)
+            : 0;
+        $targetOverview['visits_percentage'] = $targetOverview['visits_target'] > 0
+            ? round(($targetOverview['visits_achieved'] / $targetOverview['visits_target']) * 100, 2)
+            : 0;
+        $targetOverview['closers_percentage'] = $targetOverview['closers_target'] > 0
+            ? round(($targetOverview['closers_achieved'] / $targetOverview['closers_target']) * 100, 2)
+            : 0;
 
         // Senior Managers Performance
         $managersPerformance = $salesManagers->map(function($manager) {
@@ -197,6 +255,33 @@ class SalesHeadController extends Controller
             ];
         });
 
+        $asmPerformance = $assistantSalesManagers->map(function($asm) {
+            $asmTeamIds = $asm->getAllTeamMemberIds();
+            $scopedIds = array_values(array_unique(array_merge([$asm->id], $asmTeamIds)));
+            $asmLeadIds = !empty($scopedIds)
+                ? Lead::whereHas('activeAssignments', function ($q) use ($scopedIds) {
+                    $q->whereIn('assigned_to', $scopedIds);
+                })->pluck('id')
+                : collect();
+
+            $totalLeads = $asmLeadIds->count();
+            $asmLeadIdsArray = $asmLeadIds->toArray();
+            $converted = $totalLeads > 0 && !empty($asmLeadIdsArray)
+                ? Lead::whereIn('id', $asmLeadIdsArray)->where('status', 'closed_won')->count()
+                : 0;
+
+            return [
+                'id' => $asm->id,
+                'name' => $asm->name,
+                'email' => $asm->email,
+                'manager_name' => $asm->manager->name ?? 'N/A',
+                'team_size' => count($asmTeamIds),
+                'total_leads' => $totalLeads,
+                'leads_converted' => $converted,
+                'conversion_rate' => $totalLeads > 0 ? round(($converted / $totalLeads) * 100, 2) : 0,
+            ];
+        });
+
         // Lead Pipeline by Status
         $leadPipeline = [
             'new' => $leadCount > 0 && !empty($leadIdsArray) ? Lead::whereIn('id', $leadIdsArray)->where('status', 'new')->count() : 0,
@@ -241,7 +326,7 @@ class SalesHeadController extends Controller
             ->get() : collect();
 
         // Pending Verifications
-        $pendingVerifications = Lead::where('needs_verification', true)
+        $pendingVerifications = (clone $pendingVerificationsQuery)
             ->with(['verificationRequestedBy', 'pendingManager', 'activeAssignments.assignedTo'])
             ->latest('verification_requested_at')
             ->limit(10)
@@ -262,10 +347,12 @@ class SalesHeadController extends Controller
         return response()->json([
             'stats' => $stats,
             'managers_performance' => $managersPerformance->values(),
+            'asm_performance' => $asmPerformance->values(),
             'executives_performance' => $executivesPerformance->values(),
             'telecallers_performance' => $telecallersPerformance->values(),
             'lead_pipeline' => $leadPipeline,
             'lead_source_distribution' => $leadSourceDistribution,
+            'target_overview' => $targetOverview,
             'recent_leads' => $recentLeads->map(function($lead) {
                 return [
                     'id' => $lead->id,
@@ -381,4 +468,3 @@ class SalesHeadController extends Controller
         return $hierarchy;
     }
 }
-

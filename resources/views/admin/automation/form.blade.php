@@ -1,5 +1,8 @@
 @extends('layouts.app')
 @section('title', isset($rule) ? 'Edit Automation Rule' : 'New Automation Rule')
+@php
+    $salesUsers = $assignableUsers ?? collect();
+@endphp
 
 @push('styles')
 <style>
@@ -413,7 +416,7 @@
                     <p class="panel-label" style="margin-bottom:8px;">User select karo</p>
                     <select name="single_user_id" class="f-select">
                         <option value="">-- Select User --</option>
-                        @foreach($salesUsers as $u)
+                        @foreach($assignableUsers as $u)
                         <option value="{{ $u->id }}"
                             {{ old('single_user_id', $rule->single_user_id ?? '') == $u->id ? 'selected':'' }}>
                             {{ $u->name }} — {{ $u->role->name ?? '' }}
@@ -451,7 +454,7 @@
                                         <select name="users[{{ $i }}][user_id]"
                                                 class="f-select f-input-sm">
                                             <option value="">-- Select User --</option>
-                                            @foreach($salesUsers as $u)
+                                            @foreach($assignableUsers as $u)
                                             <option value="{{ $u->id }}"
                                                 {{ ($eu['user_id']??'')==$u->id?'selected':'' }}>
                                                 {{ $u->name }} — {{ $u->role->name ?? '' }}
@@ -548,7 +551,7 @@
                         <div class="field-box-label">Fallback User</div>
                         <select name="fallback_user_id" class="f-select">
                             <option value="">-- None --</option>
-                            @foreach($salesUsers as $u)
+                            @foreach($assignableUsers as $u)
                             <option value="{{ $u->id }}"
                                 {{ old('fallback_user_id', $rule->fallback_user_id ?? '')==$u->id?'selected':'' }}>
                                 {{ $u->name }}

@@ -386,9 +386,19 @@ Route::middleware(['auth'])->group(function () {
         if ($user->isSalesManager()) {
             return redirect()->route('sales-manager.dashboard');
         }
+        // HR Manager: dedicated hiring queue
+        if ($user->isHrManager()) {
+            return redirect()->route('hr-manager.hiring.index');
+        }
         // CRM + Admin + baaki sab: CRM dashboard open
         return view('crm.dashboard');
     })->name('dashboard');
+
+    Route::middleware(['auth', 'role:hr_manager'])->prefix('hr-manager')->name('hr-manager.')->group(function () {
+        Route::get('/hiring', [\App\Http\Controllers\HrHiringController::class, 'index'])->name('hiring.index');
+        Route::get('/hiring/{lead}', [\App\Http\Controllers\HrHiringController::class, 'show'])->name('hiring.show');
+        Route::put('/hiring/{lead}', [\App\Http\Controllers\HrHiringController::class, 'update'])->name('hiring.update');
+    });
 
     // Test: Lead assigned notification (1-click test for popup + email)
     Route::get('/test/lead-notification', [\App\Http\Controllers\TestLeadNotificationController::class, 'index'])->name('test.lead-notification')->middleware('role:admin,crm');

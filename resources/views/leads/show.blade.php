@@ -1,5 +1,6 @@
 @php
     $user = auth()->user();
+    $leadCallUrl = !blank($lead->phone) ? \App\Helpers\ContactHelper::getCallUrl((string) $lead->phone) : null;
     $fieldConfig = function ($form, string $key, array $defaults = []) {
         $field = $form?->fields?->firstWhere('field_key', $key);
 
@@ -337,7 +338,7 @@
                     <div class="flex-1 min-w-0">
                         <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 leading-tight break-words word-wrap">{{ $lead->name }}</h1>
                         <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 sm:mt-3">
-                            <a href="tel:{{ $lead->phone }}" class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs sm:text-sm md:text-base font-medium transition-all duration-200 border border-white/20 shadow-sm whitespace-nowrap">
+                            <a href="{{ $leadCallUrl }}" class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs sm:text-sm md:text-base font-medium transition-all duration-200 border border-white/20 shadow-sm whitespace-nowrap">
                                 <i class="fas fa-phone text-xs sm:text-sm"></i>
                                 <span class="truncate max-w-[120px] sm:max-w-none">{{ $lead->phone }}</span>
                             </a>
@@ -370,10 +371,10 @@
                 <h3 class="text-xs sm:text-sm font-semibold text-white/90 mb-3 sm:mb-4 uppercase tracking-wider">Quick Actions</h3>
                 <div class="flex flex-wrap gap-2 sm:gap-3">
                     <!-- Call Button -->
-                    <button onclick="openCallModal()" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[80px] sm:min-w-0">
+                    <a href="{{ $leadCallUrl }}" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[80px] sm:min-w-0">
                         <i class="fas fa-phone text-xs sm:text-sm"></i>
                         <span>Call</span>
-                    </button>
+                    </a>
                     
                     <!-- WhatsApp Button -->
                     <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $lead->phone) }}?text=Hello%20{{ urlencode($lead->name) }}" 
@@ -468,7 +469,7 @@
                     <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
                         <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Phone</p>
                         <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">
-                            <a href="tel:{{ $lead->phone }}" class="text-blue-600 hover:text-blue-700 hover:underline transition-colors break-words">
+                            <a href="{{ $leadCallUrl }}" class="text-blue-600 hover:text-blue-700 hover:underline transition-colors break-words">
                                 {{ $lead->phone }}
                             </a>
                         </p>
@@ -606,9 +607,65 @@
                     @endif
                     
                     @if($lead->notes)
+                    @php
+                        $noteLines = preg_split('/\r\n|\r|\n/', trim((string) $lead->notes)) ?: [];
+                        $parsedNoteFields = [];
+                        $plainNoteLines = [];
+
+                        foreach ($noteLines as $noteLine) {
+                            $trimmedNoteLine = trim($noteLine);
+                            if ($trimmedNoteLine === '') {
+                                continue;
+                            }
+
+                            if (str_contains($trimmedNoteLine, ':')) {
+                                [$noteKey, $noteValue] = array_pad(explode(':', $trimmedNoteLine, 2), 2, '');
+                                $noteKey = trim($noteKey);
+                                $noteValue = trim($noteValue);
+
+                                if ($noteKey !== '') {
+                                    $parsedNoteFields[] = [
+                                        'label' => ucwords(str_replace('_', ' ', $noteKey)),
+                                        'value' => $noteValue !== '' ? $noteValue : 'N/A',
+                                    ];
+                                    continue;
+                                }
+                            }
+
+                            $plainNoteLines[] = $trimmedNoteLine;
+                        }
+
+                        $renderStructuredNotes = !empty($parsedNoteFields) && count($parsedNoteFields) >= count($plainNoteLines);
+                    @endphp
                     <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
-                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Notes</p>
-                        <p class="text-xs sm:text-sm text-slate-900 whitespace-pre-wrap leading-relaxed break-words">{{ $lead->notes }}</p>
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">Notes</p>
+                            @if($renderStructuredNotes)
+                                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700 border border-emerald-200">
+                                    Structured Details
+                                </span>
+                            @endif
+                        </div>
+
+                        @if($renderStructuredNotes)
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                @foreach($parsedNoteFields as $noteField)
+                                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                                        <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1">{{ $noteField['label'] }}</p>
+                                        <p class="text-sm font-semibold text-slate-900 leading-relaxed break-words">{{ $noteField['value'] }}</p>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if(!empty($plainNoteLines))
+                                <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-2">Additional Note</p>
+                                    <p class="text-xs sm:text-sm text-slate-900 whitespace-pre-wrap leading-relaxed break-words">{{ implode("\n", $plainNoteLines) }}</p>
+                                </div>
+                            @endif
+                        @else
+                            <p class="text-xs sm:text-sm text-slate-900 whitespace-pre-wrap leading-relaxed break-words">{{ $lead->notes }}</p>
+                        @endif
                     </div>
                     @endif
 
@@ -927,65 +984,6 @@
 </div>
 
 <!-- Modals for Quick Actions -->
-<!-- Call Modal -->
-<div id="callModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Log Call</h3>
-                <button onclick="closeCallModal()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="callForm" onsubmit="submitCall(event)">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Call Type *</label>
-                        <select name="call_type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="outgoing">Outgoing</option>
-                            <option value="incoming">Incoming</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                        <input type="text" name="phone_number" value="{{ $lead->phone }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
-                            <input type="datetime-local" name="start_time" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (seconds) *</label>
-                            <input type="number" name="duration" min="0" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Call Outcome</label>
-                        <select name="call_outcome" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Select outcome</option>
-                            <option value="interested">Interested</option>
-                            <option value="not_interested">Not Interested</option>
-                            <option value="callback">Callback</option>
-                            <option value="no_answer">No Answer</option>
-                            <option value="busy">Busy</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                        <textarea name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" onclick="closeCallModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Log Call</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Follow-up Modal -->
 <div id="followupModal" class="fixed inset-0 bg-black/40 hidden overflow-y-auto h-full w-full z-50">
     <div class="min-h-full flex items-center justify-center p-4">
@@ -1732,19 +1730,6 @@ document.getElementById('leadRequirementsModal')?.addEventListener('click', func
     const CAN_TRANSFER_OWNER = @json($user && ($user->isAdmin() || $user->isCrm()));
 
     // Modal open/close functions
-    function openCallModal() {
-        document.getElementById('callModal').classList.remove('hidden');
-        // Set default start time to now
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.querySelector('#callForm input[name="start_time"]').value = now.toISOString().slice(0, 16);
-    }
-
-    function closeCallModal() {
-        document.getElementById('callModal').classList.add('hidden');
-        document.getElementById('callForm').reset();
-    }
-
     function openFollowupModal() {
         document.getElementById('followupModal').classList.remove('hidden');
         const tomorrow = new Date();
@@ -1915,57 +1900,6 @@ document.getElementById('leadRequirementsModal')?.addEventListener('click', func
     }
 
     // Form submission functions
-    async function submitCall(event) {
-        event.preventDefault();
-        const form = event.target;
-        const formData = new FormData(form);
-        const data = {
-            lead_id: LEAD_ID,
-            phone_number: formData.get('phone_number'),
-            call_type: formData.get('call_type'),
-            start_time: new Date(formData.get('start_time')).toISOString(),
-            duration: parseInt(formData.get('duration')),
-            call_outcome: formData.get('call_outcome') || null,
-            notes: formData.get('notes') || null,
-        };
-
-        try {
-            const response = await fetch(`${window.API_BASE_URL}/call-logs`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${window.API_TOKEN}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            // Check if response is JSON before parsing
-            const contentType = response.headers.get('content-type');
-            let result;
-            
-            if (contentType && contentType.includes('application/json')) {
-                result = await response.json();
-            } else {
-                const text = await response.text();
-                console.error('Non-JSON response:', text);
-                alert('Server error: Invalid response format. Please try again.');
-                return;
-            }
-
-            if (response.ok && result.success) {
-                alert('Call logged successfully!');
-                closeCallModal();
-                location.reload(); // Reload to show in timeline
-            } else {
-                alert(result.message || 'Failed to log call');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('An error occurred while logging the call');
-        }
-    }
-
     async function submitFollowup(event) {
         event.preventDefault();
         const form = event.target;
@@ -2326,15 +2260,11 @@ document.getElementById('leadRequirementsModal')?.addEventListener('click', func
 
     // Close modals when clicking outside
     window.onclick = function(event) {
-        const callModal = document.getElementById('callModal');
         const followupModal = document.getElementById('followupModal');
         const siteVisitModal = document.getElementById('siteVisitModal');
         const meetingModal = document.getElementById('meetingModal');
         const scheduleCallTaskModal = document.getElementById('scheduleCallTaskModal');
 
-        if (event.target === callModal) {
-            closeCallModal();
-        }
         if (event.target === followupModal) {
             closeFollowupModal();
         }

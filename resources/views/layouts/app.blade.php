@@ -568,6 +568,15 @@
                 gap: 8px;
                 justify-content: flex-start;
             }
+            .layout-admin.page-users-index .header > div:last-child {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                align-items: start;
+            }
+            .layout-admin.page-users-index .header > div:last-child .mobile-nav-toggle {
+                grid-row: 1 / span 2;
+                align-self: start;
+            }
             /* Hide clock, username, logout, navToggle in admin header on mobile */
             .layout-admin .header #datetimeClock,
             .layout-admin .header #navModeToggle,
@@ -1546,7 +1555,7 @@
     })();
     </script>
 </head>
-<body class="bg-[#F7F6F3] font-sans antialiased @if(auth()->user()->isCrm()) layout-crm @elseif(auth()->user()->isAdmin()) layout-admin @endif" style="margin: 0; padding: 0; overflow: hidden;">
+<body class="bg-[#F7F6F3] font-sans antialiased @if(auth()->user()->isCrm()) layout-crm @elseif(auth()->user()->isAdmin()) layout-admin @endif @if(request()->routeIs('users.index')) page-users-index @endif" style="margin: 0; padding: 0; overflow: hidden;">
 @if(session('impersonating_original_id'))
 <div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#92400e,#b45309);color:#fff;padding:10px 24px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:16px;box-shadow:0 3px 12px rgba(0,0,0,0.3);">
     <i class="fas fa-user-secret"></i>
@@ -1589,7 +1598,9 @@
                     @elseif(auth()->user()->isCrm())
                         CRM Workspace
                     @elseif(auth()->user()->isSalesHead())
-                        Sales Head
+                        Associate Director
+                    @elseif(auth()->user()->isHrManager())
+                        HR Hiring
                     @elseif(auth()->user()->isSalesManager())
                         Senior Manager
                     @elseif(auth()->user()->isTelecaller())
@@ -1745,6 +1756,72 @@
                 <a href="{{ route('admin.profile') }}" class="sidebar-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}" data-tooltip="Profile" title="Profile">
                     <i class="fas fa-user" style="margin-right: 10px; width: 20px;"></i>
                     Profile
+                </a>
+                @elseif(auth()->user()->isHrManager())
+                <div class="nav-section-label">Main</div>
+                <a href="{{ route('hr-manager.hiring.index') }}" class="sidebar-link {{ request()->routeIs('hr-manager.hiring.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-tie" style="margin-right: 10px; width: 20px;"></i>
+                    Hiring Leads
+                </a>
+                <div class="nav-section-label">Support</div>
+                <a href="{{ route('support.index') }}" class="sidebar-link {{ request()->routeIs('support.*') ? 'active' : '' }}">
+                    <i class="fas fa-life-ring" style="margin-right: 10px; width: 20px;"></i>
+                    Support
+                </a>
+                @elseif(auth()->user()->isSalesHead())
+                <div class="nav-section-label">Main</div>
+                <a href="{{ route('sales-head.dashboard') }}" class="sidebar-link {{ request()->routeIs('sales-head.dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-home" style="margin-right: 10px; width: 20px;"></i>
+                    Dashboard
+                </a>
+                <a href="{{ route('users.index') }}" class="sidebar-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                    <i class="fas fa-users" style="margin-right: 10px; width: 20px;"></i>
+                    Users / Team
+                </a>
+                <a href="{{ route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+                    <i class="fas fa-bullseye" style="margin-right: 10px; width: 20px;"></i>
+                    Target Setting
+                </a>
+                <div class="nav-section-label">Pipeline</div>
+                <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()">
+                    <i class="fas fa-filter" style="margin-right: 10px; width: 20px;"></i>
+                    Leads
+                    <i class="fas fa-chevron-down ml-auto" id="leadsMenuIcon" style="transition: transform 0.3s;"></i>
+                </div>
+                <div id="leadsSubMenu" class="pl-8" style="display: {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'block' : 'none' }};">
+                    <a href="{{ route('leads.index') }}" class="sidebar-link {{ request()->routeIs('leads.*') && !request()->routeIs('prospects.*') && !request()->routeIs('meetings.*') && !request()->routeIs('site-visits.*') && !request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fas fa-list" style="margin-right: 10px; width: 20px;"></i>
+                        All Leads
+                    </a>
+                    <a href="{{ route('prospects.index') }}" class="sidebar-link {{ request()->routeIs('prospects.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fas fa-user-check" style="margin-right: 10px; width: 20px;"></i>
+                        Prospects
+                    </a>
+                    <a href="{{ route('meetings.index') }}" class="sidebar-link {{ request()->routeIs('meetings.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fas fa-handshake" style="margin-right: 10px; width: 20px;"></i>
+                        Meetings
+                    </a>
+                    <a href="{{ route('site-visits.index') }}" class="sidebar-link {{ request()->routeIs('site-visits.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fas fa-map-marker-alt" style="margin-right: 10px; width: 20px;"></i>
+                        Visits
+                    </a>
+                    <a href="{{ route('closers.index') }}" class="sidebar-link {{ request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fas fa-check-circle" style="margin-right: 10px; width: 20px;"></i>
+                        Closers
+                    </a>
+                </div>
+                <div class="nav-section-label">Operations</div>
+                <a href="{{ route('crm.verifications') }}" class="sidebar-link {{ request()->routeIs('crm.verifications') ? 'active' : '' }}">
+                    <i class="fas fa-check-circle" style="margin-right: 10px; width: 20px;"></i>
+                    Verifications
+                </a>
+                <a href="{{ route('calls.index') }}" class="sidebar-link {{ request()->routeIs('calls.*') ? 'active' : '' }}">
+                    <i class="fas fa-phone" style="margin-right: 10px; width: 20px;"></i>
+                    Team Calls
+                </a>
+                <a href="{{ route('export.index') }}" class="sidebar-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
+                    <i class="fas fa-download" style="margin-right: 10px; width: 20px;"></i>
+                    Export
                 </a>
                 @else
                 <div class="nav-section-label">Main</div>
@@ -2106,6 +2183,52 @@
             <a href="{{ route('logout.get') }}" class="footer-nav-link">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
+            </a>
+        @elseif(auth()->user()->isHrManager())
+            <a href="{{ route('hr-manager.hiring.index') }}" class="footer-nav-link {{ request()->routeIs('hr-manager.hiring.*') ? 'active' : '' }}">
+                <i class="fas fa-user-tie"></i>
+                <span>Hiring</span>
+            </a>
+            <a href="{{ route('support.index') }}" class="footer-nav-link {{ request()->routeIs('support.*') ? 'active' : '' }}">
+                <i class="fas fa-life-ring"></i>
+                <span>Support</span>
+            </a>
+            <a href="{{ route('logout.get') }}" class="footer-nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        @elseif(auth()->user()->isSalesHead())
+            <a href="{{ route('sales-head.dashboard') }}" class="footer-nav-link {{ request()->routeIs('sales-head.dashboard') ? 'active' : '' }}">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ route('users.index') }}" class="footer-nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i>
+                <span>Team</span>
+            </a>
+            <a href="{{ route('leads.index') }}" class="footer-nav-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}">
+                <i class="fas fa-user-friends"></i>
+                <span>Leads</span>
+            </a>
+            <a href="{{ route('crm.verifications') }}" class="footer-nav-link {{ request()->routeIs('crm.verifications') ? 'active' : '' }}">
+                <i class="fas fa-check-circle"></i>
+                <span>Verify</span>
+            </a>
+            <a href="{{ route('admin.targets.index') }}" class="footer-nav-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+                <i class="fas fa-bullseye"></i>
+                <span>Targets</span>
+            </a>
+            <a href="{{ route('calls.index') }}" class="footer-nav-link {{ request()->routeIs('calls.*') ? 'active' : '' }}">
+                <i class="fas fa-phone"></i>
+                <span>Calls</span>
+            </a>
+            <a href="{{ route('export.index') }}" class="footer-nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
+                <i class="fas fa-download"></i>
+                <span>Export</span>
+            </a>
+            <a href="{{ route('support.index') }}" class="footer-nav-link {{ request()->routeIs('support.*') ? 'active' : '' }}">
+                <i class="fas fa-life-ring"></i>
+                <span>Support</span>
             </a>
         @else
             <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">

@@ -12,6 +12,7 @@ use App\Models\SourceAutomationRuleUser;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 
 class AutomationController extends Controller
 {
@@ -40,26 +41,28 @@ class AutomationController extends Controller
     {
         $fbForms      = FbForm::with('page')->where('is_enabled', true)->get();
         $googleSheets = GoogleSheetsConfig::where('is_active', true)->where('is_draft', false)->orderBy('sheet_name')->get();
-        $salesUsers   = $this->getSalesUsers();
+        $assignableUsers = $this->getAssignableUsers();
 
-        return view('admin.automation.form', compact('fbForms', 'googleSheets', 'salesUsers'));
+        return view('admin.automation.form', compact('fbForms', 'googleSheets', 'assignableUsers'));
     }
 
     public function store(Request $request)
     {
+        $assignableUserIds = $this->getAssignableUsers()->pluck('id')->all();
+
         $data = $request->validate([
             'name'              => 'required|string|max:255',
             'source'                  => 'required|in:facebook_lead_ads,pabbly,mcube,google_sheets,csv,all',
             'fb_form_id'              => 'nullable|exists:fb_forms,id',
             'google_sheet_config_id'  => 'nullable|exists:google_sheets_config,id',
             'assignment_method'       => 'required|in:round_robin,first_available,percentage,single_user',
-            'single_user_id'          => 'nullable|required_if:assignment_method,single_user|exists:users,id',
+            'single_user_id'          => ['nullable', 'required_if:assignment_method,single_user', Rule::in($assignableUserIds)],
             'auto_create_task'        => 'boolean',
             'daily_limit'             => 'nullable|integer|min:1',
-            'fallback_user_id'        => 'nullable|exists:users,id',
+            'fallback_user_id'        => ['nullable', Rule::in($assignableUserIds)],
             'is_active'               => 'boolean',
             'users'                   => 'nullable|array',
-            'users.*.user_id'         => 'required|exists:users,id',
+            'users.*.user_id'         => ['required', Rule::in($assignableUserIds)],
             'users.*.percentage'      => 'nullable|numeric|min:0|max:100',
         ]);
 
@@ -96,26 +99,28 @@ class AutomationController extends Controller
         $rule->load('users.user', 'fbForm', 'googleSheetConfig', 'singleUser', 'fallbackUser');
         $fbForms      = FbForm::with('page')->where('is_enabled', true)->get();
         $googleSheets = GoogleSheetsConfig::where('is_active', true)->where('is_draft', false)->orderBy('sheet_name')->get();
-        $salesUsers   = $this->getSalesUsers();
+        $assignableUsers = $this->getAssignableUsers();
 
-        return view('admin.automation.form', compact('rule', 'fbForms', 'googleSheets', 'salesUsers'));
+        return view('admin.automation.form', compact('rule', 'fbForms', 'googleSheets', 'assignableUsers'));
     }
 
     public function update(Request $request, SourceAutomationRule $rule)
     {
+        $assignableUserIds = $this->getAssignableUsers()->pluck('id')->all();
+
         $data = $request->validate([
             'name'                   => 'required|string|max:255',
             'source'                 => 'required|in:facebook_lead_ads,pabbly,mcube,google_sheets,csv,all',
             'fb_form_id'             => 'nullable|exists:fb_forms,id',
             'google_sheet_config_id' => 'nullable|exists:google_sheets_config,id',
             'assignment_method'      => 'required|in:round_robin,first_available,percentage,single_user',
-            'single_user_id'         => 'nullable|required_if:assignment_method,single_user|exists:users,id',
+            'single_user_id'         => ['nullable', 'required_if:assignment_method,single_user', Rule::in($assignableUserIds)],
             'auto_create_task'       => 'boolean',
             'daily_limit'            => 'nullable|integer|min:1',
-            'fallback_user_id'       => 'nullable|exists:users,id',
+            'fallback_user_id'       => ['nullable', Rule::in($assignableUserIds)],
             'is_active'              => 'boolean',
             'users'                  => 'nullable|array',
-            'users.*.user_id'        => 'required|exists:users,id',
+            'users.*.user_id'        => ['required', Rule::in($assignableUserIds)],
             'users.*.percentage'     => 'nullable|numeric|min:0|max:100',
         ]);
 
@@ -164,7 +169,7 @@ class AutomationController extends Controller
         return response()->json(['is_active' => $rule->is_active]);
     }
 
-    protected function getSalesUsers()
+    protected function getAssignableUsers()
     {
         return User::with('role')
             ->where('is_active', true)
@@ -173,6 +178,7 @@ class AutomationController extends Controller
                 Role::SALES_MANAGER,
                 Role::ASSISTANT_SALES_MANAGER,
                 Role::SENIOR_MANAGER,
+                Role::HR_MANAGER,
             ]))
             ->orderBy('name')
             ->get();

@@ -15,6 +15,15 @@ class Lead extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const HIRING_STATUS_OPTIONS = [
+        'new' => 'New',
+        'connected' => 'Connected',
+        'interview_pending' => 'Interview Pending',
+        'interview_complete' => 'Interview Complete',
+        'selected' => 'Selected',
+        'rejected' => 'Rejected',
+    ];
+
     public const SOURCE_OPTIONS = [
         'meta' => 'Meta',
         'ivr' => 'Ivr',
@@ -91,6 +100,9 @@ class Lead extends Model
         'form_filled_by_telecaller',
         'form_filled_by_executive',
         'form_filled_by_manager',
+        'is_hiring_candidate',
+        'hiring_status',
+        'hr_remark',
     ];
 
     protected $casts = [
@@ -109,7 +121,13 @@ class Lead extends Model
         'form_filled_by_telecaller' => 'boolean',
         'form_filled_by_executive' => 'boolean',
         'form_filled_by_manager' => 'boolean',
+        'is_hiring_candidate' => 'boolean',
     ];
+
+    public static function hiringStatusOptions(): array
+    {
+        return self::HIRING_STATUS_OPTIONS;
+    }
 
     public static function sourceOptions(): array
     {
@@ -326,6 +344,11 @@ class Lead extends Model
         return $this->hasOne(ImportedLead::class)->latestOfMany();
     }
 
+    public function latestFbLead(): HasOne
+    {
+        return $this->hasOne(FbLead::class, 'crm_lead_id')->latestOfMany();
+    }
+
     /**
      * Scope to get leads for a specific telecaller
      */
@@ -410,5 +433,14 @@ class Lead extends Model
     public function getFormFieldsArray(): array
     {
         return $this->formFieldValues()->pluck('field_value', 'field_key')->toArray();
+    }
+
+    public function getHiringStatusLabelAttribute(): ?string
+    {
+        if (!$this->hiring_status) {
+            return null;
+        }
+
+        return self::HIRING_STATUS_OPTIONS[$this->hiring_status] ?? ucfirst(str_replace('_', ' ', $this->hiring_status));
     }
 }
