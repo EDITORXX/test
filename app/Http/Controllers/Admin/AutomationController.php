@@ -62,7 +62,7 @@ class AutomationController extends Controller
             'fallback_user_id'        => ['nullable', Rule::in($assignableUserIds)],
             'is_active'               => 'boolean',
             'users'                   => 'nullable|array',
-            'users.*.user_id'         => ['required', Rule::in($assignableUserIds)],
+            'users.*.user_id'         => ['nullable', 'required_unless:assignment_method,single_user', Rule::in($assignableUserIds)],
             'users.*.percentage'      => 'nullable|numeric|min:0|max:100',
         ]);
 
@@ -120,7 +120,7 @@ class AutomationController extends Controller
             'fallback_user_id'       => ['nullable', Rule::in($assignableUserIds)],
             'is_active'              => 'boolean',
             'users'                  => 'nullable|array',
-            'users.*.user_id'        => ['required', Rule::in($assignableUserIds)],
+            'users.*.user_id'        => ['nullable', 'required_unless:assignment_method,single_user', Rule::in($assignableUserIds)],
             'users.*.percentage'     => 'nullable|numeric|min:0|max:100',
         ]);
 

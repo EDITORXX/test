@@ -54,6 +54,55 @@ class HrHiringFlowTest extends TestCase
         $response->assertSee('HR Manager');
     }
 
+    public function test_admin_can_create_single_user_hr_hiring_rule_without_multi_user_payload(): void
+    {
+        $adminRole = $this->createRole(Role::ADMIN, 'Admin');
+        $hrRole = $this->createRole(Role::HR_MANAGER, 'HR Manager');
+
+        $admin = $this->createUser($adminRole, ['name' => 'Admin User', 'email' => 'admin@example.com']);
+        $hrUser = $this->createUser($hrRole, ['name' => 'HR User', 'email' => 'hr@example.com']);
+
+        DB::table('fb_pages')->insert([
+            'id' => 1,
+            'name' => 'Hiring Page',
+            'page_id' => 'page_1',
+            'is_active' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('fb_forms')->insert([
+            'id' => 1,
+            'fb_page_id' => 1,
+            'name' => 'Job Interview',
+            'form_id' => 'form_1',
+            'is_enabled' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.automation.store'), [
+            'name' => 'Hiring Lead',
+            'source' => 'facebook_lead_ads',
+            'fb_form_id' => 1,
+            'assignment_method' => 'single_user',
+            'single_user_id' => $hrUser->id,
+            'users' => [
+                ['user_id' => '', 'percentage' => ''],
+            ],
+            'is_active' => '1',
+        ]);
+
+        $response->assertRedirect(route('admin.automation.index'));
+
+        $this->assertDatabaseHas('source_automation_rules', [
+            'name' => 'Hiring Lead',
+            'source' => 'facebook_lead_ads',
+            'assignment_method' => 'single_user',
+            'single_user_id' => $hrUser->id,
+        ]);
+    }
+
     public function test_facebook_hiring_rule_assigns_hr_and_marks_lead_as_hiring_candidate(): void
     {
         Event::fake([NewLeadNotification::class]);
