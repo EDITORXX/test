@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Support\AppUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -26,8 +27,8 @@ class NewUserWelcomeNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $loginUrl = url('/login');
-        $installAppUrl = url('/install-app');
+        $loginUrl = AppUrl::to('/login');
+        $installAppUrl = AppUrl::to('/install-app');
         $appName = config('app.name');
 
         return (new MailMessage)

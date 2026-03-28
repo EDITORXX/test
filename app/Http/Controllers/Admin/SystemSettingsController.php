@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSettings;
+use App\Support\AppUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -117,7 +118,8 @@ class SystemSettingsController extends Controller
 
         try {
             $appName = config('app.name');
-            $loginUrl = url('/login');
+            $loginUrl = AppUrl::to('/login');
+            $installAppUrl = AppUrl::to('/install-app');
             $user = (object) [
                 'name' => 'Test User',
                 'email' => $request->email,
@@ -131,6 +133,7 @@ class SystemSettingsController extends Controller
                 'roleName' => 'Sales Executive',
                 'managerName' => 'John Manager',
                 'loginUrl' => $loginUrl,
+                'installAppUrl' => $installAppUrl,
                 'appName' => $appName,
             ], function ($message) use ($request, $appName) {
                 $message->to($request->email)
@@ -191,7 +194,8 @@ class SystemSettingsController extends Controller
                 'plainPassword' => 'Test@12345',
                 'roleName' => 'Sales Executive',
                 'managerName' => 'John Manager',
-                'loginUrl' => url('/login'),
+                'loginUrl' => AppUrl::to('/login'),
+                'installAppUrl' => AppUrl::to('/install-app'),
                 'appName' => $appName,
             ], function ($message) use ($request, $appName) {
                 $message->to($request->email)->subject('[' . $appName . '] Test – Sample welcome email');

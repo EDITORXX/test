@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Lead;
+use App\Support\AppUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -34,8 +35,8 @@ class LeadAssignedNotification extends Notification implements ShouldQueue
     {
         $leadName = $this->lead->name ?? 'Lead';
         $actionUrl = $notifiable->isTelecaller() || $notifiable->isSalesExecutive()
-            ? url('/telecaller/tasks?status=pending')
-            : url('/leads');
+            ? AppUrl::to('/telecaller/tasks?status=pending')
+            : AppUrl::to('/leads');
 
         return (new MailMessage)
             ->subject('New lead assigned: ' . $leadName)
@@ -56,4 +57,3 @@ class LeadAssignedNotification extends Notification implements ShouldQueue
         ];
     }
 }
-

@@ -10,8 +10,10 @@ use App\Observers\UserObserver;
 use App\Observers\TaskObserver;
 use App\Observers\PricingConfigObserver;
 use App\Observers\UnitTypeObserver;
+use App\Support\AppUrl;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $configuredAppUrl = trim((string) config('app.url', ''));
+        if ($configuredAppUrl !== '') {
+            URL::forceRootUrl(AppUrl::root());
+
+            $scheme = parse_url($configuredAppUrl, PHP_URL_SCHEME);
+            if (is_string($scheme) && $scheme !== '') {
+                URL::forceScheme($scheme);
+            }
+        }
+
         // Register User Observer for manager change detection
         User::observe(UserObserver::class);
 
