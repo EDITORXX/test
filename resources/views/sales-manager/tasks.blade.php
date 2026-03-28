@@ -1362,21 +1362,21 @@
     </div>
 </div>
 
-<!-- Junk Remark Modal -->
+<!-- Outcome Remark Modal -->
 <div id="rejectReasonModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-            <h3>Mark Lead as Junk</h3>
+            <h3 id="rejectReasonModalTitle">Add Remark</h3>
             <button class="close-modal" onclick="cancelJunkRemarkModal()">&times;</button>
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label for="rejectReasonInput">Remark <span class="required">*</span></label>
-                <textarea id="rejectReasonInput" rows="4" required placeholder="Enter junk remark..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
+                <label for="rejectReasonInput">Remark <span style="color:#6b7280; font-weight:400;">(optional)</span></label>
+                <textarea id="rejectReasonInput" rows="4" placeholder="Add context for this outcome..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
             </div>
             <div class="form-footer" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
                 <button type="button" class="btn-cancel" onclick="cancelJunkRemarkModal()">Cancel</button>
-                <button type="button" class="btn-reject" onclick="submitJunkOutcome()">Mark Junk</button>
+                <button type="button" class="btn-reject" id="rejectReasonSubmitBtn" onclick="submitOutcomeRemark()">Save</button>
             </div>
         </div>
     </div>
@@ -1447,6 +1447,13 @@
                     <p style="font-size: 14px; color: #2e7d32; margin: 0;">
                         <strong>Selected:</strong> <span id="selectedTimeText"></span>
                     </p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="outcomeDateTimeRemark" style="display:block; font-size:14px; font-weight:500; color:#333; margin-bottom:6px;">
+                        Remark <span style="color:#6b7280; font-weight:400;">(optional)</span>
+                    </label>
+                    <textarea id="outcomeDateTimeRemark" rows="3" placeholder="Add follow-up or CNP context..." style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"></textarea>
                 </div>
             </div>
         </div>
@@ -2300,6 +2307,13 @@
             if (timeInput) {
                 timeInput.value = '';
             }
+            const remarkInput = document.getElementById('outcomeDateTimeRemark');
+            if (remarkInput) {
+                remarkInput.value = '';
+                remarkInput.placeholder = selectedTaskOutcome === 'follow_up'
+                    ? 'Add follow-up context...'
+                    : 'Add CNP context...';
+            }
         }
     }
     
@@ -2512,6 +2526,10 @@
             document.getElementById('selectedTimeDisplay').style.display = 'none';
             document.getElementById('cnpCustomDate').value = '';
             document.getElementById('cnpCustomTime').value = '';
+            const remarkInput = document.getElementById('outcomeDateTimeRemark');
+            if (remarkInput) {
+                remarkInput.value = '';
+            }
             document.querySelectorAll('.time-option-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
@@ -3892,16 +3910,13 @@
         }
 
         if (outcome === 'not_interested') {
-            await submitTaskOutcome(outcome);
+            openOutcomeRemarkModal('not_interested');
             return;
         }
 
         if (outcome === 'follow_up' || outcome === 'cnp') {
             if (outcome === 'cnp' && currentTaskCategory === 'fresh_lead') {
-                const result = await submitTaskOutcome('cnp', {}, false);
-                if (result?.success) {
-                    currentTaskCategory = 'other';
-                }
+                openOutcomeRemarkModal('cnp');
                 return;
             }
 
@@ -3926,13 +3941,51 @@
             }
 
             openCnpTimeSelectionModal();
+            if (outcome === 'follow_up') {
+                showCustomTimePicker();
+            }
             return;
         }
 
         if (outcome === 'junk') {
-            document.getElementById('rejectReasonInput').value = '';
-            document.getElementById('rejectReasonModal')?.classList.add('active');
+            openOutcomeRemarkModal('junk');
         }
+    }
+
+    function openOutcomeRemarkModal(outcome) {
+        selectedTaskOutcome = outcome;
+
+        const modal = document.getElementById('rejectReasonModal');
+        const title = document.getElementById('rejectReasonModalTitle');
+        const textarea = document.getElementById('rejectReasonInput');
+        const submitBtn = document.getElementById('rejectReasonSubmitBtn');
+
+        if (title) {
+            title.textContent = outcome === 'junk'
+                ? 'Mark Lead as Junk'
+                : outcome === 'not_interested'
+                    ? 'Mark Lead as Not Interested'
+                    : 'Add CNP Remark';
+        }
+
+        if (textarea) {
+            textarea.value = '';
+            textarea.placeholder = outcome === 'junk'
+                ? 'Add junk reason or context...'
+                : outcome === 'not_interested'
+                    ? 'Add not interested context...'
+                    : 'Add CNP context...';
+        }
+
+        if (submitBtn) {
+            submitBtn.textContent = outcome === 'junk'
+                ? 'Mark Junk'
+                : outcome === 'not_interested'
+                    ? 'Continue'
+                    : 'Confirm CNP';
+        }
+
+        modal?.classList.add('active');
     }
 
     async function confirmOutcomeDateTimeSelection() {
@@ -3967,7 +4020,8 @@
         }
 
         const result = await submitTaskOutcome(selectedTaskOutcome, {
-            next_datetime: nextDateTime
+            next_datetime: nextDateTime,
+            remark: document.getElementById('outcomeDateTimeRemark')?.value.trim() || ''
         }, false);
 
         if (result?.success) {
@@ -3988,16 +4042,18 @@
         closeJunkRemarkModal();
     }
 
-    async function submitJunkOutcome() {
+    async function submitOutcomeRemark() {
         const remark = document.getElementById('rejectReasonInput').value.trim();
-        if (!remark) {
-            showAlert('Please enter a junk remark', 'warning');
-            return;
-        }
 
-        const result = await submitTaskOutcome('junk', { remark });
+        const outcome = selectedTaskOutcome === 'junk' || selectedTaskOutcome === 'not_interested' || selectedTaskOutcome === 'cnp'
+            ? selectedTaskOutcome
+            : 'junk';
+        const result = await submitTaskOutcome(outcome, { remark }, false);
         if (result?.success) {
             closeJunkRemarkModal();
+            if (outcome === 'cnp') {
+                currentTaskCategory = 'other';
+            }
         }
     }
 

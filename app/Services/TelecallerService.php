@@ -311,7 +311,7 @@ class TelecallerService
     /**
      * Mark assignment as not interested
      */
-    public function markNotInterested(int $assignmentId, int $telecallerId, string $remark): array
+    public function markNotInterested(int $assignmentId, int $telecallerId, ?string $remark): array
     {
         DB::beginTransaction();
         try {
@@ -319,13 +319,16 @@ class TelecallerService
                 ->where('assigned_to', $telecallerId)
                 ->firstOrFail();
 
+            $remark = trim((string) $remark);
+            $noteSuffix = $remark !== '' ? ' - ' . $remark : '';
+
             // Update assignment
             $assignment->call_status = 'called_not_interested';
             $assignment->called_at = now();
             $assignment->not_interested_date = now();
             $assignment->shuffle_after_date = now()->addDays(rand(3, 6));
             $assignment->notes = ($assignment->notes ? $assignment->notes . "\n" : '') . 
-                "[" . now()->format('Y-m-d H:i:s') . "] Not Interested - " . $remark;
+                "[" . now()->format('Y-m-d H:i:s') . "] Not Interested" . $noteSuffix;
             $assignment->save();
 
             // Complete related task if exists
@@ -367,13 +370,16 @@ class TelecallerService
     /**
      * Mark assignment as CNP (Call Not Picked)
      */
-    public function markCnp(int $assignmentId, int $telecallerId, string $remark): array
+    public function markCnp(int $assignmentId, int $telecallerId, ?string $remark): array
     {
         DB::beginTransaction();
         try {
             $assignment = CrmAssignment::where('id', $assignmentId)
                 ->where('assigned_to', $telecallerId)
                 ->firstOrFail();
+
+            $remark = trim((string) $remark);
+            $noteSuffix = $remark !== '' ? ' - ' . $remark : '';
 
             // Increment CNP count (handles auto-marking logic)
             $oldCnpCount = $assignment->cnp_count;
@@ -382,7 +388,7 @@ class TelecallerService
 
             // Update notes
             $assignment->notes = ($assignment->notes ? $assignment->notes . "\n" : '') . 
-                "[" . now()->format('Y-m-d H:i:s') . "] CNP - " . $remark;
+                "[" . now()->format('Y-m-d H:i:s') . "] CNP" . $noteSuffix;
             $assignment->save();
 
             // Handle task status based on CNP count
@@ -823,4 +829,3 @@ class TelecallerService
         ];
     }
 }
-

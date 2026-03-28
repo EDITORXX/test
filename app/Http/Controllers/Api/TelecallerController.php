@@ -406,7 +406,7 @@ class TelecallerController extends Controller
         $request->validate([
             'assignment_id' => 'required|exists:crm_assignments,id',
             'status' => 'required|in:called_interested,called_not_interested',
-            'remark' => 'required|string',
+            'remark' => 'nullable|string',
         ]);
 
         $telecallerId = $request->user()->id;
@@ -434,7 +434,7 @@ class TelecallerController extends Controller
     {
         $request->validate([
             'assignment_id' => 'required|exists:crm_assignments,id',
-            'remark' => 'required|string',
+            'remark' => 'nullable|string',
         ]);
 
         $telecallerId = $request->user()->id;
@@ -1029,7 +1029,7 @@ class TelecallerController extends Controller
 
                 case 'not_interested':
                     $request->validate([
-                        'remark' => 'required|string',
+                        'remark' => 'nullable|string',
                     ]);
                     $this->telecallerService->markNotInterested($assignment->id, $telecallerId, $request->input('remark'));
                     $lead = Lead::find($telecallerTask->lead_id);
@@ -1050,7 +1050,7 @@ class TelecallerController extends Controller
 
                 case 'cnp':
                     $request->validate([
-                        'remark' => 'required|string',
+                        'remark' => 'nullable|string',
                     ]);
                     $this->telecallerService->markCnp($assignment->id, $telecallerId, $request->input('remark'));
                     // Don't complete task if CNP count < 2, task should remain pending for next call

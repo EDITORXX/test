@@ -2082,14 +2082,6 @@ class SalesManagerController extends Controller
             ], 422);
         }
 
-        if ($outcome === 'junk' && blank($validated['remark'] ?? null)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => ['remark' => ['Remark is required for junk outcome.']],
-            ], 422);
-        }
-
         if ($outcome === 'interested') {
             $payload = $request->input('lead_form_payload', []);
             if (!is_array($payload) || empty($payload)) {
@@ -2121,6 +2113,9 @@ class SalesManagerController extends Controller
             $payload = [];
             if (!empty($validated['next_datetime'])) {
                 $payload['retry_at'] = $validated['next_datetime'];
+            }
+            if (array_key_exists('remark', $validated)) {
+                $payload['remark'] = $validated['remark'];
             }
 
             $childRequest = Request::create('/', 'POST', $payload);
@@ -2159,9 +2154,9 @@ class SalesManagerController extends Controller
 
         try {
             if ($outcome === 'not_interested') {
-                $reason = 'Not Interested';
+                $reason = trim((string) ($validated['remark'] ?? '')) ?: 'Not Interested';
 
-                $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: Not Interested');
+                $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: ' . $reason);
                 $lead->markAsOtherLead('not_interested', $user->id, $reason);
 
                 $prospect->update([
@@ -2227,22 +2222,23 @@ class SalesManagerController extends Controller
             }
 
             $junkRemark = trim((string) ($validated['remark'] ?? ''));
+            $junkReason = $junkRemark ?: 'Junk';
 
-            $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: Junk - ' . $junkRemark);
-            $lead->markAsOtherLead('junk', $user->id, $junkRemark);
+            $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: ' . $junkReason);
+            $lead->markAsOtherLead('junk', $user->id, $junkReason);
 
             $prospect->update([
                 'verification_status' => 'rejected',
                 'lead_status' => 'junk',
-                'manager_remark' => $junkRemark,
-                'rejection_reason' => $junkRemark,
+                'manager_remark' => $junkReason,
+                'rejection_reason' => $junkReason,
                 'verified_at' => now(),
                 'verified_by' => $user->id,
             ]);
 
             $this->deactivateLeadAssignments($lead);
             $task->markAsCompleted();
-            $this->recordTaskOutcome($task, 'junk', $junkRemark);
+            $this->recordTaskOutcome($task, 'junk', $junkRemark ?: null);
 
             DB::commit();
 
@@ -3030,6 +3026,7 @@ class SalesManagerController extends Controller
             $request->validate([
                 'retry_at' => 'nullable|date|after:now',
                 'retry_minutes' => 'nullable|integer|min:1|max:10080', // Max 1 week (10080 minutes)
+                'remark' => 'nullable|string|max:2000',
             ], [
                 'retry_at.after' => 'Retry time must be in the future',
                 'retry_minutes.max' => 'Retry time cannot be more than 1 week in the future',
@@ -3049,6 +3046,7 @@ class SalesManagerController extends Controller
                 // Calculate scheduled time based on selection
                 $retryScheduledAt = null;
                 $timeDescription = '';
+                $remark = trim((string) $request->input('remark', ''));
                 
                 if ($request->has('retry_at') && $request->retry_at) {
                     // Custom datetime provided
@@ -3076,10 +3074,11 @@ class SalesManagerController extends Controller
                 // Cancel the current task since a new retry task is being created
                 // This ensures only one active task per lead (the new retry task)
                 $cnpNote = "Call Not Picked - Rescheduled for {$timeDescription} on " . now()->format('Y-m-d H:i:s');
+                $cnpNoteWithRemark = $remark !== '' ? $cnpNote . " | Remark: {$remark}" : $cnpNote;
                 $currentDescription = $task->description ?? '';
                 $task->update([
-                    'description' => $currentDescription . ($currentDescription ? "\n\n" : '') . $cnpNote,
-                    'notes' => ($task->notes ?? '') . ($task->notes ? "\n\n" : '') . $cnpNote,
+                    'description' => $currentDescription . ($currentDescription ? "\n\n" : '') . $cnpNoteWithRemark,
+                    'notes' => ($task->notes ?? '') . ($task->notes ? "\n\n" : '') . $cnpNoteWithRemark,
                     'status' => 'cancelled', // Cancel old task to avoid duplicates
                 ]);
                 
@@ -3096,7 +3095,7 @@ class SalesManagerController extends Controller
                     'status' => 'pending',
                     'scheduled_at' => $retryScheduledAt,
                     'created_by' => $user->id,
-                    'notes' => "CNP retry task created from task #{$task->id} on " . now()->format('Y-m-d H:i:s') . " - Scheduled for {$timeDescription}",
+                    'notes' => "CNP retry task created from task #{$task->id} on " . now()->format('Y-m-d H:i:s') . " - Scheduled for {$timeDescription}" . ($remark !== '' ? " | Remark: {$remark}" : ''),
                 ]);
                 
                 // Prospect status remains pending_verification (no change)

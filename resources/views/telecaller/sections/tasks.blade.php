@@ -1135,6 +1135,25 @@
         </div>
     </div>
 
+    <div id="telecallerOutcomeRemarkModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 id="telecallerOutcomeRemarkTitle">Add Remark</h3>
+                <button class="close-modal" onclick="closeTelecallerOutcomeRemarkModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="telecallerOutcomeRemarkInput">Remark <span style="color:#6b7280; font-weight:400;">(optional)</span></label>
+                    <textarea id="telecallerOutcomeRemarkInput" rows="4" placeholder="Add context for this outcome..."></textarea>
+                </div>
+                <div class="form-footer">
+                    <button type="button" class="btn-cancel" onclick="closeTelecallerOutcomeRemarkModal()">Cancel</button>
+                    <button type="button" class="btn-save" id="telecallerOutcomeRemarkSubmitBtn" onclick="submitTelecallerOutcomeRemark()">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Prospect Form Modal -->
     <div id="prospectModal" class="modal">
         <div class="modal-content">
@@ -1235,17 +1254,17 @@
     <div id="telecallerCnpTimeSelectionModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Select Retry Time for CNP</h3>
+                <h3 id="telecallerCnpModalTitle">Select Retry Time for CNP</h3>
                 <button class="close-modal" onclick="cancelTelecallerCnpTimeSelection()">&times;</button>
             </div>
             <div class="modal-body">
                 <div style="padding: 20px;">
-                    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                    <p id="telecallerCnpModalText" style="font-size: 14px; color: #666; margin-bottom: 20px;">
                         Choose when to retry this call:
                     </p>
                     
                     <!-- Quick Time Options -->
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <div id="telecallerQuickTimeOptions" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
                         <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             15 Minutes
                         </button>
@@ -1261,7 +1280,7 @@
                     </div>
                     
                     <!-- Custom Option -->
-                    <div style="margin-bottom: 20px;">
+                    <div id="telecallerCustomOptionWrap" style="margin-bottom: 20px;">
                         <button type="button" class="telecaller-time-option-btn" onclick="showTelecallerCustomTimePicker()" id="telecallerCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             Custom Date & Time
                         </button>
@@ -1297,13 +1316,18 @@
                             <strong>Selected:</strong> <span id="telecallerSelectedTimeText"></span>
                         </p>
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="telecallerOutcomeRemark">Remark <span style="color:#6b7280; font-weight:400;">(optional)</span></label>
+                        <textarea id="telecallerOutcomeRemark" rows="3" placeholder="Add CNP context..." style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
                 <button type="button" onclick="cancelTelecallerCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Cancel
                 </button>
-                <button type="button" onclick="confirmTelecallerCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <button type="button" id="telecallerCnpConfirmBtn" onclick="confirmTelecallerCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Confirm
                 </button>
             </div>
@@ -1856,6 +1880,54 @@
         document.getElementById('postCallModal').classList.remove('active');
     }
 
+    let telecallerPendingOutcome = null;
+    let telecallerCnpRequiresRetry = true;
+
+    function openTelecallerOutcomeRemarkModal(outcome) {
+        telecallerPendingOutcome = outcome;
+        const modal = document.getElementById('telecallerOutcomeRemarkModal');
+        const title = document.getElementById('telecallerOutcomeRemarkTitle');
+        const input = document.getElementById('telecallerOutcomeRemarkInput');
+        const submit = document.getElementById('telecallerOutcomeRemarkSubmitBtn');
+
+        if (title) {
+            title.textContent = outcome === 'not_interested' ? 'Mark Lead as Not Interested' : 'Add Remark';
+        }
+        if (input) {
+            input.value = '';
+            input.placeholder = outcome === 'not_interested'
+                ? 'Add not interested context...'
+                : 'Add context...';
+        }
+        if (submit) {
+            submit.textContent = outcome === 'not_interested' ? 'Continue' : 'Save';
+        }
+
+        modal?.classList.add('active');
+    }
+
+    function closeTelecallerOutcomeRemarkModal() {
+        document.getElementById('telecallerOutcomeRemarkModal')?.classList.remove('active');
+        const input = document.getElementById('telecallerOutcomeRemarkInput');
+        if (input) {
+            input.value = '';
+        }
+        telecallerPendingOutcome = null;
+    }
+
+    async function submitTelecallerOutcomeRemark() {
+        const notes = document.getElementById('telecallerOutcomeRemarkInput')?.value?.trim() || '';
+        const outcome = telecallerPendingOutcome;
+
+        if (outcome === 'not_interested') {
+            closeTelecallerOutcomeRemarkModal();
+            await executeNotInterested(notes);
+            return;
+        }
+
+        closeTelecallerOutcomeRemarkModal();
+    }
+
     async function handleInterested() {
         closePostCallModal();
         
@@ -1922,20 +1994,16 @@
     }
 
     async function handleNotInterested() {
-        showConfirmModal(
-            'Mark this lead as Not Interested?',
-            function() {
-                executeNotInterested();
-            }
-        );
+        closePostCallModal();
+        openTelecallerOutcomeRemarkModal('not_interested');
     }
     
-    async function executeNotInterested() {
+    async function executeNotInterested(notes = '') {
         closeConfirmModal();
         
         const result = await apiCall(`/tasks/${currentTaskId}/outcome`, {
             method: 'POST',
-            body: { outcome: 'not_interested' },
+            body: { outcome: 'not_interested', notes },
         });
 
         if (result && result.success) {
@@ -1975,30 +2043,48 @@
     async function handleCNP() {
         closePostCallModal();
         currentCnpCount = currentLeadData?.cnp_count || 0;
-        
-        // If CNP count >= 2, task will be completed (no retry task created)
-        if (currentCnpCount >= 2) {
-            showConfirmModal('Mark as CNP? Task will be completed automatically.', function() {
-                executeTelecallerCNP(null, null, currentCnpCount);
-            });
-            return;
-        }
-        
-        // Open time selection modal for CNP count < 2
-        openTelecallerCnpTimeSelectionModal();
+        openTelecallerCnpTimeSelectionModal(currentCnpCount < 2);
     }
     
     // Open Telecaller CNP Time Selection Modal
-    function openTelecallerCnpTimeSelectionModal() {
+    function openTelecallerCnpTimeSelectionModal(requiresRetry = true) {
         const modal = document.getElementById('telecallerCnpTimeSelectionModal');
         if (modal) {
+            telecallerCnpRequiresRetry = requiresRetry;
             modal.classList.add('active');
+            const title = document.getElementById('telecallerCnpModalTitle');
+            const text = document.getElementById('telecallerCnpModalText');
+            const quickOptions = document.getElementById('telecallerQuickTimeOptions');
+            const customOptionWrap = document.getElementById('telecallerCustomOptionWrap');
+            const confirmBtn = document.getElementById('telecallerCnpConfirmBtn');
+
+            if (title) {
+                title.textContent = requiresRetry ? 'Select Retry Time for CNP' : 'Confirm CNP';
+            }
+            if (text) {
+                text.textContent = requiresRetry
+                    ? 'Choose when to retry this call:'
+                    : 'This will complete the task after the CNP limit. You can add an optional remark below.';
+            }
+            if (quickOptions) {
+                quickOptions.style.display = requiresRetry ? 'grid' : 'none';
+            }
+            if (customOptionWrap) {
+                customOptionWrap.style.display = requiresRetry ? 'block' : 'none';
+            }
+            if (confirmBtn) {
+                confirmBtn.textContent = requiresRetry ? 'Confirm' : 'Mark CNP';
+            }
             // Reset selections
             selectedTelecallerCnpMinutes = null;
             selectedTelecallerCnpDateTime = null;
             isTelecallerCustomTimeSelected = false;
             document.getElementById('telecallerCustomTimePickerContainer').style.display = 'none';
             document.getElementById('telecallerSelectedTimeDisplay').style.display = 'none';
+            const remarkInput = document.getElementById('telecallerOutcomeRemark');
+            if (remarkInput) {
+                remarkInput.value = '';
+            }
             // Clear button selections
             document.querySelectorAll('.telecaller-time-option-btn').forEach(btn => {
                 btn.classList.remove('selected');
@@ -2135,10 +2221,11 @@
             showAlert('Task ID not found', 'error');
             return;
         }
-        
-        // If CNP count >= 2, no retry task needed (task will be completed)
-        if (currentCnpCount >= 2) {
-            executeTelecallerCNP(null, null, currentCnpCount);
+
+        const notes = document.getElementById('telecallerOutcomeRemark')?.value?.trim() || '';
+
+        if (!telecallerCnpRequiresRetry) {
+            executeTelecallerCNP(null, null, currentCnpCount, notes);
             return;
         }
         
@@ -2173,11 +2260,11 @@
             return;
         }
         
-        executeTelecallerCNP(retryAt, retryMinutes, currentCnpCount);
+        executeTelecallerCNP(retryAt, retryMinutes, currentCnpCount, notes);
     }
     
     // Execute telecaller CNP with selected time
-    async function executeTelecallerCNP(retryAt, retryMinutes, cnpCount) {
+    async function executeTelecallerCNP(retryAt, retryMinutes, cnpCount, notes = '') {
         closeTelecallerCnpTimeSelectionModal();
         closeConfirmModal();
         
@@ -2192,6 +2279,9 @@
                 requestBody.retry_at = retryAt;
             } else if (retryMinutes !== null) {
                 requestBody.retry_minutes = retryMinutes;
+            }
+            if (notes) {
+                requestBody.notes = notes;
             }
             
             const result = await apiCall(`/tasks/${currentTaskId}/outcome`, {
@@ -2267,6 +2357,10 @@
             document.getElementById('telecallerSelectedTimeDisplay').style.display = 'none';
             document.getElementById('telecallerCnpCustomDate').value = '';
             document.getElementById('telecallerCnpCustomTime').value = '';
+            const remarkInput = document.getElementById('telecallerOutcomeRemark');
+            if (remarkInput) {
+                remarkInput.value = '';
+            }
             document.querySelectorAll('.telecaller-time-option-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });

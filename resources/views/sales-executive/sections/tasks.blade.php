@@ -1208,6 +1208,25 @@
         </div>
     </div>
 
+    <div id="salesExecutiveOutcomeRemarkModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 id="salesExecutiveOutcomeRemarkTitle">Add Remark</h3>
+                <button class="close-modal" onclick="closeSalesExecutiveOutcomeRemarkModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="salesExecutiveOutcomeRemarkInput">Remark <span style="color:#6b7280; font-weight:400;">(optional)</span></label>
+                    <textarea id="salesExecutiveOutcomeRemarkInput" rows="4" placeholder="Add context for this outcome..."></textarea>
+                </div>
+                <div class="form-footer">
+                    <button type="button" class="btn-cancel" onclick="closeSalesExecutiveOutcomeRemarkModal()">Cancel</button>
+                    <button type="button" class="btn-save" id="salesExecutiveOutcomeRemarkSubmitBtn" onclick="submitSalesExecutiveOutcomeRemark()">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Prospect Form Modal -->
     <div id="prospectModal" class="modal">
         <div class="modal-content">
@@ -1308,17 +1327,17 @@
     <div id="SalesExecutiveCnpTimeSelectionModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Select Retry Time for CNP</h3>
+                <h3 id="salesExecutiveCnpModalTitle">Select Retry Time for CNP</h3>
                 <button class="close-modal" onclick="cancelSalesExecutiveCnpTimeSelection()">&times;</button>
             </div>
             <div class="modal-body">
                 <div style="padding: 20px;">
-                    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                    <p id="salesExecutiveCnpModalText" style="font-size: 14px; color: #666; margin-bottom: 20px;">
                         Choose when to retry this call:
                     </p>
                     
                     <!-- Quick Time Options -->
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <div id="salesExecutiveQuickTimeOptions" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
                         <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             15 Minutes
                         </button>
@@ -1334,7 +1353,7 @@
                     </div>
                     
                     <!-- Custom Option -->
-                    <div style="margin-bottom: 20px;">
+                    <div id="salesExecutiveCustomOptionWrap" style="margin-bottom: 20px;">
                         <button type="button" class="salesExecutive-time-option-btn" onclick="showSalesExecutiveCustomTimePicker()" id="salesExecutiveCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             Custom Date & Time
                         </button>
@@ -1370,13 +1389,18 @@
                             <strong>Selected:</strong> <span id="salesExecutiveSelectedTimeText"></span>
                         </p>
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="salesExecutiveOutcomeRemark">Remark <span style="color:#6b7280; font-weight:400;">(optional)</span></label>
+                        <textarea id="salesExecutiveOutcomeRemark" rows="3" placeholder="Add CNP context..." style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
                 <button type="button" onclick="cancelSalesExecutiveCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Cancel
                 </button>
-                <button type="button" onclick="confirmSalesExecutiveCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <button type="button" id="salesExecutiveCnpConfirmBtn" onclick="confirmSalesExecutiveCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Confirm
                 </button>
             </div>
@@ -1940,6 +1964,54 @@
         document.getElementById('postCallModal').classList.remove('active');
     }
 
+    let salesExecutivePendingOutcome = null;
+    let salesExecutiveCnpRequiresRetry = true;
+
+    function openSalesExecutiveOutcomeRemarkModal(outcome) {
+        salesExecutivePendingOutcome = outcome;
+        const modal = document.getElementById('salesExecutiveOutcomeRemarkModal');
+        const title = document.getElementById('salesExecutiveOutcomeRemarkTitle');
+        const input = document.getElementById('salesExecutiveOutcomeRemarkInput');
+        const submit = document.getElementById('salesExecutiveOutcomeRemarkSubmitBtn');
+
+        if (title) {
+            title.textContent = outcome === 'not_interested' ? 'Mark Lead as Not Interested' : 'Add Remark';
+        }
+        if (input) {
+            input.value = '';
+            input.placeholder = outcome === 'not_interested'
+                ? 'Add not interested context...'
+                : 'Add context...';
+        }
+        if (submit) {
+            submit.textContent = outcome === 'not_interested' ? 'Continue' : 'Save';
+        }
+
+        modal?.classList.add('active');
+    }
+
+    function closeSalesExecutiveOutcomeRemarkModal() {
+        document.getElementById('salesExecutiveOutcomeRemarkModal')?.classList.remove('active');
+        const input = document.getElementById('salesExecutiveOutcomeRemarkInput');
+        if (input) {
+            input.value = '';
+        }
+        salesExecutivePendingOutcome = null;
+    }
+
+    async function submitSalesExecutiveOutcomeRemark() {
+        const notes = document.getElementById('salesExecutiveOutcomeRemarkInput')?.value?.trim() || '';
+        const outcome = salesExecutivePendingOutcome;
+
+        if (outcome === 'not_interested') {
+            closeSalesExecutiveOutcomeRemarkModal();
+            await executeNotInterested(notes);
+            return;
+        }
+
+        closeSalesExecutiveOutcomeRemarkModal();
+    }
+
     async function handleInterested() {
         closePostCallModal();
         
@@ -2006,20 +2078,16 @@
     }
 
     async function handleNotInterested() {
-        showConfirmModal(
-            'Mark this lead as Not Interested?',
-            function() {
-                executeNotInterested();
-            }
-        );
+        closePostCallModal();
+        openSalesExecutiveOutcomeRemarkModal('not_interested');
     }
     
-    async function executeNotInterested() {
+    async function executeNotInterested(notes = '') {
         closeConfirmModal();
         
         const result = await apiCall(`/tasks/${currentTaskId}/outcome`, {
             method: 'POST',
-            body: { outcome: 'not_interested' },
+            body: { outcome: 'not_interested', notes },
         });
 
         if (result && result.success) {
@@ -2059,30 +2127,48 @@
     async function handleCNP() {
         closePostCallModal();
         currentCnpCount = currentLeadData?.cnp_count || 0;
-        
-        // If CNP count >= 2, task will be completed (no retry task created)
-        if (currentCnpCount >= 2) {
-            showConfirmModal('Mark as CNP? Task will be completed automatically.', function() {
-                executeSalesExecutiveCNP(null, null, currentCnpCount);
-            });
-            return;
-        }
-        
-        // Open time selection modal for CNP count < 2
-        openSalesExecutiveCnpTimeSelectionModal();
+        openSalesExecutiveCnpTimeSelectionModal(currentCnpCount < 2);
     }
     
     // Open Sales Executive CNP Time Selection Modal
-    function openSalesExecutiveCnpTimeSelectionModal() {
+    function openSalesExecutiveCnpTimeSelectionModal(requiresRetry = true) {
         const modal = document.getElementById('SalesExecutiveCnpTimeSelectionModal');
         if (modal) {
+            salesExecutiveCnpRequiresRetry = requiresRetry;
             modal.classList.add('active');
+            const title = document.getElementById('salesExecutiveCnpModalTitle');
+            const text = document.getElementById('salesExecutiveCnpModalText');
+            const quickOptions = document.getElementById('salesExecutiveQuickTimeOptions');
+            const customOptionWrap = document.getElementById('salesExecutiveCustomOptionWrap');
+            const confirmBtn = document.getElementById('salesExecutiveCnpConfirmBtn');
+
+            if (title) {
+                title.textContent = requiresRetry ? 'Select Retry Time for CNP' : 'Confirm CNP';
+            }
+            if (text) {
+                text.textContent = requiresRetry
+                    ? 'Choose when to retry this call:'
+                    : 'This will complete the task after the CNP limit. You can add an optional remark below.';
+            }
+            if (quickOptions) {
+                quickOptions.style.display = requiresRetry ? 'grid' : 'none';
+            }
+            if (customOptionWrap) {
+                customOptionWrap.style.display = requiresRetry ? 'block' : 'none';
+            }
+            if (confirmBtn) {
+                confirmBtn.textContent = requiresRetry ? 'Confirm' : 'Mark CNP';
+            }
             // Reset selections
             selectedSalesExecutiveCnpMinutes = null;
             selectedSalesExecutiveCnpDateTime = null;
             isSalesExecutiveCustomTimeSelected = false;
             document.getElementById('salesExecutiveCustomTimePickerContainer').style.display = 'none';
             document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'none';
+            const remarkInput = document.getElementById('salesExecutiveOutcomeRemark');
+            if (remarkInput) {
+                remarkInput.value = '';
+            }
             // Clear button selections
             document.querySelectorAll('.salesExecutive-time-option-btn').forEach(btn => {
                 btn.classList.remove('selected');
@@ -2219,10 +2305,11 @@
             showAlert('Task ID not found', 'error');
             return;
         }
-        
-        // If CNP count >= 2, no retry task needed (task will be completed)
-        if (currentCnpCount >= 2) {
-            executeSalesExecutiveCNP(null, null, currentCnpCount);
+
+        const notes = document.getElementById('salesExecutiveOutcomeRemark')?.value?.trim() || '';
+
+        if (!salesExecutiveCnpRequiresRetry) {
+            executeSalesExecutiveCNP(null, null, currentCnpCount, notes);
             return;
         }
         
@@ -2257,11 +2344,11 @@
             return;
         }
         
-        executeSalesExecutiveCNP(retryAt, retryMinutes, currentCnpCount);
+        executeSalesExecutiveCNP(retryAt, retryMinutes, currentCnpCount, notes);
     }
     
     // Execute Sales Executive CNP with selected time
-    async function executeSalesExecutiveCNP(retryAt, retryMinutes, cnpCount) {
+    async function executeSalesExecutiveCNP(retryAt, retryMinutes, cnpCount, notes = '') {
         closeSalesExecutiveCnpTimeSelectionModal();
         closeConfirmModal();
         
@@ -2276,6 +2363,9 @@
                 requestBody.retry_at = retryAt;
             } else if (retryMinutes !== null) {
                 requestBody.retry_minutes = retryMinutes;
+            }
+            if (notes) {
+                requestBody.notes = notes;
             }
             
             const result = await apiCall(`/tasks/${currentTaskId}/outcome`, {
@@ -2351,6 +2441,10 @@
             document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'none';
             document.getElementById('SalesExecutiveCnpCustomDate').value = '';
             document.getElementById('SalesExecutiveCnpCustomTime').value = '';
+            const remarkInput = document.getElementById('salesExecutiveOutcomeRemark');
+            if (remarkInput) {
+                remarkInput.value = '';
+            }
             document.querySelectorAll('.salesExecutive-time-option-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
