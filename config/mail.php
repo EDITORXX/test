@@ -52,7 +52,7 @@ return [
     ],
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'support@crm.bihtech.com'),
+        'address' => env('MAIL_FROM_ADDRESS', 'support@crm.bihtech.in'),
         'name' => env('MAIL_FROM_NAME', 'Base CRM'),
     ],
 

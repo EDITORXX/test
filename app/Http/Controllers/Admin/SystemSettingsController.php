@@ -167,7 +167,7 @@ class SystemSettingsController extends Controller
             'MAIL_MAILER' => env('MAIL_MAILER') ?: ('(not set → ' . config('mail.default') . ')'),
             'MAIL_HOST' => env('MAIL_HOST') ?: '(e.g. smtp.hostinger.com)',
             'MAIL_PORT' => env('MAIL_PORT') ?: '587',
-            'MAIL_USERNAME' => env('MAIL_USERNAME') ?: 'support@crm.bihtech.com',
+            'MAIL_USERNAME' => env('MAIL_USERNAME') ?: 'support@crm.bihtech.in',
             'MAIL_PASSWORD' => env('MAIL_PASSWORD') ? '(set)' : '(empty)',
             'MAIL_ENCRYPTION' => env('MAIL_ENCRYPTION') !== null && env('MAIL_ENCRYPTION') !== '' ? env('MAIL_ENCRYPTION') : 'tls',
             'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS') ?: config('mail.from.address'),

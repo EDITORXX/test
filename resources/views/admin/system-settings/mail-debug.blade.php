@@ -37,7 +37,7 @@
                 </tbody>
             </table>
         </div>
-        <p class="mt-3 text-xs text-gray-500">Localhost: Use <strong>MAIL_MAILER=log</strong> in .env – no connection needed, emails go to <code>storage/logs/laravel.log</code>. Same from address (support@crm.bihtech.com / Base CRM) shows when not set in .env.</p>
+        <p class="mt-3 text-xs text-gray-500">Localhost: Use <strong>MAIL_MAILER=log</strong> in .env – no connection needed, emails go to <code>storage/logs/laravel.log</code>. Same from address (support@crm.bihtech.in / Base CRM) shows when not set in .env.</p>
         <p class="mt-1 text-xs text-amber-600">Connection refused? Set <strong>MAIL_MAILER=log</strong> in .env and run <code>php artisan config:clear</code>.</p>
     </div>
 

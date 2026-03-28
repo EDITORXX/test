@@ -165,7 +165,7 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Application URL *</label>
                                 <input type="url" name="app_url" id="app_url" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#063A1C] focus:border-[#063A1C]"
-                                    placeholder="https://yoursite.com or crm.bihtech.com">
+                                    placeholder="https://yoursite.com or crm.bihtech.in">
                             </div>
                         </div>
                     </div>

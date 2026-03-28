@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Install App - {{ config('app.name') }}</title>
-    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <link rel="manifest" href="{{ asset('manifest.json') }}?v={{ filemtime(public_path('manifest.json')) }}">
     <link rel="apple-touch-icon" href="{{ asset('icon-192.png') }}">
     <meta name="theme-color" content="#205A44">
     <meta name="mobile-web-app-capable" content="yes">

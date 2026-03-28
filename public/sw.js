@@ -1,5 +1,5 @@
 // Service Worker for Real Estate CRM
-const CACHE_NAME = 'real-estate-crm-v1';
+const CACHE_NAME = 'real-estate-crm-v2';
 const urlsToCache = [
   '/',
   '/login',
