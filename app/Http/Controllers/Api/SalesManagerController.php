@@ -16,6 +16,8 @@ use App\Models\Meeting;
 use App\Models\SiteVisit;
 use App\Models\FollowUp;
 use App\Models\Task;
+use App\Models\UserProfile;
+use App\Services\UserStatusService;
 use App\Services\AsmCnpAutomationService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -255,7 +257,7 @@ class SalesManagerController extends Controller
             ], 401);
         }
         
-        $user->load('role', 'manager', 'salesManagerProfile');
+        $user->load('role', 'manager', 'salesManagerProfile', 'userProfile');
         
         // Log for debugging
         \Log::info('Senior Manager getProfile - User info', [
@@ -267,7 +269,7 @@ class SalesManagerController extends Controller
         // Get team members (telecallers and sales executives under this manager)
         // Include all users where manager_id matches, regardless of role
         $teamMembersQuery = User::where('manager_id', $user->id)
-            ->with(['role', 'telecallerProfile'])
+            ->with(['role', 'telecallerProfile', 'userProfile'])
             ->orderBy('name');
         
         // Log raw query for debugging
@@ -283,13 +285,8 @@ class SalesManagerController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
                 
-                $isAbsent = false;
-                $absentReason = null;
-                
-                if ($member->telecallerProfile) {
-                    $isAbsent = $member->telecallerProfile->is_absent ?? false;
-                    $absentReason = $member->telecallerProfile->absent_reason ?? null;
-                }
+                $isAbsent = $member->userProfile?->isCurrentlyAbsent() ?? false;
+                $absentReason = $member->userProfile?->absent_reason ?? null;
                 
                 return [
                     'id' => $member->id,
@@ -301,6 +298,7 @@ class SalesManagerController extends Controller
                     'is_active' => $member->is_active,
                     'is_absent' => $isAbsent,
                     'absent_reason' => $absentReason,
+                    'absent_until' => $member->userProfile?->leadOffEndsAt(),
                     'joined_at' => $member->created_at ? $member->created_at->format('d M Y') : '-',
                     'today_prospects' => $todayProspects,
                 ];
@@ -514,6 +512,20 @@ class SalesManagerController extends Controller
                 'manager' => $user->manager ? $user->manager->name : null,
                 'created_at' => $user->created_at ? $user->created_at->format('d M Y') : '-',
             ],
+            'profile' => [
+                'lead_off_supported' => in_array($user->role->slug ?? '', [
+                    \App\Models\Role::SALES_MANAGER,
+                    \App\Models\Role::ASSISTANT_SALES_MANAGER,
+                ], true),
+                'is_absent' => $user->userProfile?->isCurrentlyAbsent() ?? false,
+                'lead_off_enabled' => (bool) ($user->userProfile?->is_absent ?? false),
+                'has_scheduled_lead_off' => $user->userProfile?->hasUpcomingLeadOffWindow() ?? false,
+                'absent_reason' => $user->userProfile?->absent_reason,
+                'absent_until' => $user->userProfile?->leadOffEndsAt()?->format('Y-m-d H:i:s'),
+                'lead_off_start_at' => $user->userProfile?->lead_off_start_at?->format('Y-m-d H:i:s'),
+                'lead_off_end_at' => $user->userProfile?->leadOffEndsAt()?->format('Y-m-d H:i:s'),
+                'lead_off_source' => $user->userProfile?->lead_off_source,
+            ],
             'team_members' => $teamMembers,
             'team_stats' => $teamStats,
             'favorite_leads' => $favoriteLeads,
@@ -632,6 +644,108 @@ class SalesManagerController extends Controller
         ]);
     }
 
+    public function updateAvailability(Request $request, UserStatusService $userStatusService)
+    {
+        $validator = Validator::make($request->all(), [
+            'is_absent' => 'required|boolean',
+            'absent_reason' => 'nullable|string|max:255',
+            'mode' => 'nullable|in:normal,now,schedule,on',
+            'absent_until' => 'nullable|date',
+            'lead_off_start_at' => 'nullable|date',
+            'lead_off_end_at' => 'nullable|date',
+        ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $isAbsent = $request->boolean('is_absent');
+            $mode = $request->input('mode');
+            $leadOffStartAt = $request->filled('lead_off_start_at') ? Carbon::parse($request->input('lead_off_start_at')) : null;
+            $leadOffEndAt = $request->filled('lead_off_end_at') ? Carbon::parse($request->input('lead_off_end_at')) : null;
+            $absentUntil = $request->filled('absent_until') ? Carbon::parse($request->input('absent_until')) : null;
+            $now = now();
+
+            if (!$isAbsent || $mode === 'on') {
+                return;
+            }
+
+            if ($mode === 'schedule') {
+                if (!$leadOffStartAt) {
+                    $validator->errors()->add('lead_off_start_at', 'Lead Off From is required for a scheduled window.');
+                }
+                if (!$leadOffEndAt) {
+                    $validator->errors()->add('lead_off_end_at', 'Lead Off Until is required for a scheduled window.');
+                }
+                if ($leadOffStartAt && $leadOffStartAt->lte($now)) {
+                    $validator->errors()->add('lead_off_start_at', 'Lead Off From must be a future time for a scheduled window.');
+                }
+                if ($leadOffStartAt && $leadOffEndAt && $leadOffEndAt->lte($leadOffStartAt)) {
+                    $validator->errors()->add('lead_off_end_at', 'Scheduled end time must be after start time.');
+                }
+                return;
+            }
+
+            $effectiveEndAt = $leadOffEndAt ?? $absentUntil;
+            if ($effectiveEndAt && $effectiveEndAt->lte($now)) {
+                $validator->errors()->add('absent_until', 'Lead Off Until must be after now.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($validator->errors()->all())->first() ?: 'Please correct the highlighted errors.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = $request->user();
+        $allowedRoles = [
+            \App\Models\Role::SALES_MANAGER,
+            \App\Models\Role::ASSISTANT_SALES_MANAGER,
+        ];
+
+        if (!in_array($user->role->slug ?? '', $allowedRoles, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lead off mode is only available for lead-receiving users.',
+            ], 403);
+        }
+
+        $leadOffStartAt = $request->lead_off_start_at ? Carbon::parse($request->lead_off_start_at) : null;
+        $leadOffEndAt = $request->lead_off_end_at ? Carbon::parse($request->lead_off_end_at) : null;
+        $absentUntil = $request->absent_until ? Carbon::parse($request->absent_until) : $leadOffEndAt;
+
+        if ($request->boolean('is_absent') && !$leadOffStartAt) {
+            $leadOffStartAt = now();
+        }
+
+        $profile = $userStatusService->toggleAbsentStatus(
+            $user->id,
+            $request->boolean('is_absent'),
+            $request->absent_reason,
+            $absentUntil,
+            $leadOffStartAt,
+            $leadOffEndAt,
+            'self',
+            $user->id
+        )->fresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => $request->is_absent ? 'Lead off mode updated successfully' : 'Lead off mode disabled successfully',
+            'profile' => [
+                'lead_off_supported' => true,
+                'is_absent' => $profile->isCurrentlyAbsent(),
+                'lead_off_enabled' => (bool) $profile->is_absent,
+                'has_scheduled_lead_off' => $profile->hasUpcomingLeadOffWindow(),
+                'absent_reason' => $profile->absent_reason,
+                'absent_until' => $profile->leadOffEndsAt()?->format('Y-m-d H:i:s'),
+                'lead_off_start_at' => $profile->lead_off_start_at?->format('Y-m-d H:i:s'),
+                'lead_off_end_at' => $profile->leadOffEndsAt()?->format('Y-m-d H:i:s'),
+                'lead_off_source' => $profile->lead_off_source,
+            ],
+        ]);
+    }
+
     /**
      * Upload profile picture
      */
@@ -722,7 +836,7 @@ class SalesManagerController extends Controller
         
         $member = User::where('id', $memberId)
             ->where('manager_id', $manager->id)
-            ->with(['role', 'telecallerProfile'])
+            ->with(['role', 'telecallerProfile', 'userProfile'])
             ->firstOrFail();
 
         // Get member's performance stats
@@ -748,9 +862,9 @@ class SalesManagerController extends Controller
                 'role' => $member->role->name,
                 'profile_picture' => $member->profile_picture_url,
                 'is_active' => $member->is_active,
-                'is_absent' => $member->telecallerProfile->is_absent ?? false,
-                'absent_reason' => $member->telecallerProfile->absent_reason ?? null,
-                'absent_until' => $member->telecallerProfile->absent_until ?? null,
+                'is_absent' => $member->userProfile?->isCurrentlyAbsent() ?? false,
+                'absent_reason' => $member->userProfile?->absent_reason ?? null,
+                'absent_until' => $member->userProfile?->leadOffEndsAt() ?? null,
                 'performance' => [
                     'today_prospects' => $todayProspects,
                     'week_prospects' => $weekProspects,
@@ -2047,11 +2161,8 @@ class SalesManagerController extends Controller
             if ($outcome === 'not_interested') {
                 $reason = 'Not Interested';
 
-                $lead->status = 'closed';
-                $lead->next_followup_at = null;
                 $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: Not Interested');
-                $lead->disableAutoUpdate();
-                $lead->save();
+                $lead->markAsOtherLead('not_interested', $user->id, $reason);
 
                 $prospect->update([
                     'verification_status' => 'rejected',
@@ -2117,11 +2228,8 @@ class SalesManagerController extends Controller
 
             $junkRemark = trim((string) ($validated['remark'] ?? ''));
 
-            $lead->status = 'junk';
-            $lead->next_followup_at = null;
             $lead->notes = $this->appendNote($lead->notes, '[' . now()->format('Y-m-d H:i:s') . '] ASM outcome: Junk - ' . $junkRemark);
-            $lead->disableAutoUpdate();
-            $lead->save();
+            $lead->markAsOtherLead('junk', $user->id, $junkRemark);
 
             $prospect->update([
                 'verification_status' => 'rejected',

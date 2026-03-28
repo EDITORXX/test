@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\SystemSettings;
+use App\Services\UserDeletionTransferService;
 use App\Services\NewUserMailService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -16,8 +17,9 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        protected UserDeletionTransferService $userDeletionTransferService
+    ) {
         $this->middleware('auth');
     }
 
@@ -34,7 +36,12 @@ class UserController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $query = User::with(['role', 'manager']);
+        $query = User::with(['role', 'manager'])
+            ->withCount([
+                'assignedLeads as active_assigned_leads_count' => function ($q) {
+                    $q->where('is_active', true);
+                }
+            ]);
 
         // If Sales Head, show only team members
         if ($currentUser->isSalesHead() && !$currentUser->canManageUsers()) {
@@ -340,8 +347,99 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $currentUser = request()->user();
-        
-        // Only Admin can delete users
+
+        $guardRedirect = $this->guardUserDeletion($currentUser, $user);
+        if ($guardRedirect) {
+            return $guardRedirect;
+        }
+
+        $activeLeadCount = count($this->userDeletionTransferService->getActiveLeadIds($user));
+        if ($activeLeadCount > 0) {
+            return redirect()->route('users.transfer-delete', $user)
+                ->with('error', 'Transfer active leads before deleting this user.');
+        }
+
+        $user->delete();
+
+        return redirect()->route('users.index')
+            ->with('success', 'User deleted successfully.');
+    }
+
+    public function showTransferDelete(User $user)
+    {
+        $currentUser = request()->user();
+
+        $guardRedirect = $this->guardUserDeletion($currentUser, $user);
+        if ($guardRedirect) {
+            return $guardRedirect;
+        }
+
+        $transferPreview = $this->userDeletionTransferService->getTransferPreview($user);
+        $replacementUsers = $this->userDeletionTransferService->getEligibleReplacementUsers($user);
+
+        if ($transferPreview['active_lead_count'] === 0) {
+            return redirect()->route('users.index')
+                ->with('info', 'This user has no active leads. You can delete the user directly.');
+        }
+
+        return view('users.transfer-delete', [
+            'userToDelete' => $user->load(['role', 'manager']),
+            'replacementUsers' => $replacementUsers,
+            'transferPreview' => $transferPreview,
+        ]);
+    }
+
+    public function transferDelete(Request $request, User $user)
+    {
+        $currentUser = $request->user();
+
+        $guardRedirect = $this->guardUserDeletion($currentUser, $user);
+        if ($guardRedirect) {
+            return $guardRedirect;
+        }
+
+        $activeLeadIds = $this->userDeletionTransferService->getActiveLeadIds($user);
+        if (empty($activeLeadIds)) {
+            return redirect()->route('users.index')
+                ->with('info', 'This user no longer has active leads. Delete the user directly if needed.');
+        }
+
+        $eligibleReplacementUserIds = $this->userDeletionTransferService
+            ->getEligibleReplacementUsers($user)
+            ->pluck('id')
+            ->all();
+
+        $validated = $request->validate([
+            'replacement_user_id' => ['required', Rule::in($eligibleReplacementUserIds)],
+        ]);
+
+        $replacementUser = User::findOrFail($validated['replacement_user_id']);
+
+        try {
+            $results = $this->userDeletionTransferService->transferAndDelete(
+                $user,
+                $replacementUser,
+                $currentUser->id
+            );
+        } catch (\Throwable $e) {
+            Log::error('User delete transfer failed: ' . $e->getMessage(), [
+                'user_to_delete' => $user->id,
+                'replacement_user_id' => $replacementUser->id,
+                'performed_by' => $currentUser->id,
+            ]);
+
+            return redirect()->route('users.transfer-delete', $user)
+                ->with('error', 'Transfer failed. User was not deleted. ' . $e->getMessage());
+        }
+
+        return redirect()->route('users.index')->with(
+            'success',
+            "Transferred {$results['transferred_leads']} active leads to {$replacementUser->name} and deleted {$user->name}."
+        );
+    }
+
+    protected function guardUserDeletion(User $currentUser, User $user)
+    {
         if (!$currentUser->isAdmin()) {
             abort(403, 'Only administrators can delete users.');
         }
@@ -351,10 +449,6 @@ class UserController extends Controller
                 ->with('error', 'Cannot delete your own account.');
         }
 
-        $user->delete();
-
-        return redirect()->route('users.index')
-            ->with('success', 'User deleted successfully.');
+        return null;
     }
 }
-

@@ -101,6 +101,11 @@ class LeadController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filter by source
+        if ($request->filled('source')) {
+            $query->where('source', Lead::normalizeSource($request->source));
+        }
+
         // Filter by lead type (Prospect, Visit, Revisit, Meeting, Closer)
         if ($request->has('lead_type_filter') && $request->lead_type_filter) {
             $type = $request->lead_type_filter;
@@ -157,13 +162,13 @@ class LeadController extends Controller
 
         $view = $request->get('view', 'cards');
         $perPage = 15;
-        if (($user->isAdmin() || $user->isCrm()) && $view === 'list') {
+        if ($user->isAdmin() || $user->isCrm()) {
             $perPage = min(500, (int) $request->get('per_page', 500));
             $perPage = $perPage >= 1 ? $perPage : 500;
         }
-        $leads = $query->latest()->paginate($perPage);
+        $leads = $query->latest()->paginate($perPage)->withQueryString();
 
-        $statuses = ['new', 'connected', 'verified_prospect', 'meeting_scheduled', 'meeting_completed', 'visit_scheduled', 'visit_done', 'revisited_scheduled', 'revisited_completed', 'closed', 'dead', 'junk', 'on_hold'];
+        $statuses = ['new', 'connected', 'verified_prospect', 'meeting_scheduled', 'meeting_completed', 'visit_scheduled', 'visit_done', 'revisited_scheduled', 'revisited_completed', 'closed', 'dead', 'junk', 'not_interested', 'on_hold'];
 
         // Filter by User dropdown: all users except Admin, CRM, HR, Finance
         $excludeRolesForFilter = [Role::ADMIN, Role::CRM, Role::HR_MANAGER, Role::FINANCE_MANAGER];
@@ -346,6 +351,7 @@ class LeadController extends Controller
                 'assignments.assignedTo',
                 'assignments.assignedBy',
                 'activeAssignments.assignedTo',
+                'latestImportedLead.importBatch',
                 'formFieldValues',
                 'callLogs' => function($query) use ($user) {
                     $query->where('user_id', $user->id)

@@ -152,7 +152,7 @@ class LeadController extends Controller
             'state' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:10',
             'source' => 'nullable|in:' . implode(',', array_keys(Lead::sourceOptions())),
-            'status' => 'sometimes|in:new,connected,verified_prospect,meeting_scheduled,meeting_completed,visit_scheduled,visit_done,revisited_scheduled,revisited_completed,closed,dead,junk,on_hold',
+            'status' => 'sometimes|in:new,connected,verified_prospect,meeting_scheduled,meeting_completed,visit_scheduled,visit_done,revisited_scheduled,revisited_completed,closed,dead,junk,not_interested,on_hold',
             'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
             'budget_min' => 'nullable|numeric|min:0',
             'budget_max' => 'nullable|numeric|min:0|gte:budget_min',
@@ -167,11 +167,11 @@ class LeadController extends Controller
             $newStatus = $validated['status'];
             
             // If manager manually sets to 'dead' or 'closed', disable auto-updates
-            if (in_array($newStatus, ['dead', 'closed', 'junk'])) {
+            if (in_array($newStatus, ['dead', 'closed', 'junk', 'not_interested'])) {
                 $lead->disableAutoUpdate();
             }
             // If changing from a terminal status to something else, enable auto-updates
-            elseif (in_array($oldStatus, ['dead', 'closed', 'junk'])) {
+            elseif (in_array($oldStatus, ['dead', 'closed', 'junk', 'not_interested'])) {
                 $lead->enableAutoUpdate();
             }
         }
@@ -181,6 +181,14 @@ class LeadController extends Controller
         }
 
         $lead->update($validated);
+
+        if (isset($validated['status']) && in_array($validated['status'], ['junk', 'not_interested'], true)) {
+            $lead->forceFill([
+                'other_lead_marked_by' => $user->id,
+                'other_lead_marked_at' => now(),
+                'other_lead_reason' => trim((string) ($validated['notes'] ?? $lead->other_lead_reason ?? '')) ?: null,
+            ])->save();
+        }
 
         // Fire event if status changed
         if (isset($validated['status']) && $oldStatus !== $validated['status']) {

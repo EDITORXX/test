@@ -8,6 +8,7 @@ use App\Models\ImportBatch;
 use App\Models\ImportedLead;
 use App\Services\LeadImportService;
 use App\Services\GoogleSheetsService;
+use App\Services\OldCrmImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -17,13 +18,16 @@ class LeadImportController extends Controller
 {
     protected $importService;
     protected $sheetsService;
+    protected $oldCrmImportService;
 
     public function __construct(
         LeadImportService $importService,
-        GoogleSheetsService $sheetsService
+        GoogleSheetsService $sheetsService,
+        OldCrmImportService $oldCrmImportService
     ) {
         $this->importService = $importService;
         $this->sheetsService = $sheetsService;
+        $this->oldCrmImportService = $oldCrmImportService;
     }
     
     /**
@@ -54,6 +58,7 @@ class LeadImportController extends Controller
             ->get();
 
         $recentImports = ImportBatch::where('user_id', auth()->id())
+            ->with('importProfile')
             ->latest()
             ->limit(10)
             ->get();
@@ -441,6 +446,13 @@ class LeadImportController extends Controller
         return view('lead-import.csv', compact('automations'));
     }
 
+    public function showOldCrmForm(Request $request)
+    {
+        $wizardContext = $this->oldCrmImportService->getWizardContext($request->user()->id);
+
+        return view('lead-import.old-crm', compact('wizardContext'));
+    }
+
     /**
      * Import CSV
      */
@@ -530,16 +542,132 @@ class LeadImportController extends Controller
         }
     }
 
+    public function analyzeOldCrm(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:20480',
+        ]);
+
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $this->oldCrmImportService->analyzeUploadedFile(
+                    $request->file('csv_file'),
+                    $request->user()->id
+                ),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function validateOldCrm(Request $request)
+    {
+        $request->validate([
+            'file_token' => 'required|string',
+            'mapping_config' => 'required',
+            'stage_mapping' => 'nullable',
+            'lead_status_mapping' => 'nullable',
+            'owner_mapping' => 'nullable',
+            'create_custom_fields' => 'nullable',
+            'import_mode' => 'nullable|in:all,demo',
+        ]);
+
+        try {
+            $result = $this->oldCrmImportService->validateImport(
+                $request->input('file_token'),
+                $this->decodeJsonInput($request->input('mapping_config')),
+                $this->decodeJsonInput($request->input('stage_mapping', '{}')),
+                $this->decodeJsonInput($request->input('lead_status_mapping', '{}')),
+                $this->decodeJsonInput($request->input('owner_mapping', '{}')),
+                $this->decodeJsonInput($request->input('create_custom_fields', '{}')),
+                $request->input('import_mode', 'all')
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function importOldCrm(Request $request)
+    {
+        $request->validate([
+            'file_token' => 'required|string',
+            'mapping_config' => 'required',
+            'stage_mapping' => 'nullable',
+            'lead_status_mapping' => 'nullable',
+            'owner_mapping' => 'nullable',
+            'create_custom_fields' => 'nullable',
+            'profile_name' => 'nullable|string|max:255',
+            'profile_id' => 'nullable|integer',
+            'save_profile' => 'nullable|boolean',
+            'import_mode' => 'nullable|in:all,demo',
+        ]);
+
+        try {
+            $result = $this->oldCrmImportService->import(
+                $request->input('file_token'),
+                $request->user()->id,
+                $this->decodeJsonInput($request->input('mapping_config')),
+                $this->decodeJsonInput($request->input('stage_mapping', '{}')),
+                $this->decodeJsonInput($request->input('lead_status_mapping', '{}')),
+                $this->decodeJsonInput($request->input('owner_mapping', '{}')),
+                $this->decodeJsonInput($request->input('create_custom_fields', '{}')),
+                [
+                    'profile_name' => $request->input('profile_name'),
+                    'profile_id' => $request->input('profile_id'),
+                    'save_profile' => $request->boolean('save_profile'),
+                    'import_mode' => $request->input('import_mode', 'all'),
+                ]
+            );
+
+            $batch = $result['batch'];
+            $successPrefix = $request->input('import_mode') === 'demo'
+                ? 'Demo old CRM import completed.'
+                : 'Old CRM import completed.';
+
+            return redirect()
+                ->route('lead-import.index')
+                ->with(
+                    'success',
+                    "{$successPrefix} Imported {$batch->imported_leads} leads, skipped {$result['skipped_duplicates']} duplicates, {$batch->failed_leads} failed."
+                );
+        } catch (\Throwable $e) {
+            return back()->withErrors(['csv_file' => $e->getMessage()]);
+        }
+    }
+
     /**
      * Import History
      */
     public function history()
     {
         $imports = ImportBatch::where('user_id', auth()->id())
-            ->with(['assignmentRule', 'user'])
+            ->with(['assignmentRule', 'user', 'importProfile'])
             ->latest()
             ->paginate(20);
 
         return view('lead-import.history', compact('imports'));
+    }
+
+    private function decodeJsonInput($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode((string) $value, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 }

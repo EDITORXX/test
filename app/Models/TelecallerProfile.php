@@ -16,12 +16,16 @@ class TelecallerProfile extends Model
         'is_absent',
         'absent_reason',
         'absent_until',
+        'lead_off_start_at',
+        'lead_off_end_at',
     ];
 
     protected $casts = [
         'is_absent' => 'boolean',
         'max_pending_leads' => 'integer',
         'absent_until' => 'datetime',
+        'lead_off_start_at' => 'datetime',
+        'lead_off_end_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -32,14 +36,27 @@ class TelecallerProfile extends Model
     /**
      * Check if telecaller is currently absent
      */
-    public function isCurrentlyAbsent(): bool
+    public function isCurrentlyAbsent(?\Carbon\Carbon $at = null): bool
     {
+        $at = $at ?? now();
+
         if (!$this->is_absent) {
             return false;
         }
 
-        // If absent_until is set and has passed, telecaller is no longer absent
-        if ($this->absent_until && $this->absent_until->isPast()) {
+        if ($this->lead_off_start_at || $this->lead_off_end_at) {
+            if ($this->lead_off_start_at && $at->lt($this->lead_off_start_at)) {
+                return false;
+            }
+
+            if ($this->lead_off_end_at && $at->gt($this->lead_off_end_at)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        if ($this->absent_until && $at->gt($this->absent_until)) {
             return false;
         }
 

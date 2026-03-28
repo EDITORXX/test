@@ -12,7 +12,6 @@ use App\Models\UserAvailability;
 use App\Models\TelecallerProfile;
 use App\Models\SystemSettings;
 use App\Services\UserAvailabilityService;
-use App\Services\UserStatusService;
 use Kreait\Firebase\Factory;
 
 class LoginController extends Controller
@@ -79,9 +78,6 @@ class LoginController extends Controller
         
         // Regenerate session immediately after login (before storing data)
         $request->session()->regenerate();
-
-        // Mark user as present (all users, not just telecallers)
-        $this->markUserAsPresent($user);
 
         // Mark attendance for telecallers (Telecaller and Sales Executive)
         if ($user->isTelecaller()) {
@@ -187,8 +183,6 @@ class LoginController extends Controller
 
             Auth::login($user, true);
             $request->session()->regenerate();
-            $this->markUserAsPresent($user);
-
             // Generate ONE token for all roles at Firebase login
             $token = $user->createToken('web-session-token')->plainTextToken;
             $request->session()->put('api_token', $token);
@@ -287,15 +281,6 @@ class LoginController extends Controller
     }
 
     /**
-     * Mark user as present on login (all users)
-     */
-    private function markUserAsPresent(User $user): void
-    {
-        $userStatusService = app(UserStatusService::class);
-        $userStatusService->markAsPresent($user->id);
-    }
-
-    /**
      * Mark telecaller attendance on login
      */
     private function markTelecallerAttendance(User $user): void
@@ -317,15 +302,5 @@ class LoginController extends Controller
         ]);
         $availability->updateAvailability();
 
-        // Update TelecallerProfile - mark as present (not absent)
-        $profile = TelecallerProfile::firstOrCreate(['user_id' => $user->id]);
-        if ($profile->is_absent) {
-            $profile->update([
-                'is_absent' => false,
-                'absent_reason' => null,
-                'absent_until' => null,
-            ]);
-        }
     }
 }
-

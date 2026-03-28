@@ -15,6 +15,8 @@ use App\Models\LeadAssignment;
 use App\Models\CrmAssignment;
 use App\Models\TelecallerTask;
 use App\Models\Prospect;
+use App\Models\Incentive;
+use App\Models\Target;
 use App\Services\TargetService;
 use App\Services\CallLogService;
 use Illuminate\Http\Request;
@@ -100,7 +102,20 @@ class AdminDashboardController extends Controller
                 'leads_pending_response' => $this->getLeadsPendingResponseByUser($dateRange),
                 'average_response_time_by_user' => $this->getAverageResponseTimeByUser($dateRange),
                 'user_visits_meetings' => $this->getUserVisitsMeetingsData($visitsMeetingsFilter),
-                'call_statistics' => $this->getCallStatistics($dateRange),
+                'call_statistics' => $this->getCallStatistics(
+                    $request->filled('date_range')
+                        ? $this->getPresetDateRange($request->get('date_range'))
+                        : $dateRange
+                ),
+                'marketing_summary' => $this->getMarketingSummary($dateRange),
+                'performance_scores' => $this->getPerformanceScores($dateRange),
+                'sales_score_table' => $this->getSalesScoreTable($dateRange),
+                'pipeline_funnel' => $this->getPipelineFunnel($dateRange),
+                'team_targets_summary' => $this->getTeamTargetsSummary($dateRange),
+                'team_targets_breakdown' => $this->getTeamTargetsBreakdown(),
+                'incentive_summary' => $this->getIncentiveSummary($dateRange),
+                'user_pipeline_table' => $this->getUserPipelineTable($dateRange),
+                'dashboard_shortcuts' => $this->getDashboardShortcuts($dateRange),
                 'server_now' => now()->toIso8601String(),
             ];
 
@@ -932,8 +947,8 @@ class AdminDashboardController extends Controller
             // Determine date range for call statistics
             $dateRangeStr = 'today';
             if ($dateRange) {
-                $start = Carbon::parse($dateRange['start']);
-                $end = Carbon::parse($dateRange['end']);
+                $start = Carbon::parse($dateRange['start_date'] ?? $dateRange['start'] ?? now()->startOfDay());
+                $end = Carbon::parse($dateRange['end_date'] ?? $dateRange['end'] ?? now()->endOfDay());
                 $now = Carbon::now();
                 
                 if ($start->isToday() && $end->isToday()) {
@@ -987,6 +1002,370 @@ class AdminDashboardController extends Controller
         }
     }
 
+    private function getMarketingSummary(?array $dateRange = null): array
+    {
+        $leadsQuery = Lead::query();
+        $importsQuery = ImportBatch::query();
+
+        if ($dateRange) {
+            $leadsQuery->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+            $importsQuery->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+
+        $sourceDistribution = (clone $leadsQuery)
+            ->select('source', DB::raw('count(*) as total'))
+            ->groupBy('source')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn (Lead $lead) => [
+                'source' => Lead::displaySourceLabel($lead->source),
+                'value' => (int) ($lead->total ?? 0),
+            ])
+            ->values()
+            ->all();
+
+        $leadQuality = [
+            'junk' => (clone $leadsQuery)->where('status', 'junk')->count(),
+            'not_interested' => (clone $leadsQuery)->where('status', 'not_interested')->count(),
+            'connected' => (clone $leadsQuery)->where('status', 'connected')->count(),
+            'verified_prospect' => (clone $leadsQuery)->where('status', 'verified_prospect')->count(),
+        ];
+
+        $importSummary = [
+            'total_batches' => (clone $importsQuery)->count(),
+            'completed_batches' => (clone $importsQuery)->where('status', 'completed')->count(),
+            'pending_batches' => (clone $importsQuery)->whereIn('status', ['pending', 'processing'])->count(),
+            'failed_batches' => (clone $importsQuery)->where('status', 'failed')->count(),
+            'imported_leads' => (int) ((clone $importsQuery)->sum('imported_leads') ?? 0),
+        ];
+
+        $leadInflow = [];
+        $inflowStart = $dateRange['start_date'] ?? now()->copy()->subDays(6)->startOfDay();
+        $inflowEnd = $dateRange['end_date'] ?? now()->endOfDay();
+        $periodDays = max(1, $inflowStart->copy()->startOfDay()->diffInDays($inflowEnd->copy()->endOfDay()) + 1);
+        $bucketCount = min($periodDays, 7);
+
+        for ($i = $bucketCount - 1; $i >= 0; $i--) {
+            $day = $inflowEnd->copy()->subDays($i);
+            $leadInflow[] = [
+                'label' => $day->format('d M'),
+                'value' => Lead::query()
+                    ->whereDate('created_at', $day->toDateString())
+                    ->when($dateRange, function ($query) use ($dateRange) {
+                        $query->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+                    })
+                    ->count(),
+            ];
+        }
+
+        return [
+            'source_distribution' => $sourceDistribution,
+            'lead_quality' => $leadQuality,
+            'import_summary' => $importSummary,
+            'lead_inflow' => $leadInflow,
+        ];
+    }
+
+    private function getPerformanceScores(?array $dateRange = null): array
+    {
+        $leads = $this->countLeadsForRange($dateRange);
+        $meetings = $this->countMeetingsForRange($dateRange);
+        $visits = $this->countVisitsForRange($dateRange);
+        $closers = $this->countClosersForRange($dateRange);
+
+        return [
+            'leads' => $leads,
+            'meetings' => $meetings,
+            'visits' => $visits,
+            'closers' => $closers,
+            'ps' => $leads > 0 ? round((($meetings + $visits) / $leads) * 100, 1) : 0,
+            'pp' => $leads > 0 ? round(($closers / $leads) * 100, 1) : 0,
+            'vp' => $visits > 0 ? round(($closers / $visits) * 100, 1) : 0,
+        ];
+    }
+
+    private function getSalesScoreTable(?array $dateRange = null): array
+    {
+        $users = User::with('role')
+            ->where('is_active', true)
+            ->whereHas('role', function ($query) {
+                $query->whereIn('slug', ['sales_manager', 'sales_executive', 'assistant_sales_manager', 'senior_manager']);
+            })
+            ->get();
+
+        $rows = $users->map(function (User $user) use ($dateRange) {
+            $leadAssignments = LeadAssignment::where('assigned_to', $user->id)->where('is_active', true);
+            if ($dateRange) {
+                $leadAssignments->whereBetween('assigned_at', [$dateRange['start_date'], $dateRange['end_date']]);
+            }
+
+            $leads = (int) $leadAssignments->count();
+            $meetings = $this->countMeetingsForRange($dateRange, $user->id);
+            $visits = $this->countVisitsForRange($dateRange, $user->id);
+            $closers = $this->countClosersForRange($dateRange, $user->id);
+
+            return [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'role' => $user->role->name ?? 'Unknown',
+                'role_slug' => $user->role->slug ?? 'unknown',
+                'leads' => $leads,
+                'meet_visit' => $meetings + $visits,
+                'meetings' => $meetings,
+                'visits' => $visits,
+                'closers' => $closers,
+                'ps' => $leads > 0 ? round((($meetings + $visits) / $leads) * 100, 1) : 0,
+                'pp' => $leads > 0 ? round(($closers / $leads) * 100, 1) : 0,
+                'vp' => $visits > 0 ? round(($closers / $visits) * 100, 1) : 0,
+            ];
+        })->sortByDesc(function (array $row) {
+            return [$row['ps'], $row['closers'], $row['visits']];
+        })->values();
+
+        return $rows->all();
+    }
+
+    private function getPipelineFunnel(?array $dateRange = null): array
+    {
+        $leads = $this->countLeadsForRange($dateRange);
+        $prospects = $this->countProspectsForRange($dateRange);
+        $meetings = $this->countMeetingsForRange($dateRange);
+        $visits = $this->countVisitsForRange($dateRange);
+        $closers = $this->countClosersForRange($dateRange);
+        $junk = $this->countLeadsByStatusForRange('junk', $dateRange);
+        $notInterested = $this->countLeadsByStatusForRange('not_interested', $dateRange);
+
+        return [
+            ['label' => 'Leads', 'value' => $leads, 'percentage' => 100],
+            ['label' => 'Prospects', 'value' => $prospects, 'percentage' => $leads > 0 ? round(($prospects / $leads) * 100, 1) : 0],
+            ['label' => 'Meetings', 'value' => $meetings, 'percentage' => $leads > 0 ? round(($meetings / $leads) * 100, 1) : 0],
+            ['label' => 'Visits', 'value' => $visits, 'percentage' => $leads > 0 ? round(($visits / $leads) * 100, 1) : 0],
+            ['label' => 'Closures', 'value' => $closers, 'percentage' => $leads > 0 ? round(($closers / $leads) * 100, 1) : 0],
+            ['label' => 'Junk', 'value' => $junk, 'percentage' => $leads > 0 ? round(($junk / $leads) * 100, 1) : 0],
+            ['label' => 'Not Interested', 'value' => $notInterested, 'percentage' => $leads > 0 ? round(($notInterested / $leads) * 100, 1) : 0],
+        ];
+    }
+
+    private function countProspectsForRange(?array $dateRange = null): int
+    {
+        $query = Prospect::query();
+
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+
+        return (int) $query->count();
+    }
+
+    private function countLeadsByStatusForRange(string $status, ?array $dateRange = null): int
+    {
+        $query = Lead::where('status', $status);
+
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+
+        return (int) $query->count();
+    }
+
+    private function getTeamTargetsSummary(?array $dateRange = null): array
+    {
+        $month = now()->format('Y-m');
+        $targetMonth = Carbon::parse($month . '-01')->startOfMonth();
+        $targets = Target::where('target_month', $targetMonth)->get();
+
+        $meetingsTarget = (int) $targets->sum('target_meetings');
+        $visitsTarget = (int) $targets->sum('target_visits');
+        $closersTarget = (int) $targets->sum('target_closers');
+
+        $meetingsAchieved = $this->countMeetingsForRange($dateRange);
+        $visitsAchieved = $this->countVisitsForRange($dateRange);
+        $closersAchieved = $this->countClosersForRange($dateRange);
+
+        return [
+            'month' => $month,
+            'metrics' => [
+                'meetings' => [
+                    'target' => $meetingsTarget,
+                    'achieved' => $meetingsAchieved,
+                    'percentage' => $meetingsTarget > 0 ? round(($meetingsAchieved / $meetingsTarget) * 100, 1) : 0,
+                ],
+                'visits' => [
+                    'target' => $visitsTarget,
+                    'achieved' => $visitsAchieved,
+                    'percentage' => $visitsTarget > 0 ? round(($visitsAchieved / $visitsTarget) * 100, 1) : 0,
+                ],
+                'closers' => [
+                    'target' => $closersTarget,
+                    'achieved' => $closersAchieved,
+                    'percentage' => $closersTarget > 0 ? round(($closersAchieved / $closersTarget) * 100, 1) : 0,
+                ],
+            ],
+        ];
+    }
+
+    private function getTeamTargetsBreakdown(): array
+    {
+        $targetMonth = Carbon::now()->startOfMonth();
+        return Target::with('user.role')
+            ->where('target_month', $targetMonth)
+            ->get()
+            ->map(function (Target $target) {
+                return [
+                    'user_name' => $target->user->name ?? 'Unknown',
+                    'role' => $target->user->role->name ?? 'Unknown',
+                    'meetings' => $target->getAchievementProgress('meetings'),
+                    'visits' => $target->getAchievementProgress('visits'),
+                    'closers' => $target->getAchievementProgress('closers'),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function getIncentiveSummary(?array $dateRange = null): array
+    {
+        $query = Incentive::query();
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+
+        $totalAmount = (float) ((clone $query)->sum('amount') ?? 0);
+
+        return [
+            'total' => (clone $query)->count(),
+            'verified' => (clone $query)->where('status', 'verified')->count(),
+            'pending' => (clone $query)->whereIn('status', ['pending_sales_head', 'pending_crm', 'pending_finance_manager', 'pending'])->count(),
+            'rejected' => (clone $query)->where('status', 'rejected')->count(),
+            'total_amount' => round($totalAmount, 2),
+        ];
+    }
+
+    private function getUserPipelineTable(?array $dateRange = null): array
+    {
+        $responseLookup = collect($this->getAverageResponseTimeByUser($dateRange))->keyBy('user_id');
+
+        return collect($this->getSalesScoreTable($dateRange))->map(function (array $row) use ($responseLookup) {
+            $response = $responseLookup->get($row['user_id']);
+
+            return [
+                'user_id' => $row['user_id'],
+                'user_name' => $row['user_name'],
+                'role' => $row['role'],
+                'leads' => $row['leads'],
+                'meetings' => $row['meetings'],
+                'visits' => $row['visits'],
+                'closers' => $row['closers'],
+                'avg_response_minutes' => $response['avg_response_minutes'] ?? 0,
+            ];
+        })->all();
+    }
+
+    private function getDashboardShortcuts(?array $dateRange = null): array
+    {
+        $taskCount = 0;
+        try {
+            $taskQuery = DB::table('tasks');
+            if ($dateRange && DB::getSchemaBuilder()->hasColumn('tasks', 'created_at')) {
+                $taskQuery->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+            }
+            $taskCount = (int) $taskQuery->count();
+        } catch (\Throwable $e) {
+            $taskCount = 0;
+        }
+
+        return [
+            ['label' => 'All Tasks', 'count' => $taskCount, 'icon' => 'fa-clipboard-list', 'url' => route('tasks.index')],
+            ['label' => 'Meetings', 'count' => $this->countMeetingsForRange($dateRange), 'icon' => 'fa-calendar-check', 'url' => route('meetings.index')],
+            ['label' => 'Visits', 'count' => $this->countVisitsForRange($dateRange), 'icon' => 'fa-map-marker-alt', 'url' => route('site-visits.index')],
+            ['label' => 'Verifications', 'count' => Lead::where('needs_verification', true)->count(), 'icon' => 'fa-check-circle', 'url' => route('admin.verifications')],
+            ['label' => 'Reports', 'count' => $this->countLeadsForRange($dateRange), 'icon' => 'fa-chart-column', 'url' => route('export.index')],
+            ['label' => 'Incentives', 'count' => $this->getIncentiveSummary($dateRange)['pending'], 'icon' => 'fa-indian-rupee-sign', 'url' => '#incentives-summary-section'],
+            ['label' => 'Settings', 'count' => 2, 'icon' => 'fa-gear', 'url' => route('admin.system-settings.index')],
+            ['label' => 'Admin Panel', 'count' => 3, 'icon' => 'fa-sliders', 'url' => route('admin.company-settings.index')],
+        ];
+    }
+
+    private function countLeadsForRange(?array $dateRange = null, ?int $assignedTo = null): int
+    {
+        if ($assignedTo) {
+            $query = LeadAssignment::where('assigned_to', $assignedTo)->where('is_active', true);
+            if ($dateRange) {
+                $query->whereBetween('assigned_at', [$dateRange['start_date'], $dateRange['end_date']]);
+            }
+            return (int) $query->count();
+        }
+
+        $query = Lead::query();
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+
+        return (int) $query->count();
+    }
+
+    private function countMeetingsForRange(?array $dateRange = null, ?int $assignedTo = null): int
+    {
+        $query = Meeting::query()->where('is_converted', false);
+        if ($assignedTo) {
+            $query->where('assigned_to', $assignedTo);
+        }
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+        return (int) $query->count();
+    }
+
+    private function countVisitsForRange(?array $dateRange = null, ?int $assignedTo = null): int
+    {
+        $query = SiteVisit::query();
+        if ($assignedTo) {
+            $query->where('assigned_to', $assignedTo);
+        }
+        if ($dateRange) {
+            $query->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+        return (int) $query->count();
+    }
+
+    private function countClosersForRange(?array $dateRange = null, ?int $assignedTo = null): int
+    {
+        $query = SiteVisit::query()->where('closer_status', 'verified');
+        if ($assignedTo) {
+            $query->where('assigned_to', $assignedTo);
+        }
+        if ($dateRange) {
+            $query->whereBetween('closer_verified_at', [$dateRange['start_date'], $dateRange['end_date']]);
+        }
+        return (int) $query->count();
+    }
+
+    private function getPresetDateRange(string $preset): array
+    {
+        return match ($preset) {
+            'today' => [
+                'start_date' => Carbon::today()->startOfDay(),
+                'end_date' => Carbon::today()->endOfDay(),
+            ],
+            'this_week', 'week' => [
+                'start_date' => Carbon::now()->startOfWeek()->startOfDay(),
+                'end_date' => Carbon::now()->endOfWeek()->endOfDay(),
+            ],
+            'this_month', 'month' => [
+                'start_date' => Carbon::now()->startOfMonth()->startOfDay(),
+                'end_date' => Carbon::now()->endOfMonth()->endOfDay(),
+            ],
+            'this_year', 'year' => [
+                'start_date' => Carbon::now()->startOfYear()->startOfDay(),
+                'end_date' => Carbon::now()->endOfYear()->endOfDay(),
+            ],
+            default => [
+                'start_date' => Carbon::today()->startOfDay(),
+                'end_date' => Carbon::today()->endOfDay(),
+            ],
+        };
+    }
+
     private function getVisitsMeetingsDateRange(string $filter): ?array
     {
         switch ($filter) {
@@ -1034,4 +1413,3 @@ class AdminDashboardController extends Controller
         }
     }
 }
-

@@ -4,6 +4,9 @@
 @section('page-title', 'Lead Import')
 
 @section('header-actions')
+    <a href="{{ route('lead-import.old-crm') }}" class="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-amber-700 transition-colors duration-200 text-sm font-medium mr-2">
+        Old CRM Import
+    </a>
     <a href="{{ route('lead-import.csv') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium mr-2">
         Import CSV
     </a>
@@ -36,6 +39,18 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 class="text-sm font-medium text-gray-500 mb-2">Failed</h3>
             <div class="text-3xl font-bold text-gray-800">{{ $stats['failed_imports'] }}</div>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-800">Old CRM Migration</h2>
+                <p class="text-sm text-gray-600 mt-1">Advanced import wizard with field mapping, stage mapping, custom field creation, validation, and saved profiles.</p>
+            </div>
+            <a href="{{ route('lead-import.old-crm') }}" class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-amber-700 transition-colors duration-200 font-medium">
+                Open Old CRM Import
+            </a>
         </div>
     </div>
 
@@ -138,7 +153,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                        {{ strtoupper($import->source_type) }}
+                                        {{ strtoupper($import->import_kind === 'old_crm' ? 'OLD CRM' : $import->source_type) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $import->total_leads }}</td>
@@ -326,4 +341,3 @@
     </script>
     @endpush
 @endsection
-

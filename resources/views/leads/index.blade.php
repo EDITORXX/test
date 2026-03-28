@@ -104,6 +104,17 @@
     text-decoration:none;display:flex;align-items:center;gap:6px;transition:.2s;
 }
 .lc-btn-add:hover { opacity:.9;transform:translateY(-1px); }
+.lc-page-size-wrap {
+    display:flex;align-items:center;gap:8px;
+    padding:0 0 0 4px;white-space:nowrap;
+}
+.lc-page-size-wrap label {
+    font-size:12px;color:#6b7280;font-weight:600;
+}
+.lc-page-size-select {
+    min-width:84px;
+    padding:8px 10px;
+}
 
 /* ── View Toggle ── */
 .lc-view-toggle {
@@ -223,6 +234,7 @@
 .s-closed          { background:#f0fdf4;color:#065f46;border-color:#6ee7b7; }
 .s-dead            { background:#fef2f2;color:#991b1b;border-color:#fca5a5; }
 .s-junk            { background:#fff7ed;color:#9a3412;border-color:#fdba74; }
+.s-not_interested  { background:#ffe4e6;color:#be123c;border-color:#fda4af; }
 .s-on_hold         { background:#f8fafc;color:#475569;border-color:#cbd5e1; }
 
 /* ── Empty ── */
@@ -279,6 +291,7 @@
         'closed'               => 'Closed',
         'dead'                 => 'Dead',
         'junk'                 => 'Junk',
+        'not_interested'       => 'Not Interested',
         'on_hold'              => 'On Hold',
     ];
     $sourceLabels = \App\Models\Lead::sourceOptions();
@@ -357,6 +370,7 @@
 {{-- Toolbar --}}
 <div class="lc-toolbar">
     <form method="GET" action="{{ route('leads.index') }}" style="display:flex;gap:9px;flex:1;align-items:center;flex-wrap:wrap;" id="filterForm">
+        <input type="hidden" name="view" id="viewInput" value="{{ request('view', 'cards') }}">
         <div class="lc-search-wrap">
             <i class="fas fa-search"></i>
             <input type="text" name="search" class="lc-search-input"
@@ -387,11 +401,26 @@
             <i class="fas fa-filter"></i> Filter
         </button>
         @if(request()->hasAny(['search','status','source','assigned_to']))
-        <a href="{{ route('leads.index') }}" class="lc-btn-clear">
+        <a href="{{ route('leads.index', ['view' => request('view', 'cards')]) }}" class="lc-btn-clear">
             <i class="fas fa-times"></i> Clear
         </a>
         @endif
     </form>
+    @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
+    <form method="GET" action="{{ route('leads.index') }}" class="lc-page-size-wrap" id="pageSizeForm">
+        <input type="hidden" name="view" id="pageSizeViewInput" value="{{ request('view', 'cards') }}">
+        @if(request('search'))<input type="hidden" name="search" value="{{ request('search') }}">@endif
+        @if(request('status'))<input type="hidden" name="status" value="{{ request('status') }}">@endif
+        @if(request('source'))<input type="hidden" name="source" value="{{ request('source') }}">@endif
+        @if(request('assigned_to'))<input type="hidden" name="assigned_to" value="{{ request('assigned_to') }}">@endif
+        <label for="perPageSelect">Show</label>
+        <select name="per_page" id="perPageSelect" class="lc-select lc-page-size-select" onchange="document.getElementById('pageSizeForm').submit()">
+            @foreach([50, 100, 200, 500] as $size)
+                <option value="{{ $size }}" {{ (int) request('per_page', 500) === $size ? 'selected' : '' }}>{{ $size }}</option>
+            @endforeach
+        </select>
+    </form>
+    @endif
     <div style="font-size:12px;color:#9ca3af;white-space:nowrap;padding-left:4px;">
         {{ $leads->firstItem() ?? 0 }}–{{ $leads->lastItem() ?? 0 }} of {{ $leads->total() }}
     </div>
@@ -577,6 +606,8 @@ function switchView(mode) {
     const list  = document.getElementById('listView');
     const btnC  = document.getElementById('btnCards');
     const btnL  = document.getElementById('btnList');
+    const viewInput = document.getElementById('viewInput');
+    const pageSizeViewInput = document.getElementById('pageSizeViewInput');
 
     if (mode === 'cards') {
         cards.classList.add('active');
@@ -590,12 +621,48 @@ function switchView(mode) {
         btnC.classList.remove('active');
     }
     localStorage.setItem('leadsView', mode);
+    if (viewInput) viewInput.value = mode;
+    if (pageSizeViewInput) pageSizeViewInput.value = mode;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', mode);
+    if (mode === 'list') {
+        if (!url.searchParams.get('per_page')) {
+            url.searchParams.set('per_page', '500');
+        }
+    } else {
+        url.searchParams.delete('per_page');
+    }
+    url.searchParams.delete('page');
+    window.location.assign(url.toString());
 }
 
 // Restore saved view
 (function() {
-    const saved = localStorage.getItem('leadsView');
-    if (saved === 'list') switchView('list');
+    const fromQuery = new URL(window.location.href).searchParams.get('view');
+    const saved = fromQuery || localStorage.getItem('leadsView') || 'cards';
+    const cards = document.getElementById('cardsView');
+    const list  = document.getElementById('listView');
+    const btnC  = document.getElementById('btnCards');
+    const btnL  = document.getElementById('btnList');
+    const viewInput = document.getElementById('viewInput');
+    const pageSizeViewInput = document.getElementById('pageSizeViewInput');
+
+    if (saved === 'list') {
+        list.classList.add('active');
+        cards.classList.remove('active');
+        btnL.classList.add('active');
+        btnC.classList.remove('active');
+    } else {
+        cards.classList.add('active');
+        list.classList.remove('active');
+        btnC.classList.add('active');
+        btnL.classList.remove('active');
+    }
+
+    if (viewInput) viewInput.value = saved;
+    if (pageSizeViewInput) pageSizeViewInput.value = saved;
+    localStorage.setItem('leadsView', saved);
 })();
 
 // ── Bulk Select ──

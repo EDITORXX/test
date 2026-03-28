@@ -404,6 +404,8 @@ Route::middleware(['auth'])->group(function () {
     
     // Users Management
     Route::post('users/{user}/send-credentials-email', [\App\Http\Controllers\UserController::class, 'sendCredentialsEmail'])->name('users.send-credentials-email');
+    Route::get('/users/{user}/transfer-delete', [\App\Http\Controllers\UserController::class, 'showTransferDelete'])->name('users.transfer-delete');
+    Route::post('/users/{user}/transfer-delete', [\App\Http\Controllers\UserController::class, 'transferDelete'])->name('users.transfer-delete.store');
     Route::resource('users', \App\Http\Controllers\UserController::class);
     
     // Builders Management (CRM/Admin only)
@@ -476,8 +478,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth', 'role:admin,crm'])->post('/crm/danger/delete-all-leads', [\App\Http\Controllers\Crm\CrmDangerController::class, 'deleteAllLeads'])->name('crm.danger.delete-all-leads');
 
     // Admin Dashboard (Admin only)
-    // Integration Routes (Admin & CRM)
-    Route::middleware(['auth', 'role:admin,crm'])->prefix('integrations')->name('integrations.')->group(function () {
+    // Integration Routes (Admin only)
+    Route::middleware(['auth', 'role:admin'])->prefix('integrations')->name('integrations.')->group(function () {
         Route::get('/', [\App\Http\Controllers\IntegrationController::class, 'index'])->name('index');
         Route::get('/sheet-integration', function () {
             return view('integrations.sheet-integration');
@@ -721,6 +723,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('targets', \App\Http\Controllers\Admin\TargetController::class);
         Route::post('targets/bulk-set', [\App\Http\Controllers\Admin\TargetController::class, 'bulkSet'])->name('targets.bulk-set');
         Route::get('/dead-leads', [\App\Http\Controllers\Admin\DeadLeadsController::class, 'index'])->name('dead-leads');
+        Route::get('/other-leads', [\App\Http\Controllers\Admin\OtherLeadsController::class, 'index'])->middleware('role:admin')->name('other-leads.index');
+        Route::post('/other-leads/reassign', [\App\Http\Controllers\Admin\OtherLeadsController::class, 'reassign'])->middleware('role:admin')->name('other-leads.reassign');
     });
     
     // CRM Automation Routes (CRM/Admin only)
@@ -728,10 +732,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Crm\AutomationController::class, 'index'])->name('index');
         Route::get('/leads/create', [\App\Http\Controllers\Crm\LeadController::class, 'create'])->name('leads.create');
         Route::post('/leads', [\App\Http\Controllers\Crm\LeadController::class, 'store'])->name('leads.store');
-        Route::get('/rules', [\App\Http\Controllers\Crm\AutomationController::class, 'index'])->name('rules');
-        Route::post('/rules', [\App\Http\Controllers\Crm\AutomationController::class, 'index'])->name('rules.store');
-        Route::post('/import/csv', [\App\Http\Controllers\Crm\AutomationController::class, 'index'])->name('import.csv');
-        Route::get('/import/csv/preview', [\App\Http\Controllers\Crm\AutomationController::class, 'index'])->name('import.csv.preview');
+        Route::get('/rules', [\App\Http\Controllers\Crm\AssignmentRuleController::class, 'index'])->name('rules');
+        Route::post('/rules', [\App\Http\Controllers\Crm\AssignmentRuleController::class, 'store'])->name('rules.store');
+        Route::delete('/rules/{rule}', [\App\Http\Controllers\Crm\AssignmentRuleController::class, 'destroy'])->name('rules.destroy');
+        Route::get('/import', [\App\Http\Controllers\Crm\LeadImportController::class, 'showImportForm'])->name('import');
+        Route::post('/import/csv', [\App\Http\Controllers\Crm\LeadImportController::class, 'importCsv'])->name('import.csv');
+        Route::post('/import/csv/preview', [\App\Http\Controllers\Crm\LeadImportController::class, 'previewCsv'])->name('import.csv.preview');
     });
 
     // Leads Management
@@ -783,6 +789,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/csv', [\App\Http\Controllers\LeadImportController::class, 'showCsvForm'])->name('csv');
         Route::post('/csv', [\App\Http\Controllers\LeadImportController::class, 'importCsv'])->name('csv.import');
         Route::post('/csv/preview', [\App\Http\Controllers\LeadImportController::class, 'previewCsv'])->name('csv.preview');
+        Route::get('/old-crm', [\App\Http\Controllers\LeadImportController::class, 'showOldCrmForm'])->name('old-crm');
+        Route::post('/old-crm/analyze', [\App\Http\Controllers\LeadImportController::class, 'analyzeOldCrm'])->name('old-crm.analyze');
+        Route::post('/old-crm/validate', [\App\Http\Controllers\LeadImportController::class, 'validateOldCrm'])->name('old-crm.validate');
+        Route::post('/old-crm/import', [\App\Http\Controllers\LeadImportController::class, 'importOldCrm'])->name('old-crm.import');
         
         // History
         Route::get('/history', [\App\Http\Controllers\LeadImportController::class, 'history'])->name('history');
@@ -850,6 +860,7 @@ Route::middleware(['auth', 'role:crm,admin'])->prefix('lead-assignment')->name('
     
     // Telecaller Status
     Route::get('/telecaller-status', [\App\Http\Controllers\TelecallerStatusController::class, 'index'])->name('telecaller-status');
+    Route::get('/lead-off-users', [\App\Http\Controllers\TelecallerStatusController::class, 'index'])->name('lead-off-users');
     Route::post('/telecaller-status/update', [\App\Http\Controllers\TelecallerStatusController::class, 'updateStatus'])->name('telecaller-status.update');
     Route::get('/telecaller-status/api', [\App\Http\Controllers\TelecallerStatusController::class, 'getStatus'])->name('telecaller-status.api');
 });

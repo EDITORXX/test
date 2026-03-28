@@ -20,11 +20,27 @@ function initDashboard() {
     loadPerformanceFilterRoles().then(() => loadTelecallerStats());
     loadLeadsPendingResponse();
     loadAverageResponseTime();
+    loadLeadAllocationOverview();
     loadDailyProspects();
     loadUsers(); // For dropdowns
     loadBlacklist();
     loadPendingVerifications();
     loadImportedLeads();
+}
+
+async function loadLeadAllocationOverview() {
+    try {
+        const data = await apiRequest('/dashboard/lead-allocation-overview');
+        const leadOffEl = document.getElementById('lead-off-users-count');
+        const returningEl = document.getElementById('lead-off-returning-today');
+        const scheduledEl = document.getElementById('lead-off-scheduled-count');
+
+        if (leadOffEl) leadOffEl.textContent = data.lead_off_users ?? 0;
+        if (returningEl) returningEl.textContent = data.returning_today ?? 0;
+        if (scheduledEl) scheduledEl.textContent = data.scheduled_off ?? 0;
+    } catch (error) {
+        console.error('Error loading lead allocation overview:', error);
+    }
 }
 
 // Setup event listeners
@@ -1225,4 +1241,3 @@ function showAddSheetModal() {
     // Implementation needed - redirect to lead import page or show modal
     alert('Add Google Sheet functionality - to be implemented');
 }
-

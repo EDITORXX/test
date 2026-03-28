@@ -18,6 +18,7 @@ use App\Models\AppNotification;
 use App\Models\SiteVisit;
 use App\Models\Incentive;
 use App\Services\TelecallerTaskService;
+use App\Services\UserStatusService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
@@ -32,11 +33,13 @@ class TelecallerController extends Controller
 {
     protected $telecallerService;
     protected $taskService;
+    protected $userStatusService;
 
-    public function __construct(TelecallerService $telecallerService, TelecallerTaskService $taskService)
+    public function __construct(TelecallerService $telecallerService, TelecallerTaskService $taskService, UserStatusService $userStatusService)
     {
         $this->telecallerService = $telecallerService;
         $this->taskService = $taskService;
+        $this->userStatusService = $userStatusService;
     }
 
     /**
@@ -100,15 +103,6 @@ class TelecallerController extends Controller
         ]);
         $availability->updateAvailability();
 
-        // Update TelecallerProfile - mark as present (not absent)
-        $profile = TelecallerProfile::firstOrCreate(['user_id' => $user->id]);
-        if ($profile->is_absent) {
-            $profile->update([
-                'is_absent' => false,
-                'absent_reason' => null,
-                'absent_until' => null,
-            ]);
-        }
     }
 
     /**
@@ -1038,10 +1032,13 @@ class TelecallerController extends Controller
                         'remark' => 'required|string',
                     ]);
                     $this->telecallerService->markNotInterested($assignment->id, $telecallerId, $request->input('remark'));
-                    // Update lead status to connected
                     $lead = Lead::find($telecallerTask->lead_id);
                     if ($lead) {
-                        $lead->updateStatusIfAllowed('connected');
+                        $lead->assignments()->update([
+                            'is_active' => false,
+                            'unassigned_at' => now(),
+                        ]);
+                        $lead->markAsOtherLead('not_interested', $telecallerId, $request->input('remark'));
                     }
                     $telecallerTask->update([
                         'status' => 'completed',
@@ -1138,7 +1135,8 @@ class TelecallerController extends Controller
      */
     public function getProfile(Request $request)
     {
-        $user = $request->user()->load('role', 'manager', 'telecallerProfile');
+        $user = $request->user()->load('role', 'manager', 'telecallerProfile', 'userProfile');
+        $leadOffProfile = $user->userProfile;
         
         // Get activity history (last 10 activities)
         $activityHistory = ActivityLog::where('user_id', $user->id)
@@ -1158,9 +1156,14 @@ class TelecallerController extends Controller
                 'created_at' => $user->created_at ? $user->created_at->format('d M Y') : '-',
             ],
             'profile' => [
-                'is_absent' => $user->telecallerProfile?->is_absent ?? false,
-                'absent_reason' => $user->telecallerProfile?->absent_reason ?? null,
-                'absent_until' => $user->telecallerProfile?->absent_until?->format('Y-m-d H:i:s'),
+                'is_absent' => $leadOffProfile?->isCurrentlyAbsent() ?? false,
+                'lead_off_enabled' => (bool) ($leadOffProfile?->is_absent ?? false),
+                'has_scheduled_lead_off' => $leadOffProfile?->hasUpcomingLeadOffWindow() ?? false,
+                'absent_reason' => $leadOffProfile?->absent_reason ?? null,
+                'absent_until' => ($leadOffProfile?->lead_off_end_at ?? $leadOffProfile?->absent_until)?->format('Y-m-d H:i:s'),
+                'lead_off_start_at' => $leadOffProfile?->lead_off_start_at?->format('Y-m-d H:i:s'),
+                'lead_off_end_at' => ($leadOffProfile?->lead_off_end_at ?? $leadOffProfile?->absent_until)?->format('Y-m-d H:i:s'),
+                'lead_off_source' => $leadOffProfile?->lead_off_source,
                 'max_pending_leads' => $user->telecallerProfile?->max_pending_leads ?? null,
             ],
             'activity_history' => $activityHistory->map(function ($log) {
@@ -1296,29 +1299,89 @@ class TelecallerController extends Controller
      */
     public function updateAvailability(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'is_absent' => 'required|boolean',
             'absent_reason' => 'nullable|string|max:255',
-            'absent_until' => 'nullable|date|after_or_equal:today',
+            'mode' => 'nullable|in:normal,now,schedule,on',
+            'absent_until' => 'nullable|date',
+            'lead_off_start_at' => 'nullable|date',
+            'lead_off_end_at' => 'nullable|date',
         ]);
 
+        $validator->after(function ($validator) use ($request) {
+            $isAbsent = $request->boolean('is_absent');
+            $mode = $request->input('mode');
+            $leadOffStartAt = $request->filled('lead_off_start_at') ? Carbon::parse($request->input('lead_off_start_at')) : null;
+            $leadOffEndAt = $request->filled('lead_off_end_at') ? Carbon::parse($request->input('lead_off_end_at')) : null;
+            $absentUntil = $request->filled('absent_until') ? Carbon::parse($request->input('absent_until')) : null;
+            $now = now();
+
+            if (!$isAbsent || $mode === 'on') {
+                return;
+            }
+
+            if ($mode === 'schedule') {
+                if (!$leadOffStartAt) {
+                    $validator->errors()->add('lead_off_start_at', 'Lead Off From is required for a scheduled window.');
+                }
+                if (!$leadOffEndAt) {
+                    $validator->errors()->add('lead_off_end_at', 'Lead Off Until is required for a scheduled window.');
+                }
+                if ($leadOffStartAt && $leadOffStartAt->lte($now)) {
+                    $validator->errors()->add('lead_off_start_at', 'Lead Off From must be a future time for a scheduled window.');
+                }
+                if ($leadOffStartAt && $leadOffEndAt && $leadOffEndAt->lte($leadOffStartAt)) {
+                    $validator->errors()->add('lead_off_end_at', 'Scheduled end time must be after start time.');
+                }
+                return;
+            }
+
+            $effectiveEndAt = $leadOffEndAt ?? $absentUntil;
+            if ($effectiveEndAt && $effectiveEndAt->lte($now)) {
+                $validator->errors()->add('absent_until', 'Lead Off Until must be after now.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($validator->errors()->all())->first() ?: 'Please correct the highlighted errors.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $user = $request->user();
-        
-        $profile = TelecallerProfile::firstOrCreate(['user_id' => $user->id]);
-        
-        $profile->update([
-            'is_absent' => $request->is_absent,
-            'absent_reason' => $request->absent_reason,
-            'absent_until' => $request->absent_until ? Carbon::parse($request->absent_until) : null,
-        ]);
+        $leadOffStartAt = $request->lead_off_start_at ? Carbon::parse($request->lead_off_start_at) : null;
+        $leadOffEndAt = $request->lead_off_end_at ? Carbon::parse($request->lead_off_end_at) : null;
+        $absentUntil = $request->absent_until ? Carbon::parse($request->absent_until) : $leadOffEndAt;
+
+        if ($request->boolean('is_absent') && !$leadOffStartAt) {
+            $leadOffStartAt = now();
+        }
+
+        $profile = $this->userStatusService->toggleAbsentStatus(
+            $user->id,
+            $request->boolean('is_absent'),
+            $request->absent_reason,
+            $absentUntil,
+            $leadOffStartAt,
+            $leadOffEndAt,
+            'self',
+            $user->id
+        )->fresh();
 
         return response()->json([
             'success' => true,
-            'message' => $request->is_absent ? 'Marked as absent' : 'Marked as available',
+            'message' => $request->is_absent ? 'Lead off mode updated successfully' : 'Lead off mode disabled successfully',
             'profile' => [
-                'is_absent' => $profile->is_absent,
+                'is_absent' => $profile->isCurrentlyAbsent(),
+                'lead_off_enabled' => (bool) $profile->is_absent,
+                'has_scheduled_lead_off' => $profile->hasUpcomingLeadOffWindow(),
                 'absent_reason' => $profile->absent_reason,
-                'absent_until' => $profile->absent_until ? $profile->absent_until->format('Y-m-d H:i:s') : null,
+                'absent_until' => ($profile->lead_off_end_at ?? $profile->absent_until)?->format('Y-m-d H:i:s'),
+                'lead_off_start_at' => $profile->lead_off_start_at?->format('Y-m-d H:i:s'),
+                'lead_off_end_at' => ($profile->lead_off_end_at ?? $profile->absent_until)?->format('Y-m-d H:i:s'),
+                'lead_off_source' => $profile->lead_off_source,
             ],
         ]);
     }
@@ -1491,7 +1554,11 @@ class TelecallerController extends Controller
 
             switch ($outcome) {
                 case 'not_interested':
-                    $lead->update(['status' => 'dead']);
+                    $lead->assignments()->update([
+                        'is_active' => false,
+                        'unassigned_at' => now(),
+                    ]);
+                    $lead->markAsOtherLead('not_interested', $telecallerId, $request->notes);
                     $task->update([
                         'status' => 'completed',
                         'outcome' => 'not_interested',

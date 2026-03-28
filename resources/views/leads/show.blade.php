@@ -611,6 +611,25 @@
                         <p class="text-xs sm:text-sm text-slate-900 whitespace-pre-wrap leading-relaxed break-words">{{ $lead->notes }}</p>
                     </div>
                     @endif
+
+                    @php
+                        $importMeta = $lead->latestImportedLead?->import_data['metadata'] ?? [];
+                    @endphp
+                    @if(($lead->latestImportedLead?->import_data['kind'] ?? null) === 'old_crm' && !empty($importMeta))
+                    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200/70">
+                        <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-amber-800 mb-3">Old CRM Import Data</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @foreach($importMeta as $metaKey => $metaValue)
+                                @if(!blank($metaValue))
+                                    <div>
+                                        <p class="text-xs text-amber-700 mb-1">{{ ucwords(str_replace('_', ' ', $metaKey)) }}</p>
+                                        <p class="text-sm font-semibold text-slate-900 whitespace-pre-wrap break-words">{{ $metaValue }}</p>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                     
                     <!-- Source Information -->
                     @php

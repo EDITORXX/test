@@ -230,6 +230,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/profile', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateProfile']);
         Route::post('/profile/picture', [\App\Http\Controllers\Api\SalesManagerController::class, 'uploadProfilePicture']);
         Route::post('/profile/password', [\App\Http\Controllers\Api\SalesManagerController::class, 'changePassword']);
+        Route::post('/profile/availability', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateAvailability']);
         Route::get('/dashboard-settings', [\App\Http\Controllers\Api\SalesManagerController::class, 'getDashboardSettings']);
         Route::post('/dashboard-settings', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateDashboardSettings']);
         
@@ -314,6 +315,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/dashboard/telecaller-stats', [CrmDashboardController::class, 'getTelecallerStats']);
             Route::get('/dashboard/leads-pending-response', [CrmDashboardController::class, 'getLeadsPendingResponse']);
             Route::get('/dashboard/average-response-time', [CrmDashboardController::class, 'getAverageResponseTime']);
+            Route::get('/dashboard/lead-allocation-overview', [CrmDashboardController::class, 'getLeadAllocationOverview']);
             Route::get('/dashboard/daily-prospects', [CrmDashboardController::class, 'getDailyProspects']);
         });
         

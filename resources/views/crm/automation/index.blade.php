@@ -1,65 +1,101 @@
 @extends('layouts.app')
 
-@section('title', 'Automation - Base CRM')
+@section('title', 'Lead Automation - Base CRM')
 @section('page-title', 'Lead Automation')
-@section('page-subtitle', 'Automatically import and distribute leads from Google Sheets or CSV/Excel files')
+@section('page-subtitle', 'Import, assign, and manage CRM lead-distribution workflows from one workspace.')
 
 @section('header-actions')
-    <a href="{{ route('admin.automation.create') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
-        + Create Automation
+    <a href="{{ route('crm.automation.leads.create') }}" class="btn btn-brand-primary">
+        <i class="fas fa-plus me-2"></i>Create Lead
     </a>
 @endsection
 
 @section('content')
+<div class="page-shell">
+    <section class="crm-hero">
+        <div class="crm-hero-grid">
+            <div>
+                <span class="crm-kicker">
+                    <i class="fas fa-bolt"></i>
+                    Automation Hub
+                </span>
+                <h2 class="crm-hero-title">CRM automation workspace for <strong>manual creation, imports, and assignment rules</strong>.</h2>
+                <p class="crm-hero-copy">
+                    Existing CRM automation behavior same rahega. Is page ko admin-style control surface me reorganize kiya gaya hai
+                    taaki imports, rules, aur lead operations ek hi flow me mil sakein.
+                </p>
+            </div>
+            <div class="crm-mini-grid">
+                <div class="crm-mini-card">
+                    <div class="crm-mini-label">Actions</div>
+                    <div class="crm-mini-value">3</div>
+                    <div class="crm-mini-copy">Create leads, import leads, and manage assignment rules.</div>
+                </div>
+                <div class="crm-mini-card">
+                    <div class="crm-mini-label">Assignment</div>
+                    <div class="crm-mini-value">Live</div>
+                    <div class="crm-mini-copy">Rules and imports continue using the existing CRM services and routes.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     @if(session('success'))
-        <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
-            {{ session('success') }}
+        <div class="crm-note">
+            <strong>Success:</strong> {{ session('success') }}
         </div>
     @endif
 
-    <!-- Lead Automation Section -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-800">Lead Automation</h2>
-                <p class="text-sm text-gray-500 mt-1">Automatically distribute leads from any source to your team</p>
+    <section class="crm-grid-3">
+        <article class="crm-card">
+            <div class="crm-pill">Lead Intake</div>
+            <h3>Create Lead</h3>
+            <p class="crm-card-copy">Manually create a lead and optionally assign it immediately to a CRM user.</p>
+            <div class="crm-card-divider"></div>
+            <div class="crm-inline-stack">
+                <a href="{{ route('crm.automation.leads.create') }}" class="btn btn-brand-primary">Open Form</a>
             </div>
-            <a href="{{ route('admin.automation.create') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
-                + Create Automation
-            </a>
-        </div>
+        </article>
 
-        <div class="text-center py-12">
-            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <h3 class="text-lg font-medium text-gray-700 mb-2">Manage Automations</h3>
-            <p class="text-gray-500 mb-4">Create and manage lead distribution rules for Facebook, Pabbly, MCube, Google Sheets and more.</p>
-            <div class="flex gap-3 justify-center">
-                <a href="{{ route('admin.automation.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">
-                    View All Rules
-                </a>
-                <a href="{{ route('admin.automation.create') }}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 font-medium text-sm">
-                    Create Automation
-                </a>
+        <article class="crm-card">
+            <div class="crm-pill">CSV Import</div>
+            <h3>Import Leads</h3>
+            <p class="crm-card-copy">Upload CSV and assign incoming leads through the existing import service and rule logic.</p>
+            <div class="crm-card-divider"></div>
+            <div class="crm-inline-stack">
+                <a href="{{ route('crm.automation.import') }}" class="btn btn-brand-secondary">Open Import</a>
             </div>
-        </div>
-    </div>
+        </article>
 
-    <!-- Quick Info -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mt-8">
-        <div class="flex items-start">
-            <svg class="w-6 h-6 text-blue-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <article class="crm-card">
+            <div class="crm-pill">Distribution</div>
+            <h3>Assignment Rules</h3>
+            <p class="crm-card-copy">Manage specific-user and percentage-based lead distribution for CRM imports.</p>
+            <div class="crm-card-divider"></div>
+            <div class="crm-inline-stack">
+                <a href="{{ route('crm.automation.rules') }}" class="btn btn-brand-secondary">View Rules</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="crm-surface">
+        <div class="crm-surface-header">
             <div>
-                <h3 class="text-sm font-semibold text-blue-800 mb-1">About Lead Automation</h3>
-                <p class="text-sm text-blue-700">
-                    Lead Automation automatically imports leads from Google Sheets or CSV/Excel files and distributes them to your team based on your configured distribution rules. 
-                    You can set up percentage-based, random, or one-sheet-per-user distribution. After assignment, phone call tasks are automatically created for follow-up.
-                </p>
+                <div class="crm-pill">CRM Import</div>
+                <h3 class="crm-section-title">Lead Import</h3>
+                <p class="crm-section-copy">CSV-based intake with assignment rule binding. Existing parsing and validation stay unchanged.</p>
             </div>
         </div>
-    </div>
+        <div class="crm-grid-2" id="import-panel">
+            <div class="crm-note">
+                <strong>Import workflow:</strong> file upload, preview, rule selection, then lead creation through the existing CRM import service.
+            </div>
+            <div class="crm-inline-stack" style="justify-content:flex-end;">
+                <a href="{{ route('crm.automation.import') }}" class="btn btn-brand-primary">Open Import Screen</a>
+                <a href="{{ route('crm.automation.rules') }}" class="btn btn-light">Manage Rules</a>
+                <a href="{{ route('crm.automation.leads.create') }}" class="btn btn-brand-secondary">Create Manually</a>
+            </div>
+        </div>
+    </section>
+</div>
 @endsection
-

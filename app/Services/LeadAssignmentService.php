@@ -301,7 +301,7 @@ class LeadAssignmentService
     /**
      * Manual assignment
      */
-    public function assignManually(Lead $lead, int $userId, int $assignedBy): ?int
+    public function assignManually(Lead $lead, int $userId, int $assignedBy, bool $ignoreAvailability = false): ?int
     {
         $user = User::with('role')->find($userId);
         
@@ -310,21 +310,23 @@ class LeadAssignmentService
         }
 
         // Check if user is absent (for all users)
-        if ($this->userStatusService->isUserAbsent($userId)) {
+        if (!$ignoreAvailability && $this->userStatusService->isUserAbsent($userId)) {
             return null;
         }
 
         // For sales executives, check sales executive-specific limits
         if ($user->isSalesExecutive()) {
-            $canReceive = $this->statusService->canReceiveAssignment($userId);
-            if (!$canReceive['can_receive']) {
-                return null;
-            }
+            if (!$ignoreAvailability) {
+                $canReceive = $this->statusService->canReceiveAssignment($userId);
+                if (!$canReceive['can_receive']) {
+                    return null;
+                }
 
-            // Check daily limits
-            $limitCheck = $this->limitService->checkDailyLimits($userId);
-            if (!$limitCheck['is_allowed']) {
-                return null;
+                // Check daily limits
+                $limitCheck = $this->limitService->checkDailyLimits($userId);
+                if (!$limitCheck['is_allowed']) {
+                    return null;
+                }
             }
         }
 
@@ -576,7 +578,7 @@ class LeadAssignmentService
     /**
      * Bulk assign leads
      */
-    public function bulkAssignLeads(array $leadIds, int $telecallerId, int $assignedBy): array
+    public function bulkAssignLeads(array $leadIds, int $telecallerId, int $assignedBy, bool $ignoreAvailability = false): array
     {
         $results = [
             'success' => 0,
@@ -596,7 +598,7 @@ class LeadAssignmentService
                     continue;
                 }
 
-                $assigned = $this->assignManually($lead, $telecallerId, $assignedBy);
+                $assigned = $this->assignManually($lead, $telecallerId, $assignedBy, $ignoreAvailability);
                 if ($assigned) {
                     $this->createAssignmentRecord($lead, $assigned, $assignedBy, 'manual');
                     
@@ -695,6 +697,57 @@ class LeadAssignmentService
                     'assigned_to' => $telecallerId,
                     'assigned_by' => $assignedBy,
                     'trace' => $e->getTraceAsString()
+                ]);
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Transfer active lead ownership without creating new auto tasks/notifications.
+     */
+    public function transferAssignedLeads(array $leadIds, int $assignedTo, int $assignedBy): array
+    {
+        $results = [
+            'success' => 0,
+            'failed' => 0,
+            'errors' => [],
+        ];
+
+        foreach ($leadIds as $leadId) {
+            try {
+                DB::beginTransaction();
+
+                $lead = Lead::find($leadId);
+                if (!$lead) {
+                    $results['failed']++;
+                    $results['errors'][] = "Lead {$leadId} not found";
+                    DB::rollBack();
+                    continue;
+                }
+
+                $validatedUserId = $this->assignManually($lead, $assignedTo, $assignedBy);
+                if (!$validatedUserId) {
+                    $results['failed']++;
+                    $results['errors'][] = "Failed to transfer lead {$leadId} to the selected user";
+                    DB::rollBack();
+                    continue;
+                }
+
+                $this->createAssignmentRecord($lead, $validatedUserId, $assignedBy, 'manual');
+
+                DB::commit();
+                $results['success']++;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $results['failed']++;
+                $results['errors'][] = "Error transferring lead {$leadId}: " . $e->getMessage();
+                Log::error("Error in transferAssignedLeads for lead {$leadId}: " . $e->getMessage(), [
+                    'lead_id' => $leadId,
+                    'assigned_to' => $assignedTo,
+                    'assigned_by' => $assignedBy,
+                    'trace' => $e->getTraceAsString(),
                 ]);
             }
         }
@@ -808,4 +861,3 @@ class LeadAssignmentService
         return $results;
     }
 }
-

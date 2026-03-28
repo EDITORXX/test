@@ -1,96 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Lead - CRM Automation</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F7F6F3; }
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
-        .form-group label .required { color: #dc3545; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #205A44; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .btn { padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 500; text-decoration: none; display: inline-block; }
-        .btn-primary { background: #205A44; color: white; }
-        .btn-secondary { background: #6c757d; color: white; }
-        .alert { padding: 12px; border-radius: 5px; margin-bottom: 20px; }
-        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .section-title { font-size: 18px; font-weight: 600; color: #333; margin: 30px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; }
-        .section-title:first-child { margin-top: 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Create New Lead</h1>
-            <p style="color: #666; margin-top: 5px;">Add a new lead manually and assign to a user</p>
+@extends('layouts.app')
+
+@section('title', 'Create Lead - Base CRM')
+@section('page-title', 'Create Lead')
+@section('page-subtitle', 'Add a lead manually and optionally assign it to a user immediately.')
+
+@section('content')
+<div class="page-shell">
+    <section class="crm-hero">
+        <div class="crm-hero-grid">
+            <div>
+                <span class="crm-kicker">
+                    <i class="fas fa-user-plus"></i>
+                    Manual Lead Intake
+                </span>
+                <h2 class="crm-hero-title">Create a new lead in the <strong>same premium CRM workspace</strong>.</h2>
+                <p class="crm-hero-copy">
+                    Sirf Name aur Phone required hain. Lead create hone ke baad detailed requirement fields centrally fill ki ja sakti hain.
+                </p>
+            </div>
+            <div class="crm-note">
+                <strong>Note:</strong> Assign now karoge to calling task turant create ho jayega. Blank chhodoge to lead unassigned rahegi.
+            </div>
         </div>
+    </section>
 
-        @if($errors->any())
-            <div class="alert alert-danger">
-                @foreach($errors->all() as $error)
-                    <div>{{ $error }}</div>
-                @endforeach
-            </div>
-        @endif
+    @if($errors->any())
+        <div class="crm-note crm-note-warning">
+            @foreach($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
 
-        <form method="POST" action="{{ route('crm.automation.leads.store') }}" class="card">
+    <section class="crm-surface">
+        <form method="POST" action="{{ route('crm.automation.leads.store') }}">
             @csrf
-
-            <div class="info-box" style="margin-bottom: 30px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
-                <strong>📝 Note:</strong> Only <strong>Name</strong> and <strong>Phone Number</strong> are required for initial creation. 
-                After creating the lead, you will be redirected to fill all detailed requirement fields (Category, Location, Type, Purpose, Budget, Status, etc.) using the centralized form.
-            </div>
-
-            <h2 class="section-title">Basic Information</h2>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Name <span class="required">*</span></label>
-                    <input type="text" name="name" value="{{ old('name') }}" required placeholder="Enter lead name">
-                </div>
-
-                <div class="form-group">
-                    <label>Phone/Number <span class="required">*</span></label>
-                    <input type="text" name="phone" value="{{ old('phone') }}" required placeholder="Enter phone number">
+            <div class="crm-surface-header">
+                <div>
+                    <div class="crm-pill">Lead Form</div>
+                    <h3 class="crm-section-title">Basic Information</h3>
+                    <p class="crm-section-copy">Current lead creation logic unchanged. Sirf UI ko aligned workspace form me convert kiya gaya hai.</p>
                 </div>
             </div>
 
-            <div class="form-group" style="margin-top: 20px;">
-                <label for="source">Lead Source <span class="required">*</span></label>
-                <select name="source" id="source" required>
-                    <option value="">-- Select Source --</option>
-                    @foreach(\App\Models\Lead::sourceOptions() as $value => $label)
-                        <option value="{{ $value }}" {{ old('source') == $value ? 'selected' : '' }}>{{ $label }}</option>
-                    @endforeach
-                </select>
+            <div class="crm-form-grid">
+                <div class="crm-field">
+                    <label for="name">Name <span class="text-danger">*</span></label>
+                    <input id="name" type="text" name="name" value="{{ old('name') }}" required placeholder="Enter lead name" class="crm-form-control w-100">
+                </div>
+                <div class="crm-field">
+                    <label for="phone">Phone / Number <span class="text-danger">*</span></label>
+                    <input id="phone" type="text" name="phone" value="{{ old('phone') }}" required placeholder="Enter phone number" class="crm-form-control w-100">
+                </div>
+                <div class="crm-field">
+                    <label for="source">Lead Source <span class="text-danger">*</span></label>
+                    <select name="source" id="source" required class="crm-form-control w-100">
+                        <option value="">Select source</option>
+                        @foreach(\App\Models\Lead::sourceOptions() as $value => $label)
+                            <option value="{{ $value }}" {{ old('source') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="crm-field">
+                    <label for="assigned_to">Assign To User</label>
+                    <select name="assigned_to" id="assigned_to" class="crm-form-control w-100">
+                        <option value="">Do not assign</option>
+                        @foreach($users as $user)
+                            <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>
+                                {{ $user->name }} ({{ $user->role->name ?? $user->role->slug ?? '—' }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
-            <div class="form-group" style="margin-top: 20px;">
-                <label for="assigned_to">Assign To User (Optional)</label>
-                <select name="assigned_to" id="assigned_to">
-                    <option value="">— Do not assign —</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>
-                            {{ $user->name }} ({{ $user->role->name ?? $user->role->slug ?? '—' }})
-                        </option>
-                    @endforeach
-                </select>
-                <p style="font-size: 14px; color: #666; margin-top: 8px;">Assign now to create a calling task for the user immediately.</p>
-            </div>
-
-            <div style="margin-top: 30px; display: flex; gap: 10px;">
-                <button type="submit" class="btn btn-primary">Create Lead</button>
-                <a href="{{ route('crm.automation.index') }}" class="btn btn-secondary">Cancel</a>
+            <div class="crm-inline-stack mt-4">
+                <button type="submit" class="btn btn-brand-primary">Create Lead</button>
+                <a href="{{ route('crm.automation.index') }}" class="btn btn-light">Cancel</a>
             </div>
         </form>
-    </div>
-</body>
-</html>
+    </section>
+</div>
+@endsection

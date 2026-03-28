@@ -53,6 +53,92 @@
 
 @push('styles')
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
+.admin-dashboard-root { font-family: 'Outfit', 'Inter', sans-serif; color: #16161A; }
+.admin-dashboard-shell { display: flex; flex-direction: column; gap: 20px; }
+.admin-hero { position: relative; overflow: hidden; border: 1px solid #e2e1dc; border-radius: 20px; background: radial-gradient(circle at top right, rgba(93, 202, 165, 0.18), transparent 34%), radial-gradient(circle at left bottom, rgba(23, 97, 168, 0.10), transparent 26%), linear-gradient(135deg, #ffffff, #fafaf8 55%, #f0efec); padding: 22px 24px; box-shadow: 0 10px 30px rgba(0,0,0,.04); }
+.admin-hero-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); gap: 20px; align-items: center; }
+.admin-kicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #e4f4ee; color: #0b6b4f; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.admin-hero-title { margin-top: 14px; font-family: 'Fraunces', serif; font-size: 34px; line-height: 1.05; font-weight: 700; color: #16161A; }
+.admin-hero-title span { color: #0b6b4f; }
+.admin-hero-copy { margin-top: 10px; max-width: 720px; font-size: 14px; line-height: 1.65; color: #5e5e5a; }
+.admin-hero-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.hero-meta-card { border: 1px solid #e2e1dc; border-radius: 14px; background: rgba(255,255,255,.8); padding: 14px 16px; }
+.hero-meta-value { font-size: 26px; line-height: 1; font-weight: 800; color: #0b6b4f; }
+.hero-meta-label { margin-top: 6px; font-size: 11px; color: #7a7a73; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.dashboard-mode-toggle { display: inline-flex; gap: 6px; padding: 6px; border-radius: 999px; border: 1px solid #e2e1dc; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.03); }
+.dashboard-mode-btn { border: none; border-radius: 999px; background: transparent; color: #7a7a73; font-size: 13px; font-weight: 700; cursor: pointer; padding: 10px 18px; transition: all .2s ease; }
+.dashboard-mode-btn.is-active.sale { background: linear-gradient(135deg, #0b6b4f, #084d3a); color: #fff; box-shadow: 0 8px 20px rgba(11,107,79,.18); }
+.dashboard-mode-btn.is-active.marketing { background: linear-gradient(135deg, #5946c0, #7a67de); color: #fff; box-shadow: 0 8px 20px rgba(89,70,192,.18); }
+.dashboard-panel { display: none; animation: fadeUp .24s ease; }
+.dashboard-panel.is-active { display: block; }
+.premium-filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.premium-filter-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #7a7a73; }
+.premium-grid-2, .premium-grid-3, .premium-grid-4 { display: grid; gap: 18px; }
+.premium-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.premium-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.premium-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.marketing-stat { border: 1px solid #e2e1dc; border-radius: 16px; background: #fff; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.03); }
+.marketing-stat .value { font-size: 30px; font-weight: 800; line-height: 1; color: #16161A; }
+.marketing-stat .label { margin-top: 6px; font-size: 11px; color: #7a7a73; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+.marketing-stat .sub { margin-top: 8px; font-size: 12px; color: #5e5e5a; }
+.marketing-list { display: flex; flex-direction: column; gap: 10px; }
+.marketing-list-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid #edece7; border-radius: 12px; background: #fafaf8; }
+.marketing-list-item strong { font-size: 13px; color: #16161A; }
+.marketing-list-item span { font-size: 12px; color: #5e5e5a; }
+.marketing-score-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.marketing-score-box { border: 1px solid #eceaf8; border-radius: 14px; background: linear-gradient(135deg, #ffffff, #f8f7ff); padding: 16px; }
+.marketing-score-box .score { font-size: 28px; line-height: 1; font-weight: 800; color: #5946c0; }
+.marketing-score-box .name { margin-top: 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #7a7a73; font-weight: 700; }
+.marketing-score-box .note { margin-top: 8px; font-size: 12px; color: #5e5e5a; }
+.shortcut-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }
+.shortcut-card { display:flex; align-items:center; gap:12px; border:1px solid #e7e5df; border-radius:16px; background:#fff; padding:16px; text-decoration:none; color:#16161A; box-shadow:0 1px 3px rgba(0,0,0,.03); transition:transform .18s ease, box-shadow .18s ease; }
+.shortcut-card:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(0,0,0,.06); }
+.shortcut-icon { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#eef6f2,#dff3ea); color:#0b6b4f; }
+.shortcut-label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#7a7a73; font-weight:700; }
+.shortcut-value { margin-top:3px; font-size:22px; font-weight:800; color:#16161A; line-height:1; }
+.score-card-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
+.score-card { text-align:center; padding:16px; border:1px solid #eceaf8; border-radius:14px; background:linear-gradient(135deg,#fff,#f9f8ff); }
+.score-card .value { font-size:28px; line-height:1; font-weight:800; color:#5946c0; }
+.score-card .label { margin-top:6px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#7a7a73; font-weight:700; }
+.score-card .note { margin-top:8px; font-size:12px; color:#5e5e5a; }
+.funnel-stack { display:flex; flex-direction:column; gap:12px; }
+.funnel-row { display:flex; align-items:center; gap:12px; width:100%; }
+.funnel-row-link {
+    display:flex;
+    width:100%;
+    flex:1 1 auto;
+    align-items:center;
+    gap:12px;
+    text-decoration:none;
+    color:inherit;
+    border-radius:14px;
+    padding:8px 10px;
+    margin:0 -8px;
+    transition:background .18s ease, transform .18s ease;
+}
+.funnel-row-link:hover {
+    background:#f8faf8;
+    transform:translateX(2px);
+}
+.funnel-label { width:92px; flex-shrink:0; text-align:right; font-size:12px; color:#5e5e5a; font-weight:600; }
+.funnel-bar-wrap { flex:1 1 auto; min-width:180px; height:34px; display:flex; align-items:stretch; background:#f1f0ec; border-radius:999px; overflow:hidden; }
+.funnel-bar { min-width:52px; height:34px; display:flex; align-items:center; padding:0 12px; border-radius:999px; color:#fff; font-size:12px; font-weight:700; white-space:nowrap; }
+.funnel-meta { width:56px; flex-shrink:0; font-size:12px; color:#7a7a73; text-align:right; }
+.progress-list { display:flex; flex-direction:column; gap:12px; }
+.progress-item-head { display:flex; justify-content:space-between; gap:10px; margin-bottom:5px; font-size:12px; }
+.progress-item-head strong { color:#16161A; }
+.progress-item-head span { color:#5e5e5a; font-weight:600; }
+.progress-track { height:7px; border-radius:999px; background:#f1f0ec; overflow:hidden; }
+.progress-fill { height:100%; border-radius:999px; }
+.metric-table td small { color:#7a7a73; font-size:11px; }
+.table-avatar { width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; background:linear-gradient(135deg,#1761a8,#3b82f6); margin-right:8px; }
+.metric-modal { position:fixed; inset:0; background:rgba(0,0,0,.48); display:none; align-items:center; justify-content:center; z-index:1200; padding:20px; }
+.metric-modal.is-open { display:flex; }
+.metric-modal-card { width:min(900px, 100%); max-height:86vh; overflow:auto; background:#fff; border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.2); padding:22px 24px; }
+.metric-modal-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px; }
+.metric-modal-close { border:none; background:#f3f4f6; color:#374151; width:36px; height:36px; border-radius:10px; cursor:pointer; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 /* ── Stat Cards ─────────────────────────────── */
 .stat-card {
     background: #fff;
@@ -170,7 +256,8 @@ tr:hover td { background: #fafafa; }
 @endpush
 
 @section('content')
-<div id="dashboard-content">
+<div id="dashboard-content" class="admin-dashboard-root">
+    <div class="admin-dashboard-shell">
 
     {{-- ── Loading State ──────────────────────────────────── --}}
     <div id="loading" style="text-align:center;padding:60px 20px;">
@@ -179,11 +266,48 @@ tr:hover td { background: #fafafa; }
     </div>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
+    <section class="admin-hero">
+        <div class="admin-hero-grid">
+            <div>
+                <span class="admin-kicker"><i class="fas fa-chart-pie"></i> Command Center</span>
+                <div class="admin-hero-title">Admin dashboard built for <span>sales control</span> and marketing visibility.</div>
+                <p class="admin-hero-copy">Live operational sections stay intact, but the layout is now organized for faster scanning across inflow, pipeline movement, team output, and recovery actions.</p>
+                <div class="premium-filter-bar" style="margin-top:18px;">
+                    <div>
+                        <div class="premium-filter-label">Dashboard Mode</div>
+                        <div class="dashboard-mode-toggle" style="margin-top:8px;">
+                            <button type="button" class="dashboard-mode-btn sale is-active" id="dashboard-mode-sale" onclick="switchDashboardMode('sale')">Sale</button>
+                            <button type="button" class="dashboard-mode-btn marketing" id="dashboard-mode-marketing" onclick="switchDashboardMode('marketing')">Marketing</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="premium-filter-label">Reporting Window</div>
+                        <div style="margin-top:8px;font-size:14px;font-weight:600;color:#16161A;" id="hero-date-range-label">This month</div>
+                    </div>
+                </div>
+            </div>
+            <div class="admin-hero-meta">
+                <div class="hero-meta-card">
+                    <div class="hero-meta-value" id="hero-total-leads">0</div>
+                    <div class="hero-meta-label">Leads In Window</div>
+                </div>
+                <div class="hero-meta-card">
+                    <div class="hero-meta-value" id="hero-connection-rate">0%</div>
+                    <div class="hero-meta-label">Call Connection Rate</div>
+                </div>
+                <div class="hero-meta-card">
+                    <div class="hero-meta-value" id="hero-imported-leads">0</div>
+                    <div class="hero-meta-label">Imported Leads</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     {{-- ── Date Filter ────────────────────────────────────── --}}
     <div class="section-card" style="margin-bottom:20px;">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div class="premium-filter-bar">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <span style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Period:</span>
+                <span class="premium-filter-label" style="white-space:nowrap;">Period</span>
                 <button onclick="applyDateFilter('today')"   id="filter-today"  class="date-filter-btn">Today</button>
                 <button onclick="applyDateFilter('week')"    id="filter-week"   class="date-filter-btn">This Week</button>
                 <button onclick="applyDateFilter('month')"   id="filter-month"  class="date-filter-btn active">This Month</button>
@@ -198,6 +322,14 @@ tr:hover td { background: #fafafa; }
                     style="padding:6px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:12.5px;color:#374151;outline:none;background:#f9fafb;">
             </div>
         </div>
+    </div>
+
+    <div id="sale-dashboard-panel" class="dashboard-panel is-active">
+    <div id="dashboard-shortcuts" class="shortcut-grid" style="margin-bottom:22px;">
+        <a class="shortcut-card" href="#">
+            <span class="shortcut-icon"><i class="fas fa-layer-group"></i></span>
+            <span><div class="shortcut-label">Dashboard</div><div class="shortcut-value">0</div></span>
+        </a>
     </div>
 
     {{-- ── KPI Stats Row ───────────────────────────────────── --}}
@@ -225,6 +357,70 @@ tr:hover td { background: #fafafa; }
     </div>
 
     {{-- ── Lead Statistics + Property Segments ──────────────── --}}
+    <div class="premium-grid-2" style="margin-bottom:22px;">
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-gauge-high"></i></span>
+                Performance Scores
+            </div>
+            <div id="performance-scores" class="score-card-grid">
+                <div class="score-card"><div class="value">0%</div><div class="label">PS Score</div><div class="note">Loading...</div></div>
+            </div>
+        </div>
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-filter"></i></span>
+                Pipeline Funnel
+            </div>
+            <div id="pipeline-funnel" class="funnel-stack">
+                <div class="funnel-row"><div class="funnel-label">Leads</div><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:40px;background:#0b6b4f;">0</div></div><div class="funnel-meta">0%</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="premium-grid-2" style="margin-bottom:22px;">
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-bullseye"></i></span>
+                Team Targets
+            </div>
+            <div id="team-targets-summary" class="progress-list">
+                <div class="progress-item-head"><strong>Meetings</strong><span>0 / 0</span></div>
+                <div class="progress-track"><div class="progress-fill" style="width:0%;background:#1761a8;"></div></div>
+            </div>
+            <button type="button" onclick="openTargetsModal()" class="date-filter-btn" style="margin-top:16px;">View Per User Breakdown</button>
+        </div>
+        <div class="section-card" id="incentives-summary-section" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-indian-rupee-sign"></i></span>
+                Incentives
+            </div>
+            <div id="incentive-summary" class="score-card-grid">
+                <div class="score-card"><div class="value">0</div><div class="label">Total</div><div class="note">Loading...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-title">
+            <span class="section-title-icon"><i class="fas fa-ranking-star"></i></span>
+            Sales Team - PS / PP / VP Scores
+        </div>
+        <div id="sales-score-table" style="overflow-x:auto;">
+            <p style="color:#9ca3af;font-size:13px;">Loading...</p>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-title">
+            <span class="section-title-icon"><i class="fas fa-users-viewfinder"></i></span>
+            User View - Meetings, Visits & Closures
+        </div>
+        <div id="user-pipeline-table" style="overflow-x:auto;">
+            <p style="color:#9ca3af;font-size:13px;">Loading...</p>
+        </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px;" class="grid-responsive-2">
         <div class="section-card" style="margin-bottom:0;">
             <div class="section-title">
@@ -440,6 +636,109 @@ tr:hover td { background: #fafafa; }
         </div>
     </div>
 
+    </div>
+
+    <div id="marketing-dashboard-panel" class="dashboard-panel">
+        <div class="premium-grid-4" style="margin-bottom:22px;">
+            <div class="marketing-stat">
+                <div class="value" id="marketing-total-batches">0</div>
+                <div class="label">Import Batches</div>
+                <div class="sub" id="marketing-completed-batches">0 completed batches</div>
+            </div>
+            <div class="marketing-stat">
+                <div class="value" id="marketing-imported-leads">0</div>
+                <div class="label">Imported Leads</div>
+                <div class="sub" id="marketing-pending-batches">0 pending or processing</div>
+            </div>
+            <div class="marketing-stat">
+                <div class="value" id="marketing-junk-leads">0</div>
+                <div class="label">Junk Leads</div>
+                <div class="sub">Current reporting window quality drop-offs</div>
+            </div>
+            <div class="marketing-stat">
+                <div class="value" id="marketing-not-interested">0</div>
+                <div class="label">Not Interested</div>
+                <div class="sub">Use this to inspect source quality and recycle flow</div>
+            </div>
+        </div>
+
+        <div class="premium-grid-2" style="margin-bottom:22px;">
+            <div class="section-card" style="margin-bottom:0;">
+                <div class="section-title">
+                    <span class="section-title-icon"><i class="fas fa-bullseye"></i></span>
+                    Lead Source Mix
+                </div>
+                <div class="chart-container"><canvas id="marketingSourceChart"></canvas></div>
+                <div id="marketing-source-list" class="marketing-list" style="margin-top:14px;">
+                    <div class="marketing-list-item"><strong>No data</strong><span>Source distribution will appear here.</span></div>
+                </div>
+            </div>
+            <div class="section-card" style="margin-bottom:0;">
+                <div class="section-title">
+                    <span class="section-title-icon"><i class="fas fa-wave-square"></i></span>
+                    Lead Inflow
+                </div>
+                <div class="chart-container"><canvas id="marketingInflowChart"></canvas></div>
+                <div id="marketing-import-summary" class="marketing-score-grid" style="margin-top:14px;">
+                    <div class="marketing-score-box">
+                        <div class="score">0</div>
+                        <div class="name">Completed Imports</div>
+                        <div class="note">Import summary will render here.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="premium-grid-3" style="margin-bottom:22px;">
+            <div class="section-card" style="margin-bottom:0;">
+                <div class="section-title">
+                    <span class="section-title-icon"><i class="fas fa-filter"></i></span>
+                    Quality Snapshot
+                </div>
+                <div class="marketing-score-grid" id="marketing-quality-grid">
+                    <div class="marketing-score-box">
+                        <div class="score">0</div>
+                        <div class="name">Connected</div>
+                        <div class="note">Lead quality split will appear here.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-card" style="margin-bottom:0;">
+                <div class="section-title">
+                    <span class="section-title-icon"><i class="fas fa-phone-volume"></i></span>
+                    Call Outcomes
+                </div>
+                <div id="marketing-call-outcomes" class="marketing-list">
+                    <div class="marketing-list-item"><strong>No outcomes</strong><span>Call outcome mix will appear here.</span></div>
+                </div>
+            </div>
+            <div class="section-card" style="margin-bottom:0;">
+                <div class="section-title">
+                    <span class="section-title-icon"><i class="fas fa-user-clock"></i></span>
+                    Fresh Leads
+                </div>
+                <div id="marketing-recent-leads" class="marketing-list">
+                    <div class="marketing-list-item"><strong>No recent leads</strong><span>Recent additions will appear here.</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="targets-breakdown-modal" class="metric-modal" onclick="closeTargetsModal(event)">
+        <div class="metric-modal-card" onclick="event.stopPropagation()">
+            <div class="metric-modal-header">
+                <div>
+                    <div class="premium-filter-label">Team Targets</div>
+                    <div style="font-size:24px;font-family:'Fraunces',serif;font-weight:700;color:#16161A;">Per User Breakdown</div>
+                </div>
+                <button type="button" class="metric-modal-close" onclick="closeTargetsModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="targets-breakdown-table" style="overflow-x:auto;">
+                <p style="color:#9ca3af;font-size:13px;">Loading...</p>
+            </div>
+        </div>
+    </div>
+
     {{-- hidden IDs kept for JS compat --}}
     <div style="display:none;">
         <span id="pending-verifications"></span>
@@ -450,12 +749,27 @@ tr:hover td { background: #fafafa; }
     <div id="health-stats" style="display:none;"></div>
     <div id="target-overview-section" style="display:none;"><div id="target-overview-content"></div></div>
 </div>
+</div>
 
 <style>
 @media(max-width:768px){
+    .admin-hero-grid,
+    .premium-grid-2,
+    .premium-grid-3,
+    .premium-grid-4,
+    .marketing-score-grid,
+    .shortcut-grid,
+    .score-card-grid { grid-template-columns: 1fr !important; }
+    .admin-hero-title { font-size: 28px; }
+    .admin-hero-meta { grid-template-columns: 1fr; }
     .grid-responsive-2{grid-template-columns:1fr !important;}
     .grid-responsive-leads{grid-template-columns:1fr !important;}
     #main-stats{grid-template-columns:repeat(2,1fr) !important;}
+    .funnel-row { flex-wrap: wrap; }
+    .funnel-row-link { flex-wrap: wrap; margin:0; padding:8px 0; }
+    .funnel-label, .funnel-meta { width: auto; text-align: left; }
+    .funnel-bar-wrap { min-width: 100%; }
+    .metric-modal-card { padding: 18px 16px; }
 }
 @media(max-width:480px){
     #main-stats{grid-template-columns:1fr !important;}
@@ -473,9 +787,12 @@ tr:hover td { background: #fafafa; }
     let leadStatusChart = null;
     let agentsVisitsMeetingsChart = null;
     let propertySegmentsChart = null;
+    let marketingSourceChart = null;
+    let marketingInflowChart = null;
     let currentFilter = localStorage.getItem('dashboardFilter') || 'month';
     let customStartDate = localStorage.getItem('dashboardStartDate') || '';
     let customEndDate = localStorage.getItem('dashboardEndDate') || '';
+    let currentDashboardMode = localStorage.getItem('adminDashboardMode') || 'sale';
 
     // Initialize filter UI on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -493,7 +810,58 @@ tr:hover td { background: #fafafa; }
             document.getElementById('custom-start-date').value = customStartDate;
             document.getElementById('custom-end-date').value = customEndDate;
         }
+
+        switchDashboardMode(currentDashboardMode);
+        updateHeroDateRangeLabel();
     });
+
+    function updateHeroDateRangeLabel() {
+        const label = document.getElementById('hero-date-range-label');
+        if (!label) {
+            return;
+        }
+
+        if (currentFilter === 'custom' && customStartDate && customEndDate) {
+            label.textContent = `${customStartDate} to ${customEndDate}`;
+            return;
+        }
+
+        const labels = {
+            today: 'Today',
+            week: 'This week',
+            month: 'This month',
+            year: 'This year',
+            custom: 'Custom range',
+        };
+        label.textContent = labels[currentFilter] || 'This month';
+    }
+
+    function switchDashboardMode(mode) {
+        currentDashboardMode = mode === 'marketing' ? 'marketing' : 'sale';
+        localStorage.setItem('adminDashboardMode', currentDashboardMode);
+
+        document.querySelectorAll('.dashboard-mode-btn').forEach((button) => {
+            button.classList.remove('is-active');
+        });
+
+        const saleBtn = document.getElementById('dashboard-mode-sale');
+        const marketingBtn = document.getElementById('dashboard-mode-marketing');
+        const salePanel = document.getElementById('sale-dashboard-panel');
+        const marketingPanel = document.getElementById('marketing-dashboard-panel');
+
+        if (saleBtn) saleBtn.classList.toggle('is-active', currentDashboardMode === 'sale');
+        if (marketingBtn) marketingBtn.classList.toggle('is-active', currentDashboardMode === 'marketing');
+        if (salePanel) salePanel.classList.toggle('is-active', currentDashboardMode === 'sale');
+        if (marketingPanel) marketingPanel.classList.toggle('is-active', currentDashboardMode === 'marketing');
+
+        window.requestAnimationFrame(() => {
+            if (leadStatusChart) leadStatusChart.resize();
+            if (agentsVisitsMeetingsChart) agentsVisitsMeetingsChart.resize();
+            if (propertySegmentsChart) propertySegmentsChart.resize();
+            if (marketingSourceChart) marketingSourceChart.resize();
+            if (marketingInflowChart) marketingInflowChart.resize();
+        });
+    }
 
     function applyDateFilter(filter) {
         currentFilter = filter;
@@ -514,6 +882,7 @@ tr:hover td { background: #fafafa; }
         localStorage.setItem('dashboardFilter', filter);
         localStorage.removeItem('dashboardStartDate');
         localStorage.removeItem('dashboardEndDate');
+        updateHeroDateRangeLabel();
 
         // Reload dashboard data
         loadDashboardData();
@@ -540,6 +909,7 @@ tr:hover td { background: #fafafa; }
         localStorage.setItem('dashboardFilter', 'custom');
         localStorage.setItem('dashboardStartDate', startDate);
         localStorage.setItem('dashboardEndDate', endDate);
+        updateHeroDateRangeLabel();
 
         // Reload dashboard data
         loadDashboardData();
@@ -611,6 +981,16 @@ tr:hover td { background: #fafafa; }
         if (loadingEl) loadingEl.classList.add('hidden');
         if (mainStatsEl) mainStatsEl.classList.remove('hidden');
         if (healthStatsEl) healthStatsEl.classList.remove('hidden');
+        updateHeroDateRangeLabel();
+        renderHeroMetrics(data);
+        renderDashboardShortcuts(data.dashboard_shortcuts || []);
+        renderPerformanceScores(data.performance_scores || {});
+        renderPipelineFunnel(data.pipeline_funnel || []);
+        renderTeamTargetsSummary(data.team_targets_summary || {});
+        renderTargetsBreakdown(data.team_targets_breakdown || []);
+        renderIncentiveSummary(data.incentive_summary || {});
+        renderSalesScoreTable(data.sales_score_table || []);
+        renderUserPipelineTable(data.user_pipeline_table || []);
 
         // System Stats - with null checks
         const systemStats = data.system_stats || {};
@@ -748,9 +1128,294 @@ tr:hover td { background: #fafafa; }
             updateCallStatistics(data.call_statistics);
         }
 
+        renderMarketingSummary(
+            data.marketing_summary || {},
+            data.call_statistics || {},
+            Array.isArray(data.recent_leads) ? data.recent_leads : []
+        );
+
         // User Visits & Meetings - Load with default filter
         const visitsMeetingsFilter = localStorage.getItem('visitsMeetingsFilter') || 'this_month';
         loadUserVisitsMeetings(visitsMeetingsFilter);
+    }
+
+    function renderHeroMetrics(data) {
+        const systemStats = data.system_stats || {};
+        const marketingSummary = data.marketing_summary || {};
+        const importSummary = marketingSummary.import_summary || {};
+        const callStatistics = data.call_statistics || {};
+
+        const totalLeads = document.getElementById('hero-total-leads');
+        const connectionRate = document.getElementById('hero-connection-rate');
+        const importedLeads = document.getElementById('hero-imported-leads');
+
+        if (totalLeads) totalLeads.textContent = systemStats.total_leads || 0;
+        if (connectionRate) connectionRate.textContent = `${Math.round(callStatistics.connection_rate || 0)}%`;
+        if (importedLeads) importedLeads.textContent = importSummary.imported_leads || 0;
+    }
+
+    function renderDashboardShortcuts(shortcuts) {
+        const container = document.getElementById('dashboard-shortcuts');
+        if (!container) {
+            return;
+        }
+
+        if (!Array.isArray(shortcuts) || shortcuts.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = shortcuts.map((item) => `
+            <a class="shortcut-card" href="${item.url || '#'}">
+                <span class="shortcut-icon"><i class="fas ${item.icon || 'fa-layer-group'}"></i></span>
+                <span>
+                    <div class="shortcut-label">${item.label || 'Option'}</div>
+                    <div class="shortcut-value">${item.count || 0}</div>
+                </span>
+            </a>
+        `).join('');
+    }
+
+    function renderPerformanceScores(scores) {
+        const container = document.getElementById('performance-scores');
+        if (!container) {
+            return;
+        }
+
+        const items = [
+            ['PS Score', `${Number(scores.ps || 0).toFixed(1)}%`, '(Visits + Meetings) / Leads'],
+            ['PP Score', `${Number(scores.pp || 0).toFixed(1)}%`, 'Closures / Leads'],
+            ['VP Score', `${Number(scores.vp || 0).toFixed(1)}%`, 'Closures / Visits'],
+        ];
+
+        container.innerHTML = items.map(([label, value, note]) => `
+            <div class="score-card">
+                <div class="value">${value}</div>
+                <div class="label">${label}</div>
+                <div class="note">${note}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderPipelineFunnel(items) {
+        const container = document.getElementById('pipeline-funnel');
+        if (!container) {
+            return;
+        }
+
+        const colors = ['#0b6b4f', '#1f8f73', '#1761a8', '#5946c0', '#9a6510', '#9a3412', '#b42318'];
+        const funnelLinks = {
+            leads: '{{ route('leads.index') }}',
+            prospects: '{{ route('prospects.index') }}',
+            meetings: '{{ route('leads.index', ['lead_type_filter' => 'meeting']) }}',
+            visits: '{{ route('leads.index', ['lead_type_filter' => 'visit']) }}',
+            closures: '{{ route('leads.index', ['lead_type_filter' => 'closer']) }}',
+            junk: '{{ route('admin.other-leads.index', ['type' => 'junk']) }}',
+            'not interested': '{{ route('admin.other-leads.index', ['type' => 'not_interested']) }}',
+        };
+        container.innerHTML = (Array.isArray(items) ? items : []).map((item, index) => {
+            const width = Math.max(12, Number(item.percentage || 0));
+            const key = String(item.label || '').trim().toLowerCase();
+            const target = funnelLinks[key] || funnelLinks.leads;
+            return `
+                <div class="funnel-row">
+                    <a href="${target}" class="funnel-row-link">
+                        <div class="funnel-label">${item.label || 'Stage'}</div>
+                        <div class="funnel-bar-wrap">
+                            <div class="funnel-bar" style="width:${width}%;background:${colors[index] || '#0b6b4f'};">${item.value || 0}</div>
+                        </div>
+                        <div class="funnel-meta">${Number(item.percentage || 0).toFixed(1)}%</div>
+                    </a>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderTeamTargetsSummary(summary) {
+        const container = document.getElementById('team-targets-summary');
+        if (!container) {
+            return;
+        }
+
+        const metrics = summary.metrics || {};
+        const config = [
+            ['Meetings', metrics.meetings || {}, '#1761a8'],
+            ['Visits', metrics.visits || {}, '#5946c0'],
+            ['Closers', metrics.closers || {}, '#9a6510'],
+        ];
+
+        container.innerHTML = config.map(([label, item, color]) => `
+            <div>
+                <div class="progress-item-head">
+                    <strong>${label}</strong>
+                    <span>${item.achieved || 0} / ${item.target || 0}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width:${Math.min(100, Number(item.percentage || 0))}%;background:${color};"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderTargetsBreakdown(rows) {
+        const container = document.getElementById('targets-breakdown-table');
+        if (!container) {
+            return;
+        }
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            container.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No target breakdown found.</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <table class="metric-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Meetings</th>
+                        <th>Visits</th>
+                        <th>Closers</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map((row) => `
+                        <tr>
+                            <td><span class="table-avatar">${(row.user_name || 'U').charAt(0).toUpperCase()}</span>${row.user_name || 'Unknown'}</td>
+                            <td>${row.role || 'Unknown'}</td>
+                            <td>${row.meetings?.achieved || 0} / ${row.meetings?.target || 0}<br><small>${Number(row.meetings?.percentage || 0).toFixed(1)}%</small></td>
+                            <td>${row.visits?.achieved || 0} / ${row.visits?.target || 0}<br><small>${Number(row.visits?.percentage || 0).toFixed(1)}%</small></td>
+                            <td>${row.closers?.achieved || 0} / ${row.closers?.target || 0}<br><small>${Number(row.closers?.percentage || 0).toFixed(1)}%</small></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function renderIncentiveSummary(summary) {
+        const container = document.getElementById('incentive-summary');
+        if (!container) {
+            return;
+        }
+
+        const amount = Number(summary.total_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        const items = [
+            ['Total', summary.total || 0, `Rs ${amount} total value`],
+            ['Verified', summary.verified || 0, 'Fully approved incentives'],
+            ['Pending', summary.pending || 0, 'Awaiting approval'],
+            ['Rejected', summary.rejected || 0, 'Rejected requests'],
+        ];
+
+        container.innerHTML = items.map(([label, value, note]) => `
+            <div class="score-card">
+                <div class="value">${value}</div>
+                <div class="label">${label}</div>
+                <div class="note">${note}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderSalesScoreTable(rows) {
+        const container = document.getElementById('sales-score-table');
+        if (!container) {
+            return;
+        }
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            container.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No score data available.</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <table class="metric-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Leads</th>
+                        <th>Meet + Visit</th>
+                        <th>Closers</th>
+                        <th>PS %</th>
+                        <th>PP %</th>
+                        <th>VP %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map((row) => `
+                        <tr>
+                            <td><span class="table-avatar">${(row.user_name || 'U').charAt(0).toUpperCase()}</span>${row.user_name || 'Unknown'}</td>
+                            <td>${row.role || 'Unknown'}</td>
+                            <td>${row.leads || 0}</td>
+                            <td>${row.meet_visit || 0}</td>
+                            <td>${row.closers || 0}</td>
+                            <td><strong style="color:#0b6b4f;">${Number(row.ps || 0).toFixed(1)}%</strong></td>
+                            <td><strong style="color:#1761a8;">${Number(row.pp || 0).toFixed(1)}%</strong></td>
+                            <td><strong style="color:#5946c0;">${Number(row.vp || 0).toFixed(1)}%</strong></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function renderUserPipelineTable(rows) {
+        const container = document.getElementById('user-pipeline-table');
+        if (!container) {
+            return;
+        }
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            container.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No user pipeline data available.</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <table class="metric-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Leads</th>
+                        <th>Meetings</th>
+                        <th>Visits</th>
+                        <th>Closers</th>
+                        <th>Avg Response</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map((row) => `
+                        <tr>
+                            <td><span class="table-avatar">${(row.user_name || 'U').charAt(0).toUpperCase()}</span>${row.user_name || 'Unknown'}</td>
+                            <td>${row.role || 'Unknown'}</td>
+                            <td>${row.leads || 0}</td>
+                            <td>${row.meetings || 0}</td>
+                            <td>${row.visits || 0}</td>
+                            <td>${row.closers || 0}</td>
+                            <td>${Number(row.avg_response_minutes || 0).toFixed(1)} min</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function openTargetsModal() {
+        const modal = document.getElementById('targets-breakdown-modal');
+        if (modal) {
+            modal.classList.add('is-open');
+        }
+    }
+
+    function closeTargetsModal(event) {
+        if (event && event.target && event.target !== event.currentTarget) {
+            return;
+        }
+        const modal = document.getElementById('targets-breakdown-modal');
+        if (modal) {
+            modal.classList.remove('is-open');
+        }
     }
 
     function renderLeadStatusChart(statusData) {
@@ -885,6 +1550,167 @@ tr:hover td { background: #fafafa; }
             </table>
         `;
         container.innerHTML = tableHtml;
+    }
+
+    function renderMarketingSummary(summary, callStatistics, recentLeads) {
+        const leadQuality = summary.lead_quality || {};
+        const importSummary = summary.import_summary || {};
+        const sourceDistribution = Array.isArray(summary.source_distribution) ? summary.source_distribution : [];
+        const leadInflow = Array.isArray(summary.lead_inflow) ? summary.lead_inflow : [];
+        const outcomeDistribution = callStatistics.outcome_distribution || {};
+
+        const setText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        setText('marketing-total-batches', importSummary.total_batches || 0);
+        setText('marketing-completed-batches', `${importSummary.completed_batches || 0} completed batches`);
+        setText('marketing-imported-leads', importSummary.imported_leads || 0);
+        setText('marketing-pending-batches', `${(importSummary.pending_batches || 0)} pending or processing`);
+        setText('marketing-junk-leads', leadQuality.junk || 0);
+        setText('marketing-not-interested', leadQuality.not_interested || 0);
+
+        renderMarketingSourceChart(sourceDistribution);
+        renderMarketingInflowChart(leadInflow);
+
+        const sourceList = document.getElementById('marketing-source-list');
+        if (sourceList) {
+            sourceList.innerHTML = sourceDistribution.length
+                ? sourceDistribution.map((item) => `
+                    <div class="marketing-list-item">
+                        <strong>${item.source || 'Unknown'}</strong>
+                        <span>${item.value || 0} leads</span>
+                    </div>
+                `).join('')
+                : '<div class="marketing-list-item"><strong>No data</strong><span>Source distribution will appear here.</span></div>';
+        }
+
+        const importBox = document.getElementById('marketing-import-summary');
+        if (importBox) {
+            importBox.innerHTML = `
+                <div class="marketing-score-box">
+                    <div class="score">${importSummary.completed_batches || 0}</div>
+                    <div class="name">Completed Imports</div>
+                    <div class="note">${importSummary.failed_batches || 0} failed batches in this window.</div>
+                </div>
+                <div class="marketing-score-box">
+                    <div class="score">${importSummary.pending_batches || 0}</div>
+                    <div class="name">Pending Imports</div>
+                    <div class="note">${importSummary.imported_leads || 0} leads imported from all completed runs.</div>
+                </div>
+            `;
+        }
+
+        const qualityGrid = document.getElementById('marketing-quality-grid');
+        if (qualityGrid) {
+            const items = [
+                ['Connected', leadQuality.connected || 0, 'Leads that moved past first contact.'],
+                ['Verified Prospect', leadQuality.verified_prospect || 0, 'Leads validated as stronger pipeline candidates.'],
+                ['Junk', leadQuality.junk || 0, 'Leads filtered out as invalid or unusable.'],
+                ['Not Interested', leadQuality.not_interested || 0, 'Leads parked for later recycle or reassignment.'],
+            ];
+            qualityGrid.innerHTML = items.map(([name, score, note]) => `
+                <div class="marketing-score-box">
+                    <div class="score">${score}</div>
+                    <div class="name">${name}</div>
+                    <div class="note">${note}</div>
+                </div>
+            `).join('');
+        }
+
+        const outcomes = document.getElementById('marketing-call-outcomes');
+        if (outcomes) {
+            const entries = Object.entries(outcomeDistribution);
+            outcomes.innerHTML = entries.length
+                ? entries.slice(0, 6).map(([name, value]) => `
+                    <div class="marketing-list-item">
+                        <strong>${String(name).replace(/_/g, ' ')}</strong>
+                        <span>${value || 0} calls</span>
+                    </div>
+                `).join('')
+                : '<div class="marketing-list-item"><strong>No outcomes</strong><span>Call outcome mix will appear here.</span></div>';
+        }
+
+        const recentLeadsList = document.getElementById('marketing-recent-leads');
+        if (recentLeadsList) {
+            recentLeadsList.innerHTML = recentLeads.length
+                ? recentLeads.slice(0, 6).map((lead) => `
+                    <div class="marketing-list-item">
+                        <strong>${lead?.name || 'N/A'}</strong>
+                        <span>${lead?.phone || 'N/A'} · ${lead?.created_by || 'System'}</span>
+                    </div>
+                `).join('')
+                : '<div class="marketing-list-item"><strong>No recent leads</strong><span>Recent additions will appear here.</span></div>';
+        }
+    }
+
+    function renderMarketingSourceChart(items) {
+        const ctx = document.getElementById('marketingSourceChart');
+        if (!ctx) {
+            return;
+        }
+
+        if (marketingSourceChart) {
+            marketingSourceChart.destroy();
+        }
+
+        marketingSourceChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: items.map((item) => item.source || 'Unknown'),
+                datasets: [{
+                    data: items.map((item) => item.value || 0),
+                    backgroundColor: ['#0b6b4f', '#3f7cff', '#f59e0b', '#7a67de', '#ef4444', '#14b8a6'],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    function renderMarketingInflowChart(items) {
+        const ctx = document.getElementById('marketingInflowChart');
+        if (!ctx) {
+            return;
+        }
+
+        if (marketingInflowChart) {
+            marketingInflowChart.destroy();
+        }
+
+        marketingInflowChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: items.map((item) => item.label || ''),
+                datasets: [{
+                    label: 'Lead Inflow',
+                    data: items.map((item) => item.value || 0),
+                    borderColor: '#5946c0',
+                    backgroundColor: 'rgba(89, 70, 192, 0.12)',
+                    tension: 0.35,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
     }
 
     function renderRecentActivities(activities) {

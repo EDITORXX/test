@@ -31,7 +31,7 @@ class ExportController extends Controller
         // Get filters data for dropdowns
         $statuses = ['new', 'connected', 'verified_prospect', 'meeting_scheduled', 'meeting_completed', 
                      'visit_scheduled', 'visit_done', 'revisited_scheduled', 'revisited_completed', 
-                     'closed', 'dead', 'on_hold'];
+                     'closed', 'dead', 'junk', 'not_interested', 'on_hold'];
         
         $users = User::where('is_active', true)
             ->whereHas('role', function($q) {
@@ -983,4 +983,3 @@ class ExportController extends Controller
             ->header('Content-Transfer-Encoding', 'binary');
     }
 }
-

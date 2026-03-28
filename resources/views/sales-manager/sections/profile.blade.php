@@ -781,6 +781,40 @@
                     <div class="empty-state">Loading team members...</div>
                 </div>
             </div>
+
+            <div class="profile-card" id="leadOffCard">
+                <div class="card-title">
+                    <span class="card-title-text"><i class="fas fa-power-off"></i> Lead Off Mode</span>
+                </div>
+                <div id="leadOffAlert"></div>
+                <div id="leadOffStatus">
+                    <span class="team-member-status status-available" id="leadOffBadge">Lead On</span>
+                </div>
+                <p style="color:#6b7f75;font-size:13px;margin:12px 0 18px;">This only pauses new lead allocation. Already assigned leads remain with you.</p>
+                <form id="leadOffForm" class="hidden">
+                    <div class="profile-form-grid">
+                        <div class="form-group full-width">
+                            <label for="leadOffReason">Lead Off Reason</label>
+                            <textarea id="leadOffReason" rows="3" placeholder="Enter reason for lead off"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="leadOffStart">Lead Off From</label>
+                            <input type="datetime-local" id="leadOffStart">
+                        </div>
+                        <div class="form-group">
+                            <label for="leadOffEnd">Lead Off Until</label>
+                            <input type="datetime-local" id="leadOffEnd">
+                        </div>
+                    </div>
+                    <div class="form-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button type="submit" class="btn btn-primary">Save Lead Off Window</button>
+                        <button type="button" class="btn" style="background:#6b7280;color:#fff;" onclick="cancelLeadOffForm()">Cancel</button>
+                    </div>
+                </form>
+                <div id="leadOffActions" style="margin-top: 8px;">
+                    <button type="button" class="btn btn-primary" onclick="showLeadOffForm()">Configure Lead Off</button>
+                </div>
+            </div>
         </div>
 
         <div class="profile-side-stack">
@@ -955,6 +989,10 @@
             document.getElementById('profileManager').textContent = user.manager || 'Not Assigned';
             document.getElementById('profileJoinDate').textContent = user.created_at || '-';
 
+            if (data.profile) {
+                updateLeadOffDisplay(data.profile);
+            }
+
             // Load team members
             if (data.team_members) {
                 loadTeamMembers(data.team_members, data.team_stats);
@@ -1030,6 +1068,97 @@
         `).join('');
         
         container.innerHTML = html;
+    }
+
+    function updateLeadOffDisplay(profile) {
+        const card = document.getElementById('leadOffCard');
+        const badge = document.getElementById('leadOffBadge');
+        const actions = document.getElementById('leadOffActions');
+        const form = document.getElementById('leadOffForm');
+
+        if (!card || !badge || !actions || !form) {
+            return;
+        }
+
+        if (!profile.lead_off_supported) {
+            card.style.display = 'none';
+            return;
+        }
+
+        card.style.display = '';
+
+        if (profile.is_absent) {
+            badge.className = 'team-member-status status-absent';
+            badge.textContent = 'Lead Off';
+            if (profile.absent_reason) {
+                badge.textContent += ` - ${profile.absent_reason}`;
+            }
+            if (profile.lead_off_end_at || profile.absent_until) {
+                badge.textContent += ` (Until: ${new Date(profile.lead_off_end_at || profile.absent_until).toLocaleString()})`;
+            }
+            actions.innerHTML = '<button type="button" class="btn btn-success" onclick="turnLeadOn()">Turn Lead On</button>';
+            form.classList.add('hidden');
+        } else if (profile.has_scheduled_lead_off) {
+            badge.className = 'team-member-status status-absent';
+            badge.textContent = `Scheduled from ${new Date(profile.lead_off_start_at).toLocaleString()}`;
+            actions.innerHTML = '<button type="button" class="btn btn-success" onclick="turnLeadOn()">Turn Lead On</button>';
+            form.classList.add('hidden');
+        } else {
+            badge.className = 'team-member-status status-available';
+            badge.textContent = 'Lead On';
+            actions.innerHTML = '<button type="button" class="btn btn-primary" onclick="showLeadOffForm()">Configure Lead Off</button>';
+            form.classList.add('hidden');
+        }
+    }
+
+    function localDateTimeValue(date = new Date()) {
+        const tzAdjusted = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+        return tzAdjusted.toISOString().slice(0, 16);
+    }
+
+    function showLeadOffForm() {
+        const form = document.getElementById('leadOffForm');
+        const actions = document.getElementById('leadOffActions');
+        if (!form || !actions) {
+            return;
+        }
+
+        form.classList.remove('hidden');
+        actions.classList.add('hidden');
+        document.getElementById('leadOffStart').value = localDateTimeValue();
+    }
+
+    function cancelLeadOffForm() {
+        const form = document.getElementById('leadOffForm');
+        const actions = document.getElementById('leadOffActions');
+        if (!form || !actions) {
+            return;
+        }
+
+        form.classList.add('hidden');
+        actions.classList.remove('hidden');
+        form.reset();
+    }
+
+    async function turnLeadOn() {
+        const result = await apiCall('/profile/availability', {
+            method: 'POST',
+            body: JSON.stringify({
+                is_absent: false,
+                absent_reason: null,
+                absent_until: null,
+                lead_off_start_at: null,
+                lead_off_end_at: null,
+            }),
+        });
+
+        if (result && result.success) {
+            showAlert('leadOffAlert', result.message, 'success');
+            loadProfile();
+            return;
+        }
+
+        showAlert('leadOffAlert', result?.message || 'Failed to update lead off mode', 'error');
     }
 
     // Load activity history
@@ -1298,6 +1427,31 @@
     window.togglePasswordVisibility = togglePasswordVisibility;
     window.uploadProfilePicture = uploadProfilePicture;
     window.cancelPictureUpload = cancelPictureUpload;
+    window.showLeadOffForm = showLeadOffForm;
+    window.cancelLeadOffForm = cancelLeadOffForm;
+    window.turnLeadOn = turnLeadOn;
+
+    document.getElementById('leadOffForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const result = await apiCall('/profile/availability', {
+            method: 'POST',
+            body: JSON.stringify({
+                is_absent: true,
+                absent_reason: document.getElementById('leadOffReason').value,
+                lead_off_start_at: document.getElementById('leadOffStart').value,
+                lead_off_end_at: document.getElementById('leadOffEnd').value,
+            }),
+        });
+
+        if (result && result.success) {
+            showAlert('leadOffAlert', result.message, 'success');
+            loadProfile();
+            return;
+        }
+
+        showAlert('leadOffAlert', result?.message || 'Failed to update lead off mode', 'error');
+    });
     
     // Initialize on page load
     (function() {

@@ -398,30 +398,35 @@
         </form>
     </div>
 
-    <!-- Availability Status Card -->
+    <!-- Lead Off Mode Card -->
     <div class="profile-card">
         <div class="card-title">
             <i class="fas fa-clock"></i>
-            Availability Status
+            Lead Off Mode
         </div>
         <div id="availabilityAlert"></div>
         <div id="availabilityStatus">
-            <span class="status-badge status-available" id="statusBadge">Available</span>
+            <span class="status-badge status-available" id="statusBadge">Lead On</span>
         </div>
+        <p style="color: #B3B5B4; font-size: 13px; margin-bottom: 16px;">This only stops new lead allocation. Already assigned leads stay with you.</p>
         <form id="availabilityForm" class="hidden">
             <div class="form-group">
-                <label for="absentReason">Absent Reason</label>
-                <textarea id="absentReason" name="absent_reason" rows="3" placeholder="Enter reason for absence"></textarea>
+                <label for="absentReason">Lead Off Reason</label>
+                <textarea id="absentReason" name="absent_reason" rows="3" placeholder="Enter reason for lead off"></textarea>
             </div>
             <div class="form-group">
-                <label for="absentUntil">Return Date</label>
-                <input type="datetime-local" id="absentUntil" name="absent_until">
+                <label for="absentStart">Lead Off From</label>
+                <input type="datetime-local" id="absentStart" name="lead_off_start_at">
             </div>
-            <button type="submit" class="btn btn-warning">Mark as Absent</button>
+            <div class="form-group">
+                <label for="absentUntil">Lead Off Until</label>
+                <input type="datetime-local" id="absentUntil" name="lead_off_end_at">
+            </div>
+            <button type="submit" class="btn btn-warning">Turn Lead Off</button>
             <button type="button" class="btn" style="background: #6b7280; color: white; margin-left: 10px;" onclick="cancelAbsenceForm()">Cancel</button>
         </form>
         <div id="availabilityActions">
-            <button class="btn btn-warning" onclick="showAbsenceForm()">Mark as Absent</button>
+            <button class="btn btn-warning" onclick="showAbsenceForm()">Configure Lead Off</button>
         </div>
     </div>
 
@@ -681,19 +686,24 @@
 
         if (profile.is_absent) {
             statusBadge.className = 'status-badge status-absent';
-            statusBadge.textContent = 'Absent';
+            statusBadge.textContent = 'Lead Off';
             if (profile.absent_reason) {
                 statusBadge.textContent += ` - ${profile.absent_reason}`;
             }
-            if (profile.absent_until) {
-                statusBadge.textContent += ` (Until: ${new Date(profile.absent_until).toLocaleDateString()})`;
+            if (profile.lead_off_end_at || profile.absent_until) {
+                statusBadge.textContent += ` (Until: ${new Date(profile.lead_off_end_at || profile.absent_until).toLocaleString()})`;
             }
-            availabilityActions.innerHTML = '<button class="btn btn-success" onclick="markAsAvailable()">Mark as Available</button>';
+            availabilityActions.innerHTML = '<button class="btn btn-success" onclick="markAsAvailable()">Turn Lead On</button>';
+            availabilityForm.classList.add('hidden');
+        } else if (profile.has_scheduled_lead_off) {
+            statusBadge.className = 'status-badge status-absent';
+            statusBadge.textContent = `Scheduled from ${new Date(profile.lead_off_start_at).toLocaleString()}`;
+            availabilityActions.innerHTML = '<button class="btn btn-success" onclick="markAsAvailable()">Turn Lead On</button>';
             availabilityForm.classList.add('hidden');
         } else {
             statusBadge.className = 'status-badge status-available';
-            statusBadge.textContent = 'Available';
-            availabilityActions.innerHTML = '<button class="btn btn-warning" onclick="showAbsenceForm()">Mark as Absent</button>';
+            statusBadge.textContent = 'Lead On';
+            availabilityActions.innerHTML = '<button class="btn btn-warning" onclick="showAbsenceForm()">Configure Lead Off</button>';
             availabilityForm.classList.add('hidden');
         }
     }
@@ -702,6 +712,7 @@
     function showAbsenceForm() {
         document.getElementById('availabilityForm').classList.remove('hidden');
         document.getElementById('availabilityActions').classList.add('hidden');
+        document.getElementById('absentStart').value = new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
     }
 
     // Cancel absence form
@@ -719,6 +730,8 @@
                 is_absent: false,
                 absent_reason: null,
                 absent_until: null,
+                lead_off_start_at: null,
+                lead_off_end_at: null,
             }),
         });
 
@@ -849,7 +862,8 @@
         const formData = {
             is_absent: true,
             absent_reason: document.getElementById('absentReason').value,
-            absent_until: document.getElementById('absentUntil').value,
+            lead_off_start_at: document.getElementById('absentStart').value,
+            lead_off_end_at: document.getElementById('absentUntil').value,
         };
 
         const result = await apiCall('/profile/availability', {
@@ -1271,4 +1285,3 @@
     })();
 </script>
 @endpush
-

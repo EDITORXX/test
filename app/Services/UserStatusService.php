@@ -4,11 +4,15 @@ namespace App\Services;
 
 use App\Models\UserProfile;
 use App\Models\User;
+use App\Models\TelecallerProfile;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class UserStatusService
 {
+    private static ?array $userProfileColumns = null;
+    private static ?array $telecallerProfileColumns = null;
+
     /**
      * Get or create user profile
      */
@@ -25,15 +29,40 @@ class UserStatusService
     /**
      * Toggle absent status
      */
-    public function toggleAbsentStatus(int $userId, bool $isAbsent, ?string $reason = null, ?Carbon $absentUntil = null): UserProfile
+    public function toggleAbsentStatus(
+        int $userId,
+        bool $isAbsent,
+        ?string $reason = null,
+        ?Carbon $absentUntil = null,
+        ?Carbon $leadOffStartAt = null,
+        ?Carbon $leadOffEndAt = null,
+        ?string $source = null,
+        ?int $setByUserId = null
+    ): UserProfile
     {
         $profile = $this->getOrCreateProfile($userId);
-        
-        $profile->update([
+
+        $leadOffStartAt = $isAbsent
+            ? ($leadOffStartAt ?? Carbon::now())
+            : null;
+
+        $leadOffEndAt = $isAbsent
+            ? ($leadOffEndAt ?? $absentUntil)
+            : null;
+
+        $payload = [
             'is_absent' => $isAbsent,
             'absent_reason' => $isAbsent ? $reason : null,
-            'absent_until' => $isAbsent ? $absentUntil : null,
-        ]);
+            'absent_until' => $isAbsent ? ($leadOffEndAt ?? $absentUntil) : null,
+            'lead_off_start_at' => $leadOffStartAt,
+            'lead_off_end_at' => $leadOffEndAt,
+            'lead_off_source' => $isAbsent ? ($source ?? 'crm') : null,
+            'lead_off_set_by' => $isAbsent ? $setByUserId : null,
+        ];
+
+        $profile->update($this->filterPayloadForTable('user_profiles', $payload));
+
+        $this->syncLegacyTelecallerProfile($userId, $isAbsent, $reason, $leadOffStartAt, $leadOffEndAt);
 
         return $profile;
     }
@@ -43,15 +72,7 @@ class UserStatusService
      */
     public function markAsPresent(int $userId): UserProfile
     {
-        $profile = $this->getOrCreateProfile($userId);
-        
-        $profile->update([
-            'is_absent' => false,
-            'absent_reason' => null,
-            'absent_until' => null,
-        ]);
-
-        return $profile;
+        return $this->toggleAbsentStatus($userId, false);
     }
 
     /**
@@ -74,5 +95,57 @@ class UserStatusService
     public function canUserReceiveLeads(int $userId): bool
     {
         return !$this->isUserAbsent($userId);
+    }
+
+    private function syncLegacyTelecallerProfile(
+        int $userId,
+        bool $isAbsent,
+        ?string $reason,
+        ?Carbon $leadOffStartAt,
+        ?Carbon $leadOffEndAt
+    ): void {
+        $user = User::with('role')->find($userId);
+
+        if (!$user) {
+            return;
+        }
+
+        $hasLegacyProfile = TelecallerProfile::where('user_id', $userId)->exists();
+        if (!$user->isSalesExecutive() && !$hasLegacyProfile) {
+            return;
+        }
+
+        $profile = TelecallerProfile::firstOrCreate(
+            ['user_id' => $userId],
+            [
+                'max_pending_leads' => 50,
+                'is_absent' => false,
+            ]
+        );
+
+        $payload = [
+            'is_absent' => $isAbsent,
+            'absent_reason' => $isAbsent ? $reason : null,
+            'absent_until' => $isAbsent ? $leadOffEndAt : null,
+            'lead_off_start_at' => $isAbsent ? $leadOffStartAt : null,
+            'lead_off_end_at' => $isAbsent ? $leadOffEndAt : null,
+        ];
+
+        $profile->update($this->filterPayloadForTable('telecaller_profiles', $payload));
+    }
+
+    private function filterPayloadForTable(string $table, array $payload): array
+    {
+        $columns = match ($table) {
+            'user_profiles' => self::$userProfileColumns ??= Schema::getColumnListing($table),
+            'telecaller_profiles' => self::$telecallerProfileColumns ??= Schema::getColumnListing($table),
+            default => Schema::getColumnListing($table),
+        };
+
+        return array_filter(
+            $payload,
+            static fn ($value, $column) => in_array($column, $columns, true),
+            ARRAY_FILTER_USE_BOTH
+        );
     }
 }

@@ -8,13 +8,19 @@ use App\Models\Role;
 use App\Models\Lead;
 use App\Models\LeadAssignment;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class TelecallerStatusService
 {
+    protected $userStatusService;
+
     /**
      * Get or create telecaller profile
      */
+    public function __construct(UserStatusService $userStatusService)
+    {
+        $this->userStatusService = $userStatusService;
+    }
+
     public function getOrCreateProfile(int $userId): TelecallerProfile
     {
         return TelecallerProfile::firstOrCreate(
@@ -29,17 +35,29 @@ class TelecallerStatusService
     /**
      * Toggle absent status
      */
-    public function toggleAbsentStatus(int $userId, bool $isAbsent, ?string $reason = null, ?Carbon $absentUntil = null): TelecallerProfile
+    public function toggleAbsentStatus(
+        int $userId,
+        bool $isAbsent,
+        ?string $reason = null,
+        ?Carbon $absentUntil = null,
+        ?Carbon $leadOffStartAt = null,
+        ?Carbon $leadOffEndAt = null,
+        ?string $source = null,
+        ?int $setByUserId = null
+    ): TelecallerProfile
     {
-        $profile = $this->getOrCreateProfile($userId);
-        
-        $profile->update([
-            'is_absent' => $isAbsent,
-            'absent_reason' => $isAbsent ? $reason : null,
-            'absent_until' => $isAbsent ? $absentUntil : null,
-        ]);
+        $this->userStatusService->toggleAbsentStatus(
+            $userId,
+            $isAbsent,
+            $reason,
+            $absentUntil,
+            $leadOffStartAt,
+            $leadOffEndAt,
+            $source,
+            $setByUserId
+        );
 
-        return $profile;
+        return $this->getOrCreateProfile($userId)->fresh();
     }
 
     /**
@@ -47,13 +65,7 @@ class TelecallerStatusService
      */
     public function isTelecallerAbsent(int $userId): bool
     {
-        $profile = TelecallerProfile::where('user_id', $userId)->first();
-        
-        if (!$profile) {
-            return false;
-        }
-
-        return $profile->isCurrentlyAbsent();
+        return $this->userStatusService->isUserAbsent($userId);
     }
 
     /**
@@ -92,20 +104,15 @@ class TelecallerStatusService
         $salesExecutiveRoleId = Role::where('slug', Role::SALES_EXECUTIVE)->value('id');
 
         $query = User::where('role_id', $salesExecutiveRoleId)
-            ->where('is_active', true)
-            ->whereDoesntHave('telecallerProfile', function ($q) {
-                $q->where('is_absent', true)
-                  ->where(function ($q2) {
-                      $q2->whereNull('absent_until')
-                         ->orWhere('absent_until', '>', Carbon::now());
-                  });
-            });
+            ->where('is_active', true);
 
         if (!empty($excludeUserIds)) {
             $query->whereNotIn('id', $excludeUserIds);
         }
 
-        return $query->get();
+        return $query->get()->filter(function (User $user) {
+            return $this->userStatusService->canUserReceiveLeads($user->id);
+        })->values();
     }
 
     /**
@@ -113,7 +120,7 @@ class TelecallerStatusService
      */
     public function canReceiveAssignment(int $userId): array
     {
-        $isAbsent = $this->isTelecallerAbsent($userId);
+        $isAbsent = $this->userStatusService->isUserAbsent($userId);
         $hasReachedThreshold = $this->hasReachedPendingThreshold($userId);
         $pendingCount = $this->getPendingLeadsCount($userId);
         $profile = $this->getOrCreateProfile($userId);
@@ -127,4 +134,3 @@ class TelecallerStatusService
         ];
     }
 }
-

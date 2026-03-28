@@ -14,6 +14,7 @@ class ImportBatch extends Model
     protected $fillable = [
         'user_id',
         'source_type',
+        'import_kind',
         'file_name',
         'google_sheet_id',
         'google_sheet_name',
@@ -23,6 +24,7 @@ class ImportBatch extends Model
         'status',
         'assignment_rule_id',
         'automation_id',
+        'import_profile_id',
         'error_log',
     ];
 
@@ -40,10 +42,13 @@ class ImportBatch extends Model
         return $this->belongsTo(AssignmentRule::class);
     }
 
+    public function importProfile(): BelongsTo
+    {
+        return $this->belongsTo(OldCrmImportProfile::class, 'import_profile_id');
+    }
 
     public function importedLeads(): HasMany
     {
         return $this->hasMany(ImportedLead::class);
     }
 }
-

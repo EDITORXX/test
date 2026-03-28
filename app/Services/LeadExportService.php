@@ -27,6 +27,8 @@ class LeadExportService
             'revisited_completed',
             'closed',
             'dead',
+            'junk',
+            'not_interested',
             'on_hold',
         ];
     }

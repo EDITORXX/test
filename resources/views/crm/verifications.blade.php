@@ -5,20 +5,27 @@
 
 @push('styles')
 <style>
+    .crm-verification-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
     .verification-card {
-        background: white;
+        background: linear-gradient(180deg, #ffffff, #f8fbf9);
         padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 24px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
         border-left: 4px solid #f59e0b;
+        border: 1px solid rgba(6, 58, 28, 0.08);
         width: 100%;
         height: 100%;
         display: flex;
         flex-direction: column;
-        transition: box-shadow 0.3s ease;
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
     }
     .verification-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+        box-shadow: 0 20px 38px rgba(15, 23, 42, 0.08);
     }
     .card-detail-row {
         display: flex;
@@ -49,9 +56,9 @@
     }
     .prospects-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 20px;
-        padding: 20px 0;
+        padding: 12px 0 0;
     }
     @media (max-width: 1400px) {
         .prospects-grid {
@@ -146,8 +153,8 @@
     .tabs {
         display: flex;
         gap: 10px;
-        margin-bottom: 20px;
-        border-bottom: 2px solid #e5e7eb;
+        margin-bottom: 0;
+        border-bottom: none;
     }
     .tab {
         padding: 12px 24px;
@@ -280,6 +287,9 @@
         text-align: center;
         padding: 60px 20px;
         color: #9ca3af;
+        border-radius: 24px;
+        border: 1px dashed #d9e4dc;
+        background: linear-gradient(180deg, #ffffff, #f9fbfa);
     }
     .empty-state i {
         font-size: 64px;
@@ -356,41 +366,69 @@
 @endpush
 
 @section('content')
-<div class="max-w-7xl mx-auto">
-    <div class="tabs">
+<div class="page-shell crm-verification-shell">
+    <section class="crm-hero">
+        <div class="crm-hero-grid">
+            <div>
+                <span class="crm-kicker">
+                    <i class="fas fa-badge-check"></i>
+                    Verification Desk
+                </span>
+                <h2 class="crm-hero-title">{{ $verification_panel_role ?? 'CRM' }} verification queue for <strong>prospects, meetings, visits, and closers</strong>.</h2>
+                <p class="crm-hero-copy">
+                    Existing verification logic, counts, and API behavior remain unchanged. UI ko same premium admin-style review workspace me shift kiya gaya hai.
+                </p>
+            </div>
+            <div class="crm-mini-grid">
+                <div class="crm-mini-card">
+                    <div class="crm-mini-label">Workflow</div>
+                    <div class="crm-mini-value">7</div>
+                    <div class="crm-mini-copy">Prospects, meetings, site visits, closer requests, closing verification, incentives, and verified items.</div>
+                </div>
+                <div class="crm-mini-card">
+                    <div class="crm-mini-label">Mode</div>
+                    <div class="crm-mini-value">Live</div>
+                    <div class="crm-mini-copy">Counts and records continue loading from the same verification APIs.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="crm-surface">
+    <div class="tabs crm-tabbar">
         <button class="tab active" onclick="switchTab('prospects', event)">
             <i class="fas fa-user-check mr-2"></i>Prospects
-            <span class="badge badge-pending" id="prospectsCount">0</span>
+            <span class="badge badge-pending crm-badge-soft" id="prospectsCount">0</span>
         </button>
         <button class="tab" onclick="switchTab('meetings', event)">
             <i class="fas fa-handshake mr-2"></i>Meetings
-            <span class="badge badge-pending" id="meetingsCount">0</span>
+            <span class="badge badge-pending crm-badge-soft" id="meetingsCount">0</span>
         </button>
         <button class="tab" onclick="switchTab('site-visits', event)">
             <i class="fas fa-map-marker-alt mr-2"></i>Site Visits
-            <span class="badge badge-pending" id="visitsCount">0</span>
+            <span class="badge badge-pending crm-badge-soft" id="visitsCount">0</span>
         </button>
         <button class="tab" onclick="switchTab('closers', event)">
             <i class="fas fa-trophy mr-2"></i>Closer Requests
-            <span class="badge badge-pending" id="closersCount">0</span>
+            <span class="badge badge-pending crm-badge-soft" id="closersCount">0</span>
         </button>
         <button class="tab" onclick="switchTab('closing-verification', event)">
             <i class="fas fa-file-contract mr-2"></i>Closing Verification
-            <span class="badge badge-pending" id="closingVerificationCount">0</span>
+            <span class="badge badge-pending crm-badge-soft" id="closingVerificationCount">0</span>
         </button>
         <button class="tab" onclick="switchTab('incentives', event)">
             <i class="fas fa-money-bill-wave mr-2"></i>Incentives
-            <span class="badge badge-pending" id="incentivesCount">0</span>
+            <span class="badge badge-pending crm-badge-soft" id="incentivesCount">0</span>
         </button>
         <button class="tab" onclick="switchTab('verified', event)">
             <i class="fas fa-check-circle mr-2"></i>Verified
-            <span class="badge badge-verified" id="verifiedCount">0</span>
+            <span class="badge badge-verified crm-badge-soft" id="verifiedCount">0</span>
         </button>
     </div>
 
     <!-- Prospects Tab (Read-only for CRM/Admin) -->
     <div id="prospectsTab" class="tab-content">
-        <div style="background: #fef3c7; padding: 12px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+        <div class="crm-note crm-note-warning" style="margin-bottom: 20px;">
             <p style="margin: 0; color: #92400e;">
                 <i class="fas fa-info-circle mr-2"></i>
                 <strong>Note:</strong> Prospects can only be verified by their respective Senior Managers. This is a read-only view.
@@ -462,6 +500,7 @@
             </div>
         </div>
     </div>
+    </section>
 </div>
 
 <!-- Reject Modal -->

@@ -97,6 +97,11 @@
     border-top:1px solid #f3f4f6;padding:14px 16px;
     display:flex;gap:8px;background:#fafafa;
 }
+.uc-card-meta {
+    margin-top:10px;padding:10px 12px;border-radius:10px;
+    background:#f8fafc;border:1px solid #e5e7eb;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
 .uc-action { flex:1;padding:8px 6px;border-radius:8px;font-size:12.5px;font-weight:600;
     border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
     text-decoration:none;transition:.2s;
@@ -105,6 +110,7 @@
 .uc-action-view  { background:linear-gradient(135deg,#063A1C,#205A44);color:#fff; }
 .uc-action-edit  { background:#f0fdf4;color:#065f46;border:1.5px solid #bbf7d0 !important; }
 .uc-action-del   { background:#fff1f2;color:#be123c;border:1.5px solid #fecdd3 !important; }
+.uc-action-transfer { background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe !important; }
 .uc-action-login { background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe !important; }
 
 /* Impersonation Banner */
@@ -287,6 +293,12 @@
                 <i class="fas fa-clock"></i>
                 <span>Joined {{ $user->created_at->format('d M Y') }}</span>
             </div>
+            @if(auth()->user()->isAdmin())
+            <div class="uc-card-meta">
+                <span style="font-size:12px;color:#6b7280;">Active leads</span>
+                <strong style="font-size:13px;color:#111827;">{{ $user->active_assigned_leads_count ?? 0 }}</strong>
+            </div>
+            @endif
         </div>
 
         {{-- Footer Actions --}}
@@ -301,6 +313,11 @@
                 </a>
                 @endif
                 @if(auth()->user()->isAdmin())
+                @if(($user->active_assigned_leads_count ?? 0) > 0)
+                <a href="{{ route('users.transfer-delete', $user) }}" class="uc-action uc-action-transfer">
+                    <i class="fas fa-right-left"></i> Transfer & Delete
+                </a>
+                @else
                 <form action="{{ route('users.destroy', $user) }}" method="POST"
                       onsubmit="return confirm('Delete {{ addslashes($user->name) }}? This cannot be undone.');" style="flex:1;">
                     @csrf @method('DELETE')
@@ -308,6 +325,7 @@
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </form>
+                @endif
                 @endif
             </div>
             @if(auth()->user()->isAdmin())
@@ -735,4 +753,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
-

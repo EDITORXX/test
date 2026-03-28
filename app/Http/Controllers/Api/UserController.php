@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\SystemSettings;
+use App\Services\UserDeletionTransferService;
 use App\Services\NewUserMailService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -14,6 +15,11 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    public function __construct(
+        protected UserDeletionTransferService $userDeletionTransferService
+    ) {
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -155,6 +161,16 @@ class UserController extends Controller
 
         if ($currentUser->id === $user->id) {
             return response()->json(['message' => 'Cannot delete your own account'], 400);
+        }
+
+        $activeLeadCount = count($this->userDeletionTransferService->getActiveLeadIds($user));
+        if ($activeLeadCount > 0) {
+            return response()->json([
+                'message' => 'Transfer active leads before deleting this user.',
+                'action_required' => 'transfer_required',
+                'active_leads_count' => $activeLeadCount,
+                'transfer_url' => route('users.transfer-delete', $user),
+            ], 409);
         }
 
         $user->delete();

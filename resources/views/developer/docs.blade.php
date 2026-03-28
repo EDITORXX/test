@@ -113,7 +113,7 @@
     <h2 id="lead-model">Lead model (main fields)</h2>
     <p><code>name</code>, <code>email</code>, <code>phone</code>, <code>address</code>, <code>city</code>, <code>state</code>, <code>pincode</code>, <code>source</code>, <code>status</code>, <code>property_type</code>, <code>budget_min</code>, <code>budget_max</code>, <code>budget</code>, <code>requirements</code>, <code>notes</code>, <code>created_by</code>, <code>last_contacted_at</code>, <code>next_followup_at</code>, <code>preferred_location</code>, <code>preferred_size</code>, <code>preferred_projects</code>, <code>use_end_use</code>, <code>possession_status</code>, <code>cnp_count</code>, <code>is_blocked</code>, <code>blocked_reason</code>, <code>is_dead</code>, <code>dead_reason</code>, <code>dead_at_stage</code>, <code>marked_dead_at</code>, <code>marked_dead_by</code>.</p>
     <h3>Lead status (allowed values)</h3>
-    <p><code>new</code>, <code>connected</code>, <code>verified_prospect</code>, <code>meeting_scheduled</code>, <code>meeting_completed</code>, <code>visit_scheduled</code>, <code>visit_done</code>, <code>revisited_scheduled</code>, <code>revisited_completed</code>, <code>closed</code>, <code>dead</code>, <code>on_hold</code>.</p>
+    <p><code>new</code>, <code>connected</code>, <code>verified_prospect</code>, <code>meeting_scheduled</code>, <code>meeting_completed</code>, <code>visit_scheduled</code>, <code>visit_done</code>, <code>revisited_scheduled</code>, <code>revisited_completed</code>, <code>closed</code>, <code>dead</code>, <code>junk</code>, <code>not_interested</code>, <code>on_hold</code>.</p>
 
     <h2 id="public">Public / Webhooks</h2>
     <table>

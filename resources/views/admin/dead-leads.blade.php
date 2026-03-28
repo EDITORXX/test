@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Dead Leads - Admin')
-@section('page-title', 'Dead Leads / Trash')
+@section('title', auth()->user()->isCrm() ? 'Other Leads - CRM' : 'Dead Leads - Admin')
+@section('page-title', auth()->user()->isCrm() ? 'Other Leads' : 'Dead Leads / Trash')
 
 @push('styles')
 <style>
@@ -94,7 +94,7 @@
 <div class="max-w-7xl mx-auto">
     <div class="tabs">
         <button class="tab active" onclick="switchTab('leads')">
-            <i class="fas fa-user-times mr-2"></i>Dead Leads
+            <i class="fas fa-user-times mr-2"></i>{{ auth()->user()->isCrm() ? 'Other Leads' : 'Dead Leads' }}
             <span class="badge badge-dead" id="leadsCount">0</span>
         </button>
         <button class="tab" onclick="switchTab('meetings')">
@@ -122,7 +122,7 @@
         <div id="leadsContainer">
             <div class="empty-state">
                 <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading dead leads...</p>
+                <p>{{ auth()->user()->isCrm() ? 'Loading other leads...' : 'Loading dead leads...' }}</p>
             </div>
         </div>
     </div>
@@ -269,8 +269,8 @@
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-check-circle"></i>
-                        <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">No Dead Leads Found</h3>
-                        <p>No dead leads in trash.</p>
+                        <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">{{ auth()->user()->isCrm() ? 'No Other Leads Found' : 'No Dead Leads Found' }}</h3>
+                        <p>{{ auth()->user()->isCrm() ? 'No other leads found.' : 'No dead leads in trash.' }}</p>
                     </div>
                 `;
                 return;
@@ -408,4 +408,3 @@
     })();
 </script>
 @endpush
-

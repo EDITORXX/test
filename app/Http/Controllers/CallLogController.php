@@ -27,7 +27,11 @@ class CallLogController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = CallLog::with(['lead', 'user', 'telecaller']);
+        $ivrSource = Lead::normalizeSource('ivr');
+        $query = CallLog::with(['lead', 'user', 'telecaller'])
+            ->whereHas('lead', function ($q) use ($ivrSource) {
+                $q->where('source', $ivrSource);
+            });
 
         // Role-based filtering
         if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
@@ -356,7 +360,11 @@ class CallLogController extends Controller
     public function exportCsv(Request $request)
     {
         $user = $request->user();
-        $query = CallLog::with(['lead', 'user', 'telecaller']);
+        $ivrSource = Lead::normalizeSource('ivr');
+        $query = CallLog::with(['lead', 'user', 'telecaller'])
+            ->whereHas('lead', function ($q) use ($ivrSource) {
+                $q->where('source', $ivrSource);
+            });
 
         // Apply same filters as index
         if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {

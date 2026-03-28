@@ -178,22 +178,12 @@
                                 {{ $callLog->start_time->format('M d, Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('calls.show', $callLog->id) }}" class="text-brand-secondary hover:text-[#15803d] mr-3">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                @if(auth()->user()->id == $callLog->user_id || auth()->user()->isAdmin() || auth()->user()->isCrm())
-                                    <a href="{{ route('calls.edit', $callLog->id) }}" class="text-brand-secondary hover:text-brand-primary mr-3">
-                                        <i class="fas fa-edit"></i>
+                                @if($callLog->lead_id)
+                                    <a href="{{ route('leads.show', $callLog->lead_id) }}" class="inline-flex items-center rounded-lg bg-gradient-to-r from-[#063A1C] to-[#205A44] px-3 py-2 text-xs font-semibold text-white transition-opacity duration-200 hover:opacity-90">
+                                        <i class="fas fa-eye mr-2"></i> View
                                     </a>
-                                @endif
-                                @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
-                                    <form action="{{ route('calls.destroy', $callLog->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this call log?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
+                                @else
+                                    <span class="text-xs text-gray-400">No lead linked</span>
                                 @endif
                             </td>
                         </tr>

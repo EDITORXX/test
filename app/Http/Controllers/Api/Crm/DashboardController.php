@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\TelecallerDailyLimit;
 use App\Models\TelecallerProfile;
 use App\Models\Role;
+use App\Models\UserProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -441,6 +442,30 @@ class DashboardController extends Controller
             Log::error('Error in getAverageResponseTime: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function getLeadAllocationOverview()
+    {
+        $eligibleRoleIds = Role::whereIn('slug', [
+            Role::SALES_EXECUTIVE,
+            Role::SALES_MANAGER,
+            Role::ASSISTANT_SALES_MANAGER,
+        ])->pluck('id');
+
+        $eligibleUserIds = User::whereIn('role_id', $eligibleRoleIds)
+            ->where('is_active', true)
+            ->pluck('id');
+
+        $offProfiles = UserProfile::whereIn('user_id', $eligibleUserIds)
+            ->where('is_absent', true)
+            ->get();
+
+        return response()->json([
+            'lead_off_users' => $offProfiles->filter(fn ($profile) => $profile->isCurrentlyAbsent())->count(),
+            'returning_today' => $offProfiles->filter(fn ($profile) => $profile->returnsToday())->count(),
+            'scheduled_off' => $offProfiles->filter(fn ($profile) => $profile->hasUpcomingLeadOffWindow())->count(),
+            'control_url' => route('lead-assignment.lead-off-users'),
+        ]);
     }
 
     /**

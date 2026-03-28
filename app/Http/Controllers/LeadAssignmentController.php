@@ -149,7 +149,8 @@ class LeadAssignmentController extends Controller
         $results = $this->assignmentService->bulkAssignLeads(
             $request->lead_ids,
             $assignedUser->id,
-            Auth::id()
+            Auth::id(),
+            true
         );
 
         return response()->json([
@@ -259,8 +260,10 @@ class LeadAssignmentController extends Controller
 
         $activeTelecallers = User::where('role_id', $salesExecutiveRoleId)
             ->where('is_active', true)
-            ->whereHas('telecallerProfile', function ($q) {
-                $q->where('is_absent', false);
+            ->with('userProfile')
+            ->get()
+            ->filter(function ($user) {
+                return !($user->userProfile?->isCurrentlyAbsent() ?? false);
             })
             ->count();
 

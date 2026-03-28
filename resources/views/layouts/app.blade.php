@@ -459,24 +459,25 @@
         }
         .sidebar-toggle {
             position: fixed;
-            top: 20px;
-            z-index: 50;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            width: 40px;
-            height: 40px;
+            top: 26px;
+            left: calc(var(--nav-width) - 16px);
+            z-index: 55;
+            background: #ffffff;
+            color: var(--primary-color);
+            border: 1px solid rgba(6, 58, 28, 0.12);
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
             transition: all 0.3s;
         }
         .sidebar-toggle:hover {
-            background: var(--secondary-color);
-            transform: scale(1.05);
+            background: #f7faf8;
+            transform: translateY(-1px);
         }
         
         /* Custom CSS from branding settings */
@@ -488,21 +489,30 @@
             margin-left: 0 !important;
         }
         .sidebar-toggle-icon {
-            font-size: 18px;
+            font-size: 12px;
             transition: transform 0.3s;
         }
-        /* When sidebar is visible, position button on right side of header */
-        .sidebar-toggle {
-            left: 52px; /* 64px (sidebar width) - 12px (padding) */
+        body.sidebar-hidden #sidebar {
+            transform: translateX(calc(-1 * var(--nav-width)));
+            pointer-events: none;
         }
-        /* When sidebar is hidden, position button on left */
         body.sidebar-hidden .sidebar-toggle {
-            left: 20px;
+            position: fixed;
+            top: 28px;
+            left: 12px;
+            right: auto;
+        }
+        .layout-admin #sidebarToggle,
+        .layout-crm #sidebarToggle {
+            display: inline-flex;
         }
         @media (max-width: 768px) {
             .container { margin-left: 0; padding: 10px; }
             aside.sidebar-hidden ~ div {
                 margin-left: 0 !important;
+            }
+            .sidebar-toggle {
+                display: none !important;
             }
         }
         
@@ -732,11 +742,6 @@
             }
         }
 
-        /* Hide sidebar toggle button (requested) */
-        #sidebarToggle {
-            display: none !important;
-        }
-        
         /* Sidebar Tooltip Styles */
         .sidebar-tooltip {
             position: fixed;
@@ -769,19 +774,774 @@
             border-bottom: 6px solid transparent;
             border-right: 6px solid white;
         }
+
+        :root {
+            --nav-shell: #0A1F18;
+            --nav-shell-border: rgba(255,255,255,.08);
+            --nav-text: rgba(255,255,255,.72);
+            --nav-text-muted: rgba(255,255,255,.35);
+            --nav-pill: rgba(255,255,255,.06);
+            --nav-active: rgba(11,107,79,.32);
+            --nav-active-text: #ffffff;
+            --nav-accent: #5DCAA5;
+            --nav-width: 248px;
+        }
+
+        html.pre-nav-text #sidebar,
+        body #sidebar {
+            width: var(--nav-width) !important;
+            min-width: var(--nav-width) !important;
+            max-width: var(--nav-width) !important;
+            background: var(--nav-shell) !important;
+            border-right: 1px solid var(--nav-shell-border) !important;
+            box-shadow: none !important;
+            color: #fff;
+            overflow: hidden !important;
+        }
+
+        html.pre-nav-text #mainContent,
+        body #mainContent {
+            margin-left: var(--nav-width) !important;
+        }
+
+        body.nav-icons #sidebar,
+        body.nav-text #sidebar,
+        #sidebar.sidebar-icons,
+        #sidebar.sidebar-text {
+            width: var(--nav-width) !important;
+            min-width: var(--nav-width) !important;
+            max-width: var(--nav-width) !important;
+        }
+
+        body.nav-icons #mainContent,
+        body.nav-text #mainContent {
+            margin-left: var(--nav-width) !important;
+        }
+
+        body.sidebar-hidden #mainContent,
+        .layout-admin.sidebar-hidden #mainContent {
+            margin-left: 0 !important;
+        }
+
+        .app-shell {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-sidebar {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 45;
+        }
+
+        .sidebar-brand {
+            position: relative;
+            padding: 20px 18px 14px;
+            border-bottom: 1px solid var(--nav-shell-border);
+        }
+
+        .layout-admin .sidebar-brand {
+            padding-right: 54px;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Fraunces', 'Poppins', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .sidebar-logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--gradient-start), #5DCAA5);
+            color: #0A1F18;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .sidebar-role {
+            margin-top: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--nav-text-muted);
+        }
+
+        .sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 8px 14px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+        }
+
+        .nav-section-label {
+            padding: 12px 10px 6px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .11em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,.24);
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px !important;
+            margin-bottom: 2px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--nav-text) !important;
+            font-size: 12px !important;
+            font-weight: 500;
+            background: transparent;
+            transition: all .18s ease;
+            min-height: 40px;
+        }
+
+        .sidebar-link i {
+            width: 16px !important;
+            margin-right: 0 !important;
+            text-align: center;
+            color: rgba(255,255,255,.48);
+            font-size: 14px !important;
+        }
+
+        .sidebar-link:hover {
+            background: var(--nav-pill) !important;
+            color: rgba(255,255,255,.92) !important;
+        }
+
+        .sidebar-link:hover i,
+        .sidebar-link.active i,
+        .sidebar-link.sidebar-parent-open i:first-child {
+            color: var(--nav-accent);
+        }
+
+        .sidebar-link.active,
+        .sidebar-link.sidebar-parent-open {
+            background: var(--nav-active) !important;
+            color: var(--nav-active-text) !important;
+            font-weight: 600 !important;
+        }
+
+        .sidebar-submenu {
+            margin: 2px 0 8px;
+            padding-left: 10px !important;
+        }
+
+        .sidebar-submenu .sidebar-link {
+            padding: 8px 12px !important;
+            min-height: 36px;
+            font-size: 11.5px !important;
+            color: rgba(255,255,255,.62) !important;
+        }
+
+        .sidebar-submenu .sidebar-link i {
+            font-size: 12px !important;
+        }
+
+        .sidebar-link .menu-chevron {
+            margin-left: auto;
+            color: rgba(255,255,255,.36);
+            font-size: 11px !important;
+            transition: transform .18s ease;
+        }
+
+        .sidebar-link .menu-badge {
+            margin-left: auto;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: var(--gradient-start);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .sidebar-footer {
+            padding: 14px 16px 16px;
+            border-top: 1px solid var(--nav-shell-border);
+            background: rgba(255,255,255,.02);
+        }
+
+        .sidebar-user-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .sidebar-user-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .sidebar-user-role {
+            margin-top: 2px;
+            font-size: 10px;
+            color: var(--nav-text-muted);
+        }
+
+        .main-header {
+            background: rgba(255,255,255,.82);
+            backdrop-filter: blur(14px);
+            border: 1px solid #E2E1DC;
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+            padding: 18px 20px;
+        }
+
+        .mobile-nav-toggle {
+            display: none;
+            width: 38px;
+            height: 38px;
+            border: 1px solid #E2E1DC;
+            border-radius: 12px;
+            background: #fff;
+            color: #16161A;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .mobile-nav-toggle i {
+            font-size: 15px;
+        }
+
+        #sidebarOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.42);
+            z-index: 40;
+        }
+
+        #mobileFooterNav {
+            background: rgba(255,255,255,.92);
+            backdrop-filter: blur(14px);
+            border-top: 1px solid #E2E1DC;
+            box-shadow: 0 -6px 20px rgba(0,0,0,.08);
+            padding: 8px 6px;
+            height: 66px;
+        }
+
+        .footer-nav-link {
+            border-radius: 12px;
+            color: #6A6A63;
+            max-width: none;
+        }
+
+        .footer-nav-link i {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .footer-nav-link span {
+            font-size: 9px;
+            font-weight: 600;
+            color: inherit;
+        }
+
+        .footer-nav-link:hover,
+        .footer-nav-link.active {
+            background: #F0EFEC;
+            color: #0B6B4F;
+        }
+
+        @media (max-width: 767px) {
+            html.pre-nav-text #mainContent,
+            body #mainContent,
+            body.nav-icons #mainContent,
+            body.nav-text #mainContent {
+                margin-left: 0 !important;
+            }
+
+            body.sidebar-hidden #sidebar {
+                transform: translateX(-100%);
+            }
+
+            body.sidebar-hidden #mainContent {
+                margin-left: 0 !important;
+            }
+
+            #sidebar {
+                display: flex !important;
+                left: 0 !important;
+                visibility: visible !important;
+                width: min(86vw, 308px) !important;
+                min-width: min(86vw, 308px) !important;
+                max-width: min(86vw, 308px) !important;
+                transform: translateX(-100%);
+                transition: transform .25s ease;
+            }
+
+            body.mobile-sidebar-open #sidebar {
+                transform: translateX(0);
+            }
+
+            #sidebarOverlay {
+                display: block;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity .2s ease;
+            }
+
+            body.mobile-sidebar-open #sidebarOverlay {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .mobile-nav-toggle {
+                display: inline-flex;
+            }
+
+            .main-header {
+                padding: 14px 16px;
+                border-radius: 16px;
+            }
+
+            .layout-admin .header,
+            .layout-crm .header {
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .layout-admin .header > div:last-child,
+            .layout-crm .header > div:last-child {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+        }
         
     </style>
     
+    <style>
+        .layout-crm .page-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .layout-crm .crm-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 30px;
+            border: 1px solid rgba(6, 58, 28, 0.1);
+            background:
+                radial-gradient(circle at top left, rgba(191, 230, 216, 0.9), transparent 38%),
+                radial-gradient(circle at top right, rgba(237, 245, 225, 0.95), transparent 42%),
+                linear-gradient(135deg, #ffffff 0%, #f7fbf8 60%, #eef7f2 100%);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+            padding: 28px;
+        }
+        .layout-crm .crm-hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.9fr);
+            gap: 24px;
+            align-items: end;
+        }
+        .layout-crm .crm-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(16, 122, 84, 0.11);
+            color: #0f7a54;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+        .layout-crm .crm-hero-title {
+            margin-top: 18px;
+            color: #14213d;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.03;
+            letter-spacing: -0.04em;
+        }
+        .layout-crm .crm-hero-title strong {
+            color: #0f7a54;
+        }
+        .layout-crm .crm-hero-copy {
+            margin-top: 16px;
+            max-width: 760px;
+            color: #5f6c7b;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        .layout-crm .crm-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .layout-crm .crm-mini-card {
+            border-radius: 24px;
+            border: 1px solid rgba(6, 58, 28, 0.1);
+            background: rgba(255, 255, 255, 0.88);
+            padding: 20px;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+        }
+        .layout-crm .crm-mini-label {
+            color: #7f8b96;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .layout-crm .crm-mini-value {
+            margin-top: 10px;
+            color: #0f7a54;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+            font-weight: 800;
+            line-height: 1;
+        }
+        .layout-crm .crm-mini-copy {
+            margin-top: 8px;
+            color: #5f6c7b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .layout-crm .crm-surface {
+            border-radius: 28px;
+            border: 1px solid rgba(6, 58, 28, 0.1);
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
+            padding: 24px;
+        }
+        .layout-crm .crm-surface + .crm-surface {
+            margin-top: 24px;
+        }
+        .layout-crm .crm-surface-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+        .layout-crm .crm-section-title {
+            color: #14213d;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+        .layout-crm .crm-section-copy {
+            margin-top: 6px;
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .layout-crm .crm-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: #eff5f1;
+            color: #4b5563;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .layout-crm .crm-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
+        }
+        .layout-crm .crm-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .layout-crm .crm-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .layout-crm .crm-stat-card {
+            border-radius: 24px;
+            border: 1px solid rgba(6, 58, 28, 0.1);
+            background: linear-gradient(180deg, rgba(255,255,255,1), rgba(246,249,247,1));
+            padding: 20px;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+        }
+        .layout-crm .crm-stat-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .layout-crm .crm-stat-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: #fff;
+            box-shadow: 0 10px 18px rgba(6, 58, 28, 0.18);
+        }
+        .layout-crm .crm-stat-value {
+            margin-top: 18px;
+            color: #14213d;
+            font-size: clamp(1.8rem, 2.8vw, 2.45rem);
+            font-weight: 800;
+            line-height: 1;
+        }
+        .layout-crm .crm-stat-label {
+            margin-top: 8px;
+            color: #7f8b96;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .layout-crm .crm-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .layout-crm .crm-control,
+        .layout-crm .crm-control-group input,
+        .layout-crm .crm-control-group select,
+        .layout-crm .crm-control-group textarea,
+        .layout-crm .crm-form-control {
+            min-height: 46px;
+            border-radius: 16px;
+            border: 1px solid #d7e0d9;
+            background: #fff;
+            color: #18202c;
+            padding: 0 15px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .layout-crm .crm-control:focus,
+        .layout-crm .crm-control-group input:focus,
+        .layout-crm .crm-control-group select:focus,
+        .layout-crm .crm-control-group textarea:focus,
+        .layout-crm .crm-form-control:focus {
+            outline: none;
+            border-color: rgba(15, 122, 84, 0.45);
+            box-shadow: 0 0 0 4px rgba(15, 122, 84, 0.12);
+        }
+        .layout-crm .crm-control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .layout-crm .crm-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .layout-crm .crm-field label {
+            display: block;
+            margin-bottom: 8px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .layout-crm .crm-table-shell {
+            border-radius: 24px;
+            border: 1px solid rgba(6, 58, 28, 0.09);
+            overflow: hidden;
+            background: #fbfdfb;
+        }
+        .layout-crm .crm-table-shell table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .layout-crm .crm-table-shell th {
+            background: #f3f7f4;
+            color: #667085;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .layout-crm .crm-table-shell th,
+        .layout-crm .crm-table-shell td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #ebf1ed;
+            vertical-align: top;
+        }
+        .layout-crm .crm-table-shell tr:last-child td {
+            border-bottom: none;
+        }
+        .layout-crm .crm-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 180px;
+            color: #8b95a1;
+            text-align: center;
+        }
+        .layout-crm .crm-empty i {
+            font-size: 28px;
+            color: #b7c0cb;
+        }
+        .layout-crm .crm-note {
+            border-radius: 22px;
+            border: 1px solid rgba(25, 118, 210, 0.12);
+            background: linear-gradient(135deg, #eef7ff, #f8fbff);
+            padding: 18px 20px;
+            color: #365475;
+        }
+        .layout-crm .crm-note-warning {
+            border-color: rgba(245, 158, 11, 0.18);
+            background: linear-gradient(135deg, #fff7e6, #fffaf0);
+            color: #8a5b00;
+        }
+        .layout-crm .crm-tabbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+        .layout-crm .crm-tabbar .tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 16px;
+            border: 1px solid #dce7df;
+            background: #fff;
+            color: #5e6977;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 0;
+            transition: all 0.2s ease;
+        }
+        .layout-crm .crm-tabbar .tab.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(6, 58, 28, 0.18);
+        }
+        .layout-crm .crm-badge-soft {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .layout-crm .crm-list-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .layout-crm .crm-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 100%;
+            border-radius: 24px;
+            border: 1px solid rgba(6, 58, 28, 0.1);
+            background: linear-gradient(180deg, #ffffff, #f8fbf9);
+            padding: 20px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+        }
+        .layout-crm .crm-card h3 {
+            color: #17324d;
+            font-size: 18px;
+            font-weight: 800;
+        }
+        .layout-crm .crm-card-copy {
+            color: #677483;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .layout-crm .crm-card-divider {
+            height: 1px;
+            background: #e8efea;
+        }
+        .layout-crm .crm-inline-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        @media (max-width: 1280px) {
+            .layout-crm .crm-hero-grid,
+            .layout-crm .crm-grid-4,
+            .layout-crm .crm-list-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 960px) {
+            .layout-crm .crm-grid-2,
+            .layout-crm .crm-grid-3,
+            .layout-crm .crm-grid-4,
+            .layout-crm .crm-mini-grid,
+            .layout-crm .crm-list-grid,
+            .layout-crm .crm-form-grid,
+            .layout-crm .crm-hero-grid {
+                grid-template-columns: 1fr;
+            }
+            .layout-crm .crm-surface,
+            .layout-crm .crm-hero {
+                padding: 20px;
+                border-radius: 24px;
+            }
+            .layout-crm .crm-surface-header {
+                flex-direction: column;
+            }
+        }
+    </style>
     @stack('styles')
     {{-- Apply nav mode BEFORE body renders to prevent any flash --}}
     <script>
     (function(){
         try {
-            var mode = localStorage.getItem('crmNavMode') || 'icons';
-            var hidden = localStorage.getItem('sidebarHidden') === 'true';
-            var cls = document.documentElement.classList;
-            cls.add('pre-nav-' + mode);
-            if (hidden) cls.add('pre-sidebar-hidden');
+            document.documentElement.classList.add('pre-nav-text');
         } catch(e) {}
     })();
     </script>
@@ -799,35 +1559,35 @@
 @endif
     <script>
     (function(){
-        // Disable transitions + apply correct nav class before ANY rendering
         document.body.classList.add('no-transition');
         try {
-            var mode = localStorage.getItem('crmNavMode') || 'icons';
-            document.body.classList.add(mode === 'text' ? 'nav-text' : 'nav-icons');
-            if (localStorage.getItem('sidebarHidden') === 'true') {
-                document.body.classList.add('sidebar-hidden');
-            }
+            document.body.classList.add('nav-text');
         } catch(e) {
-            document.body.classList.add('nav-icons');
+            document.body.classList.add('nav-text');
         }
     })();
     </script>
-    <!-- Sidebar Toggle Button - Always visible -->
-    <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar">
-        <i class="fas fa-chevron-left sidebar-toggle-icon" id="sidebarToggleIcon"></i>
+    <div id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+    @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
+    <button type="button" id="sidebarToggle" class="sidebar-toggle" aria-label="Hide navigation" title="Hide navigation">
+        <i class="fas fa-chevron-left sidebar-toggle-icon"></i>
     </button>
-    
-    <div style="display: flex; height: 100vh; overflow: hidden;">
+    @endif
+
+    <div class="app-shell">
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm z-30" style="overflow-y: auto;">
+        <aside id="sidebar" class="app-sidebar fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm z-30">
             <!-- Logo and Role -->
-            <div style="padding: 20px; margin-bottom: 30px;">
-                <h2 style="font-size: 24px; font-weight: 700; color: var(--text-color); margin-bottom: 10px;">Base CRM</h2>
-                <p style="font-size: 12px; color: #B3B5B4;">
+            <div class="sidebar-brand">
+                <div class="sidebar-logo">
+                    <span class="sidebar-logo-mark">{{ strtoupper(substr(auth()->user()->name ?? 'C', 0, 1)) }}</span>
+                    <span>Base CRM</span>
+                </div>
+                <div class="sidebar-role">
                     @if(auth()->user()->isAdmin())
-                        Admin
+                        Admin Dashboard
                     @elseif(auth()->user()->isCrm())
-                        CRM
+                        CRM Workspace
                     @elseif(auth()->user()->isSalesHead())
                         Sales Head
                     @elseif(auth()->user()->isSalesManager())
@@ -837,12 +1597,14 @@
                     @else
                         {{ auth()->user()->getDisplayRoleName() ?? 'User' }}
                     @endif
-                </p>
+                </div>
             </div>
             
             <!-- Navigation -->
-            <nav style="padding: 0 20px;">
+            <div class="sidebar-scroll">
+            <nav>
                 @if(auth()->user()->isAdmin())
+                <div class="nav-section-label">Main</div>
                 <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" data-tooltip="Dashboard" title="Dashboard">
                     <i class="fas fa-home" style="margin-right: 10px; width: 20px;"></i>
                     Dashboard
@@ -855,12 +1617,13 @@
                     <i class="fas fa-bullseye" style="margin-right: 10px; width: 20px;"></i>
                     Target Setting
                 </a>
-                <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()" data-tooltip="Leads" title="Leads">
+                <div class="nav-section-label">Pipeline</div>
+                <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('admin.other-leads.*') || request()->routeIs('admin.dead-leads') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()" data-tooltip="Leads" title="Leads">
                     <i class="fas fa-user-friends" style="margin-right: 10px; width: 20px;"></i>
                     Leads
                     <i class="fas fa-chevron-down ml-auto" id="leadsMenuIcon" style="transition: transform 0.3s;"></i>
                 </div>
-                <div id="leadsSubMenu" class="pl-8" style="display: {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'block' : 'none' }};">
+                <div id="leadsSubMenu" class="pl-8" style="display: {{ request()->routeIs('leads.*') || request()->routeIs('admin.other-leads.*') || request()->routeIs('admin.dead-leads') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'block' : 'none' }};">
                     <a href="{{ route('leads.index') }}" class="sidebar-link {{ request()->routeIs('leads.*') && !request()->routeIs('prospects.*') && !request()->routeIs('meetings.*') && !request()->routeIs('site-visits.*') && !request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="All Leads" title="All Leads">
                         <i class="fas fa-list" style="margin-right: 10px; width: 20px;"></i>
                         All Leads
@@ -881,6 +1644,17 @@
                         <i class="fas fa-check-circle" style="margin-right: 10px; width: 20px;"></i>
                         Closers
                     </a>
+                    @if(auth()->user()->isAdmin())
+                    <a href="{{ route('admin.other-leads.index') }}" class="sidebar-link {{ request()->routeIs('admin.other-leads.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="Other Leads" title="Other Leads">
+                        <i class="fas fa-box-open" style="margin-right: 10px; width: 20px;"></i>
+                        Other Leads
+                    </a>
+                    @elseif(auth()->user()->isCrm())
+                    <a href="{{ route('admin.dead-leads') }}" class="sidebar-link {{ request()->routeIs('admin.dead-leads') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="Other Leads" title="Other Leads">
+                        <i class="fas fa-box-open" style="margin-right: 10px; width: 20px;"></i>
+                        Other Leads
+                    </a>
+                    @endif
                 </div>
                 <div class="sidebar-link {{ request()->routeIs('projects.*') || request()->routeIs('builders.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleProjectsMenu()" data-tooltip="Projects" title="Projects">
                     <i class="fas fa-project-diagram" style="margin-right: 10px; width: 20px;"></i>
@@ -897,6 +1671,7 @@
                         Builders
                     </a>
                 </div>
+                <div class="nav-section-label">Operations</div>
                 <a href="{{ route('calls.index') }}" class="sidebar-link {{ request()->routeIs('calls.*') ? 'active' : '' }}" data-tooltip="All Calls" title="All Calls">
                     <i class="fas fa-phone" style="margin-right: 10px; width: 20px;"></i>
                     All Calls
@@ -922,18 +1697,19 @@
                     <i class="fas fa-wpforms" style="margin-right: 10px; width: 20px;"></i>
                     Forms
                 </a>
-                <a href="{{ route('admin.lead-form-builder.index') }}" class="sidebar-link {{ request()->routeIs('admin.lead-form-builder.*') ? 'active' : '' }}" data-tooltip="Lead Form Builder" title="Lead Form Builder">
-                    <i class="fas fa-list-alt" style="margin-right: 10px; width: 20px;"></i>
-                    Lead Form Builder
-                </a>
                 <a href="{{ route('lead-assignment.index') }}" class="sidebar-link {{ request()->routeIs('lead-assignment.*') ? 'active' : '' }}" data-tooltip="Lead Assignment" title="Lead Assignment">
                     <i class="fas fa-users-cog" style="margin-right: 10px; width: 20px;"></i>
                     Lead Assignment
+                </a>
+                <a href="{{ route('lead-import.index') }}" class="sidebar-link {{ request()->routeIs('lead-import.*') ? 'active' : '' }}" data-tooltip="Lead Import" title="Lead Import">
+                    <i class="fas fa-cloud-upload-alt" style="margin-right: 10px; width: 20px;"></i>
+                    Lead Import
                 </a>
                 <a href="{{ route('admin.automation.index') }}" class="sidebar-link {{ request()->routeIs('admin.automation.*') ? 'active' : '' }}" data-tooltip="Automation" title="Automation">
                     <i class="fas fa-magic" style="margin-right: 10px; width: 20px;"></i>
                     Automation
                 </a>
+                <div class="nav-section-label">System</div>
                 <a href="{{ route('admin.support.index') }}" class="sidebar-link {{ request()->routeIs('admin.support.*') ? 'active' : '' }}" data-tooltip="Support" title="Support" style="display:flex;align-items:center;justify-content:space-between;">
                     <span style="display:flex;align-items:center;">
                         <i class="fas fa-headset" style="margin-right: 10px; width: 20px;"></i>
@@ -956,15 +1732,18 @@
                     <i class="fas fa-rocket" style="margin-right: 10px; width: 20px;"></i>
                     Deployment
                 </a>
+                @if(auth()->user()->isAdmin())
                 <a href="{{ route('integrations.index') }}" class="sidebar-link {{ request()->routeIs('integrations.*') ? 'active' : '' }}" data-tooltip="Integration" title="Integration">
                     <i class="fas fa-plug" style="margin-right: 10px; width: 20px;"></i>
                     Integration
                 </a>
+                @endif
                 <a href="{{ route('admin.profile') }}" class="sidebar-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}" data-tooltip="Profile" title="Profile">
                     <i class="fas fa-user" style="margin-right: 10px; width: 20px;"></i>
                     Profile
                 </a>
                 @else
+                <div class="nav-section-label">Main</div>
                 <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                     <i class="fas fa-home" style="margin-right: 10px; width: 20px;"></i>
                     Dashboard
@@ -981,13 +1760,14 @@
                     Target Setting
                 </a>
                 @endif
+                <div class="nav-section-label">Pipeline</div>
                 @if(auth()->user()->isAdmin() || auth()->user()->isCrm() || auth()->user()->isSalesManager() || auth()->user()->isSalesHead())
-                <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()">
+                <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('admin.other-leads.*') || request()->routeIs('admin.dead-leads') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()">
                     <i class="fas fa-filter" style="margin-right: 10px; width: 20px;"></i>
                     Leads
                     <i class="fas fa-chevron-down ml-auto" id="leadsMenuIcon" style="transition: transform 0.3s;"></i>
                 </div>
-                <div id="leadsSubMenu" class="pl-8" style="display: {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'block' : 'none' }};">
+                <div id="leadsSubMenu" class="pl-8" style="display: {{ request()->routeIs('leads.*') || request()->routeIs('admin.other-leads.*') || request()->routeIs('admin.dead-leads') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'block' : 'none' }};">
                     <a href="{{ route('leads.index') }}" class="sidebar-link {{ request()->routeIs('leads.*') && !request()->routeIs('prospects.*') && !request()->routeIs('meetings.*') && !request()->routeIs('site-visits.*') && !request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
                         <i class="fas fa-list" style="margin-right: 10px; width: 20px;"></i>
                         All Leads
@@ -1008,6 +1788,17 @@
                         <i class="fas fa-check-circle" style="margin-right: 10px; width: 20px;"></i>
                         Closers
                     </a>
+                    @if(auth()->user()->isAdmin())
+                    <a href="{{ route('admin.other-leads.index') }}" class="sidebar-link {{ request()->routeIs('admin.other-leads.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fas fa-box-open" style="margin-right: 10px; width: 20px;"></i>
+                        Other Leads
+                    </a>
+                    @elseif(auth()->user()->isCrm())
+                    <a href="{{ route('admin.dead-leads') }}" class="sidebar-link {{ request()->routeIs('admin.dead-leads') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                        <i class="fas fa-box-open" style="margin-right: 10px; width: 20px;"></i>
+                        Other Leads
+                    </a>
+                    @endif
                 </div>
                 @else
                 <a href="{{ route('leads.index') }}" class="sidebar-link {{ request()->routeIs('leads.*') ? 'active' : '' }}">
@@ -1032,6 +1823,7 @@
                     </a>
                     @endif
                 </div>
+                <div class="nav-section-label">Operations</div>
                 <a href="{{ route('calls.index') }}" class="sidebar-link {{ request()->routeIs('calls.*') ? 'active' : '' }}">
                     <i class="fas fa-phone" style="margin-right: 10px; width: 20px;"></i>
                     @if(auth()->user()->isTelecaller() || auth()->user()->isSalesExecutive())
@@ -1052,7 +1844,7 @@
                     Lead Assignment
                 </a>
                 @endif
-                @if(!auth()->user()->isAdmin() && auth()->user()->canManageUsers() && !auth()->user()->isSalesHead())
+                @if(auth()->user()->canManageUsers() && !auth()->user()->isSalesHead())
                 <a href="{{ route('lead-import.index') }}" class="sidebar-link {{ request()->routeIs('lead-import.*') ? 'active' : '' }}">
                     <i class="fas fa-cloud-upload-alt" style="margin-right: 10px; width: 20px;"></i>
                     Lead Import
@@ -1070,7 +1862,8 @@
                     Export
                 </a>
                 @endif
-                @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
+                <div class="nav-section-label">System</div>
+                @if(auth()->user()->isAdmin())
                 <a href="{{ route('integrations.index') }}"
                    class="sidebar-link {{ request()->routeIs('integrations.*') || request()->routeIs('lead-assignment.*') ? 'active' : '' }}"
                    data-tooltip="Integration"
@@ -1085,7 +1878,6 @@
                     <i class="fas fa-table" style="margin-right: 10px; width: 20px;"></i>
                     Sheet Integration
                 </a>
-                @if(auth()->user()->isCrm())
                 <a href="{{ route('integrations.meta-sheet.index') }}"
                    class="sidebar-link {{ request()->routeIs('integrations.meta-sheet.*') ? 'active' : '' }}"
                    data-tooltip="Meta Sheets"
@@ -1093,6 +1885,8 @@
                     <i class="fab fa-facebook" style="margin-right: 10px; width: 20px;"></i>
                     Meta Sheets
                 </a>
+                @endif
+                @if(auth()->user()->isCrm())
                 <a href="{{ route('lead-assignment.index') }}"
                    class="sidebar-link {{ request()->routeIs('lead-assignment.*') ? 'active' : '' }}"
                    data-tooltip="Lead Assignment"
@@ -1100,9 +1894,15 @@
                     <i class="fas fa-clipboard" style="margin-right: 10px; width: 20px;"></i>
                     Lead Assignment
                 </a>
+                <a href="{{ route('lead-assignment.lead-off-users') }}"
+                   class="sidebar-link {{ request()->routeIs('lead-assignment.telecaller-status') || request()->routeIs('lead-assignment.lead-off-users') ? 'active' : '' }}"
+                   data-tooltip="Lead Off Users"
+                   title="Lead Off Users">
+                    <i class="fas fa-user-slash" style="margin-right: 10px; width: 20px;"></i>
+                    Lead Off Users
+                </a>
                 @endif
-                @endif
-                @if(!auth()->user()->isAdmin() && auth()->user()->canManageUsers() && !auth()->user()->isSalesHead())
+                @if(!auth()->user()->isAdmin() && !auth()->user()->isCrm() && auth()->user()->canManageUsers() && !auth()->user()->isSalesHead())
                 <a href="{{ route('admin.dead-leads') }}" class="sidebar-link {{ request()->routeIs('admin.dead-leads') ? 'active' : '' }}">
                     <i class="fas fa-trash" style="margin-right: 10px; width: 20px;"></i>
                     Dead Leads / Trash
@@ -1116,6 +1916,16 @@
                 </a>
                 @endif
             </nav>
+            </div>
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <span class="sidebar-user-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
+                    <div>
+                        <div class="sidebar-user-name">{{ auth()->user()->name }}</div>
+                        <div class="sidebar-user-role">{{ auth()->user()->getDisplayRoleName() ?? 'User' }}</div>
+                    </div>
+                </div>
+            </div>
         </aside>
         
         <!-- Sidebar Tooltip -->
@@ -1128,7 +1938,7 @@
         <div id="mainContent" style="flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; height: 100vh; background: #F7F6F3;">
             <div class="container" style="padding: 20px; max-width: 100%; width: 100%; min-width: 0; box-sizing: border-box;">
                 <!-- Header -->
-                <div class="header">
+                <div class="header main-header">
                     <div>
                         <h1 style="font-size: 28px; font-weight: 700; color: #063A1C;">@yield('page-title', 'Dashboard')</h1>
                         @hasSection('page-subtitle')
@@ -1139,13 +1949,18 @@
                         @endif
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
+                        <button type="button" class="mobile-nav-toggle" onclick="openMobileSidebar()" aria-label="Open navigation">
+                            <i class="fas fa-bars"></i>
+                        </button>
                         @hasSection('header-actions')
                             @yield('header-actions')
                         @endif
-                        <button type="button" id="navModeToggle" class="btn btn-brand-secondary" title="Toggle navigation (icons/text)" style="padding: 10px 12px; font-size: 14px;">
-                            <i class="fas fa-align-left" style="margin-right: 6px;"></i>
-                            <span id="navModeToggleLabel">Text Nav</span>
+                        @if(!auth()->user()->isAdmin() && !auth()->user()->isCrm())
+                        <button type="button" id="navModeToggle" class="btn btn-brand-secondary" title="Hide navigation" style="padding: 10px 12px; font-size: 14px;">
+                            <i id="navModeToggleIcon" class="fas fa-eye-slash" style="margin-right: 6px;"></i>
+                            <span id="navModeToggleLabel">Hide Nav</span>
                         </button>
+                        @endif
                         <!-- Date/Time Clock (shown for all including CRM) -->
                         <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 14px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                             <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
@@ -1183,6 +1998,10 @@
             <a href="{{ route('leads.index') }}" class="footer-nav-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}">
                 <i class="fas fa-user-friends"></i>
                 <span>Leads</span>
+            </a>
+            <a href="{{ route('admin.other-leads.index') }}" class="footer-nav-link {{ request()->routeIs('admin.other-leads.*') ? 'active' : '' }}">
+                <i class="fas fa-box-open"></i>
+                <span>Other Leads</span>
             </a>
             <a href="{{ route('projects.index') }}" class="footer-nav-link {{ request()->routeIs('projects.*') || request()->routeIs('builders.*') ? 'active' : '' }}">
                 <i class="fas fa-project-diagram"></i>
@@ -1229,6 +2048,10 @@
                 <i class="fas fa-clipboard"></i>
                 <span>Lead Assign</span>
             </a>
+            <a href="{{ route('lead-assignment.lead-off-users') }}" class="footer-nav-link {{ request()->routeIs('lead-assignment.telecaller-status') || request()->routeIs('lead-assignment.lead-off-users') ? 'active' : '' }}">
+                <i class="fas fa-user-slash"></i>
+                <span>Lead Off</span>
+            </a>
             <a href="{{ route('export.index') }}" class="footer-nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
                 <i class="fas fa-download"></i>
                 <span>Export</span>
@@ -1253,13 +2076,9 @@
                 <i class="fab fa-whatsapp"></i>
                 <span>Chat</span>
             </a>
-            <a href="{{ route('integrations.index') }}" class="footer-nav-link {{ request()->routeIs('integrations.*') ? 'active' : '' }}">
-                <i class="fas fa-plug"></i>
-                <span>Integration</span>
-            </a>
             <a href="{{ route('admin.dead-leads') }}" class="footer-nav-link {{ request()->routeIs('admin.dead-leads') ? 'active' : '' }}">
-                <i class="fas fa-trash"></i>
-                <span>Dead Leads</span>
+                <i class="fas fa-box-open"></i>
+                <span>Other Leads</span>
             </a>
             <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="fas fa-user"></i>
@@ -1336,163 +2155,80 @@
         updateClock();
         setInterval(updateClock, 1000);
         
-        // Sidebar Toggle Functionality - Make it globally accessible
-        if (window._sidebarInitDone) { /* skip */ } else { window._sidebarInitDone = true; }
-        window.toggleSidebar = function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleIcon = document.getElementById('sidebarToggleIcon');
-            const toggleButton = document.getElementById('sidebarToggle');
-            const body = document.body;
-            
-            // Check if elements exist
-            if (!sidebar || !toggleIcon) {
-                console.error('Sidebar elements not found');
-                return;
-            }
-            
-            if (sidebar.classList.contains('sidebar-hidden')) {
-                // Show sidebar
-                sidebar.classList.remove('sidebar-hidden');
-                body.classList.remove('sidebar-hidden');
-                if (mainContent) {
-                    const navMode = (localStorage.getItem('crmNavMode') === 'text') ? 'text' : 'icons';
-                    // mainContent.style.marginLeft = (navMode === 'text') ? '256px' : '64px';
-                }
-                toggleIcon.classList.remove('fa-chevron-right');
-                toggleIcon.classList.add('fa-chevron-left');
-                if (toggleButton) {
-                    toggleButton.style.left = '236px'; // Position on right side of sidebar header
-                }
-                localStorage.setItem('sidebarHidden', 'false');
-            } else {
-                // Hide sidebar
-                sidebar.classList.add('sidebar-hidden');
-                body.classList.add('sidebar-hidden');
-                if (mainContent) {
-                    // mainContent.style.marginLeft = '0';
-                }
-                toggleIcon.classList.remove('fa-chevron-left');
-                toggleIcon.classList.add('fa-chevron-right');
-                if (toggleButton) {
-                    toggleButton.style.left = '20px'; // Position on left when sidebar hidden
-                }
-                localStorage.setItem('sidebarHidden', 'true');
-            }
+        window.openMobileSidebar = function() {
+            document.body.classList.add('mobile-sidebar-open');
         };
 
-        // Navigation mode (Icons <-> Text) - Option A: localStorage
-        if (typeof NAV_MODE_KEY === 'undefined') { var NAV_MODE_KEY = 'crmNavMode'; }
-
-        function applyNavMode(mode) {
-            if (window._navModeApplied) return;
-            window._navModeApplied = true;
-            const body = document.body;
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const label = document.getElementById('navModeToggleLabel');
-
-            const normalized = (mode === 'text') ? 'text' : 'icons';
-
-            // Keep exactly one mode class on body
-            body.classList.remove('nav-icons', 'nav-text');
-            body.classList.add(normalized === 'icons' ? 'nav-icons' : 'nav-text');
-
-            // Failsafe: mirror mode directly on sidebar as well
-            if (sidebar) {
-                sidebar.classList.remove('sidebar-icons', 'sidebar-text');
-                sidebar.classList.add(normalized === 'icons' ? 'sidebar-icons' : 'sidebar-text');
-            }
-
-            // Keep main content aligned with sidebar width
-            const sidebarHidden = body.classList.contains('sidebar-hidden') || (sidebar && sidebar.classList.contains('sidebar-hidden'));
-            if (mainContent) {
-                if (sidebarHidden) {
-                    // mainContent.style.marginLeft = '0';
-                } else {
-                    // // mainContent.style.marginLeft = (normalized === 'text') ? '256px' : '64px';
-                }
-            }
-
-            // Button label shows the *target* mode
-            if (label) {
-                label.textContent = (normalized === 'icons') ? 'Text Nav' : 'Icon Nav';
-            }
-
-            if (mainContent) {
-                mainContent.style.marginLeft = '';
-                // Force CSS reflow
-                void mainContent.offsetHeight;
-            }
-            return normalized;
-        }
-
-        window.toggleNavMode = function() {
-            const current = (localStorage.getItem(NAV_MODE_KEY) === 'text') ? 'text' : 'icons';
-            const next = (current === 'icons') ? 'text' : 'icons';
-            localStorage.setItem(NAV_MODE_KEY, next);
-            applyNavMode(next);
-            requestAnimationFrame(function() {
-                const mc = document.getElementById('mainContent');
-                if (mc) mc.offsetHeight;
-            });
+        window.closeMobileSidebar = function() {
+            document.body.classList.remove('mobile-sidebar-open');
         };
-        
+
         // Initialize sidebar functionality when DOM is ready
         function initSidebar() {
             if (window._sidebarAlreadyInit) return;
             window._sidebarAlreadyInit = true;
-            // Restore sidebar state on page load
-            const sidebarHidden = localStorage.getItem('sidebarHidden');
-            if (sidebarHidden === 'true') {
-                const sidebar = document.getElementById('sidebar');
-                const mainContent = document.getElementById('mainContent');
-                const toggleIcon = document.getElementById('sidebarToggleIcon');
-                const body = document.body;
-                
-                if (sidebar && toggleIcon) {
-                    sidebar.classList.add('sidebar-hidden');
-                    body.classList.add('sidebar-hidden');
-                    if (mainContent) {
-                        // mainContent.style.marginLeft = '0';
-                    }
-                    toggleIcon.classList.remove('fa-chevron-left');
-                    toggleIcon.classList.add('fa-chevron-right');
-                    const toggleButton = document.getElementById('sidebarToggle');
-                    if (toggleButton) {
-                        toggleButton.style.left = '20px';
-                    }
+            document.body.classList.remove('nav-icons');
+            document.body.classList.add('nav-text');
+
+            const navToggle = document.getElementById('navModeToggle');
+            const navToggleLabel = document.getElementById('navModeToggleLabel');
+            const navToggleIcon = document.getElementById('navModeToggleIcon');
+            const edgeSidebarToggle = document.getElementById('sidebarToggle');
+            const edgeSidebarToggleIcon = edgeSidebarToggle ? edgeSidebarToggle.querySelector('.sidebar-toggle-icon') : null;
+
+            function applySidebarVisibility() {
+                const shouldHide = window.innerWidth >= 768 && localStorage.getItem('sidebar_hidden') === '1';
+                document.body.classList.toggle('sidebar-hidden', shouldHide);
+                if (navToggle && navToggleLabel && navToggleIcon) {
+                    navToggleLabel.textContent = shouldHide ? 'Show Nav' : 'Hide Nav';
+                    navToggle.title = shouldHide ? 'Show navigation' : 'Hide navigation';
+                    navToggleIcon.className = shouldHide ? 'fas fa-eye' : 'fas fa-eye-slash';
+                }
+                if (edgeSidebarToggle && edgeSidebarToggleIcon) {
+                    edgeSidebarToggle.setAttribute('aria-label', shouldHide ? 'Show navigation' : 'Hide navigation');
+                    edgeSidebarToggle.setAttribute('title', shouldHide ? 'Show navigation' : 'Hide navigation');
+                    edgeSidebarToggleIcon.className = shouldHide ? 'fas fa-chevron-right sidebar-toggle-icon' : 'fas fa-chevron-left sidebar-toggle-icon';
                 }
             }
 
-            // Restore navigation mode (icons/text)
-            const savedNavMode = localStorage.getItem(NAV_MODE_KEY) || 'icons';
-            const mc = document.getElementById('mainContent');
-            if (mc) {
-                mc.style.marginLeft = (savedNavMode === 'text') ? '256px' : '64px';
+            applySidebarVisibility();
+
+            function toggleSidebarVisibility() {
+                if (window.innerWidth < 768) {
+                    return;
+                }
+                const nextHidden = !document.body.classList.contains('sidebar-hidden');
+                localStorage.setItem('sidebar_hidden', nextHidden ? '1' : '0');
+                applySidebarVisibility();
             }
-            applyNavMode(savedNavMode);
-            const navModeToggle = document.getElementById('navModeToggle');
-            if (navModeToggle && !navModeToggle.dataset.navBound) {
-                navModeToggle.dataset.navBound = '1';
-                navModeToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.toggleNavMode();
-                    return false;
+
+            if (navToggle) {
+                navToggle.addEventListener('click', function() {
+                    toggleSidebarVisibility();
                 });
             }
-            
-            // Add event listener to the button
-            const toggleButton = document.getElementById('sidebarToggle');
-            if (toggleButton) {
-                toggleButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.toggleSidebar();
-                    return false;
+
+            if (edgeSidebarToggle) {
+                edgeSidebarToggle.addEventListener('click', function() {
+                    if (window.innerWidth < 768) {
+                        return;
+                    }
+                    toggleSidebarVisibility();
                 });
             }
+
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth >= 768) {
+                    return;
+                }
+                const sidebar = document.getElementById('sidebar');
+                if (!document.body.classList.contains('mobile-sidebar-open') || !sidebar) {
+                    return;
+                }
+                if (!sidebar.contains(e.target) && !e.target.closest('.mobile-nav-toggle')) {
+                    closeMobileSidebar();
+                }
+            });
 
             // Enable transitions after layout is fully set (prevents page-load flicker)
             requestAnimationFrame(function() {
@@ -1510,131 +2246,28 @@
             // DOM is already ready
             initSidebar();
         }
-        // Ensure mainContent margin matches nav mode after full load
-        window.addEventListener('load', function() {
-            const mode = localStorage.getItem(NAV_MODE_KEY) || 'icons';
-            const mainContent = document.getElementById('mainContent');
-            const body = document.body;
-            if (mainContent && !body.classList.contains('sidebar-hidden')) {
-                // // mainContent.style.marginLeft = (mode === 'text') ? '256px' : '64px';
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 768) {
+                closeMobileSidebar();
             }
+            const shouldHide = window.innerWidth >= 768 && localStorage.getItem('sidebar_hidden') === '1';
+            document.body.classList.toggle('sidebar-hidden', shouldHide);
         });
-        
-        // Sidebar Tooltip Functionality
-        (function() {
-            let tooltipTimeout;
-            let activeTooltip = null;
-            const tooltipElement = document.getElementById('sidebarTooltip');
-            const tooltipText = tooltipElement ? tooltipElement.querySelector('.tooltip-text') : null;
-            
-            if (!tooltipElement || !tooltipText) {
-                return; // Tooltip elements not found
-            }
-            
-            function showTooltip(link, text) {
-                if (!tooltipElement || !tooltipText) return;
-                // Only show tooltips in icon mode
-                if (!document.body.classList.contains('nav-icons')) {
-                    hideTooltip();
-                    return;
-                }
-                
-                tooltipText.textContent = text;
-                tooltipElement.classList.add('show');
-                
-                // Position tooltip to the right of the icon
-                const rect = link.getBoundingClientRect();
-                const sidebar = document.getElementById('sidebar');
-                const sidebarRect = sidebar ? sidebar.getBoundingClientRect() : { right: 64 };
-                
-                // Position tooltip
-                tooltipElement.style.left = (sidebarRect.right + 8) + 'px';
-                tooltipElement.style.top = (rect.top + (rect.height / 2) - (tooltipElement.offsetHeight / 2)) + 'px';
-            }
-            
-            function hideTooltip() {
-                if (tooltipElement) {
-                    tooltipElement.classList.remove('show');
-                }
-            }
-            
-            // Initialize tooltips for all sidebar links with data-tooltip attribute
-            function initTooltips() {
-                // Handle all elements with data-tooltip (both links and divs)
-                document.querySelectorAll('[data-tooltip]').forEach(element => {
-                    // Skip if not a sidebar link or parent menu item
-                    if (!element.classList.contains('sidebar-link') && !element.closest('#sidebar')) {
-                        return;
-                    }
-                    
-                    // Hover tooltip (with delay)
-                    element.addEventListener('mouseenter', function(e) {
-                        clearTimeout(tooltipTimeout);
-                        tooltipTimeout = setTimeout(() => {
-                            if (activeTooltip !== this) {
-                                showTooltip(this, this.dataset.tooltip);
-                            }
-                        }, 300);
-                    });
-                    
-                    element.addEventListener('mouseleave', function() {
-                        clearTimeout(tooltipTimeout);
-                        hideTooltip();
-                        activeTooltip = null;
-                    });
-                    
-                    // Hide tooltip on click (don't persist on navigation)
-                    element.addEventListener('click', function(e) {
-                        clearTimeout(tooltipTimeout);
-                        hideTooltip();
-                        activeTooltip = null;
-                    });
-                });
-                
-                // Hide tooltip on outside click
-                document.addEventListener('click', function(e) {
-                    if (activeTooltip && !activeTooltip.contains(e.target) && !tooltipElement.contains(e.target)) {
-                        hideTooltip();
-                        activeTooltip = null;
-                    }
-                });
-                
-                // Hide tooltip when sidebar is hidden
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar) {
-                    const observer = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.attributeName === 'class') {
-                                if (sidebar.classList.contains('sidebar-hidden')) {
-                                    hideTooltip();
-                                    activeTooltip = null;
-                                }
-                            }
-                        });
-                    });
-                    observer.observe(sidebar, { attributes: true });
-                }
-            }
-            
-            // Initialize tooltips when DOM is ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initTooltips);
-            } else {
-                initTooltips();
-            }
-        })();
         
         // Toggle Projects sub-menu
         function toggleProjectsMenu() {
             const subMenu = document.getElementById('projectsSubMenu');
             const icon = document.getElementById('projectsMenuIcon');
+            const trigger = icon ? icon.closest('.sidebar-link') : null;
             if (subMenu && icon) {
                 if (subMenu.style.display === 'none') {
                     subMenu.style.display = 'block';
                     icon.style.transform = 'rotate(180deg)';
+                    if (trigger) trigger.classList.add('sidebar-parent-open');
                 } else {
                     subMenu.style.display = 'none';
                     icon.style.transform = 'rotate(0deg)';
+                    if (trigger) trigger.classList.remove('sidebar-parent-open');
                 }
             }
         }
@@ -1642,13 +2275,16 @@
         function toggleLeadsMenu() {
             const subMenu = document.getElementById('leadsSubMenu');
             const icon = document.getElementById('leadsMenuIcon');
+            const trigger = icon ? icon.closest('.sidebar-link') : null;
             if (subMenu && icon) {
                 if (subMenu.style.display === 'none') {
                     subMenu.style.display = 'block';
                     icon.style.transform = 'rotate(180deg)';
+                    if (trigger) trigger.classList.add('sidebar-parent-open');
                 } else {
                     subMenu.style.display = 'none';
                     icon.style.transform = 'rotate(0deg)';
+                    if (trigger) trigger.classList.remove('sidebar-parent-open');
                 }
             }
         }

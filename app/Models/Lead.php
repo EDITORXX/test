@@ -6,6 +6,7 @@ use App\Events\LeadStatusUpdated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
@@ -83,6 +84,9 @@ class Lead extends Model
         'verified_at',
         'verification_notes',
         'pending_manager_id',
+        'other_lead_marked_by',
+        'other_lead_marked_at',
+        'other_lead_reason',
         'status_auto_update_enabled',
         'form_filled_by_telecaller',
         'form_filled_by_executive',
@@ -100,6 +104,7 @@ class Lead extends Model
         'needs_verification' => 'boolean',
         'verification_requested_at' => 'datetime',
         'verified_at' => 'datetime',
+        'other_lead_marked_at' => 'datetime',
         'status_auto_update_enabled' => 'boolean',
         'form_filled_by_telecaller' => 'boolean',
         'form_filled_by_executive' => 'boolean',
@@ -164,6 +169,11 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'pending_manager_id');
     }
 
+    public function otherLeadMarkedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'other_lead_marked_by');
+    }
+
     /**
      * Mark lead as dead
      */
@@ -193,6 +203,21 @@ class Lead extends Model
     public function enableAutoUpdate(): void
     {
         $this->status_auto_update_enabled = true;
+    }
+
+    public function markAsOtherLead(string $status, int $userId, ?string $reason = null): void
+    {
+        if (!in_array($status, ['junk', 'not_interested'], true)) {
+            throw new \InvalidArgumentException("Invalid other lead status '{$status}'.");
+        }
+
+        $this->status = $status;
+        $this->next_followup_at = null;
+        $this->other_lead_marked_by = $userId;
+        $this->other_lead_marked_at = now();
+        $this->other_lead_reason = $reason ? trim($reason) : null;
+        $this->disableAutoUpdate();
+        $this->save();
     }
 
     /**
@@ -289,6 +314,16 @@ class Lead extends Model
     public function favorites(): HasMany
     {
         return $this->hasMany(LeadFavorite::class);
+    }
+
+    public function importedLeads(): HasMany
+    {
+        return $this->hasMany(ImportedLead::class);
+    }
+
+    public function latestImportedLead(): HasOne
+    {
+        return $this->hasOne(ImportedLead::class)->latestOfMany();
     }
 
     /**
