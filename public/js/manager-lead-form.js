@@ -693,16 +693,38 @@
         initializeManagerFormInteractions(context, selectedAction);
     }
 
+    function submitPendingManagerProjectTag(input) {
+        if (!input) return false;
+
+        const value = input.value.trim();
+        if (!value) return false;
+
+        addManagerProjectTag(value);
+        input.value = '';
+
+        return true;
+    }
+
     function initializeManagerFormInteractions(context, selectedAction) {
         const projectInput = document.getElementById('manager_project_input');
         if (projectInput) {
             projectInput.addEventListener('keydown', function (event) {
                 if (event.key !== 'Enter') return;
                 event.preventDefault();
-                const value = this.value.trim();
-                if (!value) return;
-                addManagerProjectTag(value);
-                this.value = '';
+                submitPendingManagerProjectTag(this);
+            });
+
+            projectInput.addEventListener('input', function () {
+                if (!this.value.endsWith('  ')) return;
+
+                const candidate = this.value.slice(0, -2).trim();
+                if (!candidate) {
+                    this.value = '';
+                    return;
+                }
+
+                this.value = candidate;
+                submitPendingManagerProjectTag(this);
             });
         }
 
