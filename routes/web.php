@@ -405,6 +405,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/test/lead-notification/simulate', [\App\Http\Controllers\TestLeadNotificationController::class, 'simulate'])->name('test.lead-notification.simulate')->middleware('role:admin,crm');
 
     // Test: PWA Push – select user and send test notification (Admin/CRM only)
+    Route::get('/test/lead-delivery', [\App\Http\Controllers\TestLeadDeliveryController::class, 'index'])->name('test.lead-delivery')->middleware('role:admin,crm');
+    Route::post('/test/lead-delivery/send', [\App\Http\Controllers\TestLeadDeliveryController::class, 'send'])->name('test.lead-delivery.send')->middleware('role:admin,crm');
     Route::get('/test/pwa-push', [\App\Http\Controllers\TestPwaPushController::class, 'index'])->name('test.pwa-push')->middleware('role:admin,crm');
     Route::get('/test/fcm-diagnose', [\App\Http\Controllers\TestPwaPushController::class, 'fcmDiagnose'])->name('test.fcm-diagnose')->middleware('role:admin,crm');
     Route::post('/test/fcm-generate-sw', [\App\Http\Controllers\TestPwaPushController::class, 'generateSw'])->name('test.fcm-generate-sw')->middleware('role:admin,crm');
@@ -751,6 +753,12 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Leads Management
+    Route::post('/leads/bulk-change-owner', [\App\Http\Controllers\LeadController::class, 'bulkChangeOwner'])
+        ->middleware('role:admin,crm')
+        ->name('leads.bulk-change-owner');
+    Route::post('/leads/bulk-calling-tasks', [\App\Http\Controllers\LeadController::class, 'bulkCreateCallingTasks'])
+        ->middleware('role:admin,crm')
+        ->name('leads.bulk-calling-tasks');
     Route::resource('leads', \App\Http\Controllers\LeadController::class);
     Route::get('/leads/{lead}/short-details', [\App\Http\Controllers\LeadController::class, 'shortDetails'])->name('leads.short-details');
     
