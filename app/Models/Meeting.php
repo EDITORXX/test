@@ -12,6 +12,30 @@ class Meeting extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::saving(function (Meeting $meeting) {
+            $scheduledChanged = $meeting->isDirty('scheduled_at');
+            $statusChanged = $meeting->isDirty('status');
+            $completedChanged = $meeting->isDirty('completed_at');
+
+            if (!$scheduledChanged && !$statusChanged && !$completedChanged) {
+                return;
+            }
+
+            $isScheduledOpen = $meeting->status === 'scheduled' && $meeting->completed_at === null;
+            $wasScheduledOpen = $meeting->getOriginal('status') === 'scheduled' && $meeting->getOriginal('completed_at') === null;
+
+            if ($isScheduledOpen && ($scheduledChanged || !$wasScheduledOpen)) {
+                $meeting->reminder_sent_at = null;
+            }
+
+            if (!$isScheduledOpen) {
+                $meeting->reminder_sent_at = null;
+            }
+        });
+    }
+
     protected $fillable = [
         'lead_id',
         'prospect_id',
@@ -31,6 +55,7 @@ class Meeting extends Model
         'lead_type',
         'photos',
         'scheduled_at',
+        'reminder_sent_at',
         'completed_at',
         'status',
         'verification_status',
@@ -70,6 +95,7 @@ class Meeting extends Model
         'completion_proof_photos' => 'array',
         'date_of_visit' => 'date',
         'scheduled_at' => 'datetime',
+        'reminder_sent_at' => 'datetime',
         'completed_at' => 'datetime',
         'verified_at' => 'datetime',
         'marked_dead_at' => 'datetime',

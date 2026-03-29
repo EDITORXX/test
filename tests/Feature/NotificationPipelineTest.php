@@ -7,6 +7,7 @@ use App\Models\AppNotification;
 use App\Models\FollowUp;
 use App\Models\Lead;
 use App\Models\LeadAssignment;
+use App\Models\Meeting;
 use App\Models\Role;
 use App\Models\TelecallerTask;
 use App\Models\User;
@@ -141,6 +142,125 @@ class NotificationPipelineTest extends TestCase
 
         $this->assertNull($followup->reminder_sent_at);
         $this->assertNull($followup->overdue_notified_at);
+    }
+
+    public function test_meeting_reminder_command_notifies_assigned_user_once(): void
+    {
+        Queue::fake();
+
+        $salesExecutiveRole = $this->createRole(Role::SALES_EXECUTIVE);
+        $assignee = $this->createUser($salesExecutiveRole, ['name' => 'Meeting Owner']);
+        $lead = $this->createLead('Meeting Lead');
+
+        Meeting::create([
+            'lead_id' => $lead->id,
+            'created_by' => $assignee->id,
+            'assigned_to' => $assignee->id,
+            'customer_name' => 'Meeting Lead',
+            'phone' => '9999999999',
+            'date_of_visit' => now()->toDateString(),
+            'budget_range' => 'Under 50 Lac',
+            'property_type' => 'Flat',
+            'payment_mode' => 'Self Fund',
+            'tentative_period' => 'Within 1 Month',
+            'lead_type' => 'Meeting',
+            'scheduled_at' => now()->addMinutes(5)->copy()->startOfMinute()->addSeconds(15),
+            'status' => 'scheduled',
+            'verification_status' => 'pending',
+        ]);
+
+        Artisan::call('notifications:meeting-reminders');
+
+        $this->assertEquals(1, AppNotification::where('type', AppNotification::TYPE_MEETING_REMINDER)->count());
+        $this->assertDatabaseHas('app_notifications', [
+            'user_id' => $assignee->id,
+            'type' => AppNotification::TYPE_MEETING_REMINDER,
+            'title' => 'Meeting Reminder',
+        ]);
+        $this->assertNotNull(Meeting::first()->reminder_sent_at);
+        Queue::assertPushed(SendFcmNotificationJob::class, 1);
+    }
+
+    public function test_meeting_reschedule_resets_reminder_marker(): void
+    {
+        $role = $this->createRole(Role::SALES_EXECUTIVE);
+        $user = $this->createUser($role);
+        $lead = $this->createLead();
+
+        $meeting = Meeting::create([
+            'lead_id' => $lead->id,
+            'created_by' => $user->id,
+            'assigned_to' => $user->id,
+            'customer_name' => 'Reminder Reset Meeting',
+            'phone' => '9999999999',
+            'date_of_visit' => now()->toDateString(),
+            'budget_range' => 'Under 50 Lac',
+            'property_type' => 'Flat',
+            'payment_mode' => 'Self Fund',
+            'tentative_period' => 'Within 1 Month',
+            'lead_type' => 'Meeting',
+            'scheduled_at' => now()->addMinutes(5),
+            'status' => 'scheduled',
+            'verification_status' => 'pending',
+            'reminder_sent_at' => now(),
+        ]);
+
+        $meeting->update([
+            'scheduled_at' => now()->addHour(),
+        ]);
+
+        $meeting->refresh();
+
+        $this->assertNull($meeting->reminder_sent_at);
+    }
+
+    public function test_meeting_reminder_command_skips_cancelled_or_completed_meetings(): void
+    {
+        Queue::fake();
+
+        $salesExecutiveRole = $this->createRole(Role::SALES_EXECUTIVE);
+        $assignee = $this->createUser($salesExecutiveRole, ['name' => 'Meeting Owner']);
+        $lead = $this->createLead('Skipped Meeting Lead');
+
+        Meeting::create([
+            'lead_id' => $lead->id,
+            'created_by' => $assignee->id,
+            'assigned_to' => $assignee->id,
+            'customer_name' => 'Cancelled Meeting',
+            'phone' => '9999999999',
+            'date_of_visit' => now()->toDateString(),
+            'budget_range' => 'Under 50 Lac',
+            'property_type' => 'Flat',
+            'payment_mode' => 'Self Fund',
+            'tentative_period' => 'Within 1 Month',
+            'lead_type' => 'Meeting',
+            'scheduled_at' => now()->addMinutes(5)->copy()->startOfMinute()->addSeconds(5),
+            'status' => 'cancelled',
+            'verification_status' => 'pending',
+        ]);
+
+        Meeting::create([
+            'lead_id' => $lead->id,
+            'created_by' => $assignee->id,
+            'assigned_to' => $assignee->id,
+            'customer_name' => 'Completed Meeting',
+            'phone' => '9999999999',
+            'date_of_visit' => now()->toDateString(),
+            'budget_range' => 'Under 50 Lac',
+            'property_type' => 'Flat',
+            'payment_mode' => 'Self Fund',
+            'tentative_period' => 'Within 1 Month',
+            'lead_type' => 'Meeting',
+            'scheduled_at' => now()->addMinutes(5)->copy()->startOfMinute()->addSeconds(25),
+            'status' => 'scheduled',
+            'verification_status' => 'pending',
+            'completed_at' => now(),
+        ]);
+
+        Artisan::call('notifications:meeting-reminders');
+
+        $this->assertEquals(0, AppNotification::where('type', AppNotification::TYPE_MEETING_REMINDER)->count());
+        Queue::assertNotPushed(SendFcmNotificationJob::class);
     }
 
     public function test_overdue_task_notifications_repeat_after_thirty_minutes_and_stop_when_completed(): void
@@ -300,6 +420,61 @@ class NotificationPipelineTest extends TestCase
             $table->dateTime('notification_sent_at')->nullable();
             $table->dateTime('overdue_notified_at')->nullable();
             $table->dateTime('moved_to_pending_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('meetings', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('lead_id')->nullable();
+            $table->unsignedBigInteger('prospect_id')->nullable();
+            $table->unsignedBigInteger('created_by');
+            $table->unsignedBigInteger('assigned_to')->nullable();
+            $table->string('customer_name');
+            $table->string('phone', 16);
+            $table->string('employee')->nullable();
+            $table->string('occupation')->nullable();
+            $table->date('date_of_visit');
+            $table->string('project')->nullable();
+            $table->string('budget_range');
+            $table->string('team_leader')->nullable();
+            $table->string('property_type');
+            $table->string('payment_mode');
+            $table->string('tentative_period');
+            $table->string('lead_type');
+            $table->text('photos')->nullable();
+            $table->dateTime('scheduled_at');
+            $table->dateTime('reminder_sent_at')->nullable();
+            $table->dateTime('completed_at')->nullable();
+            $table->string('status')->default('scheduled');
+            $table->string('verification_status')->default('pending');
+            $table->unsignedBigInteger('verified_by')->nullable();
+            $table->dateTime('verified_at')->nullable();
+            $table->text('rejection_reason')->nullable();
+            $table->text('meeting_notes')->nullable();
+            $table->text('feedback')->nullable();
+            $table->integer('rating')->nullable();
+            $table->text('completion_proof_photos')->nullable();
+            $table->boolean('is_dead')->default(false);
+            $table->text('dead_reason')->nullable();
+            $table->dateTime('marked_dead_at')->nullable();
+            $table->unsignedBigInteger('marked_dead_by')->nullable();
+            $table->dateTime('rescheduled_at')->nullable();
+            $table->unsignedBigInteger('rescheduled_by')->nullable();
+            $table->text('reschedule_reason')->nullable();
+            $table->integer('reschedule_count')->default(0);
+            $table->boolean('is_rescheduled')->default(false);
+            $table->unsignedBigInteger('converted_to_site_visit_id')->nullable();
+            $table->boolean('is_converted')->default(false);
+            $table->integer('meeting_sequence')->nullable();
+            $table->string('meeting_mode')->nullable();
+            $table->string('meeting_link')->nullable();
+            $table->string('location')->nullable();
+            $table->boolean('reminder_enabled')->default(false);
+            $table->integer('reminder_minutes')->nullable();
+            $table->unsignedBigInteger('pre_meeting_call_task_id')->nullable();
+            $table->string('customer_confirmation_status')->nullable();
+            $table->unsignedBigInteger('original_meeting_id')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

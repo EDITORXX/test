@@ -13,6 +13,7 @@ use App\Models\FollowUp;
 use App\Models\Lead;
 use App\Models\Role;
 use App\Models\TelecallerTask;
+use App\Models\Meeting;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -91,6 +92,34 @@ class NotificationService
         }
 
         return $notifications;
+    }
+
+    public function notifyMeetingReminder(Meeting $meeting): Collection
+    {
+        $meeting->loadMissing(['lead', 'assignedTo']);
+
+        $leadName = $meeting->lead?->name ?? $meeting->customer_name ?? 'Lead';
+        $message = "Meeting reminder: {$leadName}";
+        if ($meeting->scheduled_at) {
+            $message .= ' at ' . $meeting->scheduled_at->format('M d, Y h:i A');
+        }
+
+        return $this->createNotificationsForUsers(
+            $this->uniqueUsers([$meeting->assignedTo]),
+            AppNotification::TYPE_MEETING_REMINDER,
+            'Meeting Reminder',
+            $message,
+            AppNotification::ACTION_LEAD,
+            $this->resolveMeetingActionUrl($meeting),
+            [
+                'meeting_id' => $meeting->id,
+                'lead_id' => $meeting->lead_id,
+                'lead_name' => $leadName,
+                'scheduled_at' => $meeting->scheduled_at?->toIso8601String(),
+            ],
+            null,
+            'meeting-reminder-' . $meeting->id
+        );
     }
 
     public function notifyOverdueTask(TelecallerTask $task): Collection
@@ -510,7 +539,11 @@ class NotificationService
             return;
         }
 
-        if (in_array($notification->type, [AppNotification::TYPE_FOLLOWUP_REMINDER, AppNotification::TYPE_FOLLOWUP_OVERDUE], true)) {
+        if (in_array($notification->type, [
+            AppNotification::TYPE_FOLLOWUP_REMINDER,
+            AppNotification::TYPE_FOLLOWUP_OVERDUE,
+            AppNotification::TYPE_MEETING_REMINDER,
+        ], true)) {
             event(new FollowupNotification($notification));
             return;
         }
@@ -576,6 +609,15 @@ class NotificationService
         }
 
         return url('/leads');
+    }
+
+    private function resolveMeetingActionUrl(Meeting $meeting): string
+    {
+        if ($meeting->lead_id) {
+            return url('/leads/' . $meeting->lead_id);
+        }
+
+        return url('/sales-manager/meetings');
     }
 
     private function uniqueUsers(array $users): Collection

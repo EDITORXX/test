@@ -153,6 +153,7 @@ async function loadNotifications() {
                     notification.type === 'new_verification' ||
                     notification.type === 'new_lead' ||
                     notification.type === 'followup_reminder' ||
+                    notification.type === 'meeting_reminder' ||
                     notification.type === 'task_overdue' ||
                     notification.type === 'followup_overdue'
                 )) {

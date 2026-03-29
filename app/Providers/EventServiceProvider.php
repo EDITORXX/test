@@ -12,7 +12,6 @@ use App\Listeners\CreateManagerExecutiveTask;
 use App\Listeners\CreateManagerVerificationCallTask;
 use App\Listeners\CreateSiteVisitCallTask;
 use App\Listeners\CreateTelecallerTask;
-use App\Listeners\SendLeadAssignedNotification;
 use App\Listeners\SendNewLeadNotification;
 use App\Listeners\SendVerificationNotification;
 use App\Listeners\SendFollowupNotification;
@@ -27,7 +26,6 @@ class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
         LeadAssigned::class => [
-            SendLeadAssignedNotification::class,
             SendNewLeadNotification::class,
             CreateTelecallerTask::class,
             UpdateGoogleSheetOnLeadAssigned::class,
@@ -62,4 +60,3 @@ class EventServiceProvider extends ServiceProvider
         return false;
     }
 }
-

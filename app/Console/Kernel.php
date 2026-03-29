@@ -24,6 +24,9 @@ class Kernel extends ConsoleKernel
         // Send follow-up reminder notifications exactly 5 minutes before due time
         $schedule->command('notifications:followup-reminders')->everyMinute();
 
+        // Send meeting reminder notifications exactly 5 minutes before due time
+        $schedule->command('notifications:meeting-reminders')->everyMinute();
+
         // Notify responsible users and managers about overdue tasks
         $schedule->command('notifications:overdue-tasks')->everyMinute();
 
