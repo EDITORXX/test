@@ -18,7 +18,9 @@ function initDashboard() {
     setupEventListeners();
     // Load performance filter roles then table
     loadPerformanceFilterRoles().then(() => loadTelecallerStats());
+    loadSourceDistribution();
     loadLeadsPendingResponse();
+    loadNewLeadsNotCompleted();
     loadAverageResponseTime();
     loadLeadAllocationOverview();
     loadDailyProspects();
@@ -43,6 +45,50 @@ async function loadLeadAllocationOverview() {
     }
 }
 
+async function loadSourceDistribution() {
+    const container = document.getElementById('crm-source-distribution');
+    if (!container) return;
+
+    try {
+        const params = getLeadsAllocatedDateParams();
+        let url = '/dashboard/source-distribution?date_range=' + encodeURIComponent(params.dateRange);
+
+        if (params.dateRange === 'custom') {
+            if (params.start) url += '&start_date=' + encodeURIComponent(params.start);
+            if (params.end) url += '&end_date=' + encodeURIComponent(params.end);
+        }
+
+        const raw = await apiRequest(url);
+        const data = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+        renderSourceDistribution(container, data);
+    } catch (error) {
+        console.error('Error loading source distribution:', error);
+        container.innerHTML = '<div class="crm-empty" style="grid-column:1 / -1;"><i class="fas fa-exclamation-triangle"></i><p>Error loading lead sources.</p></div>';
+    }
+}
+
+function renderSourceDistribution(container, data) {
+    if (!container) return;
+
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div class="crm-empty" style="grid-column:1 / -1;"><i class="fas fa-inbox"></i><p>No leads found for the selected date range.</p></div>';
+        return;
+    }
+
+    container.innerHTML = data.map(function(item) {
+        return `
+            <article class="crm-stat-card">
+                <div class="crm-stat-top">
+                    <span class="crm-stat-icon"><i class="fas fa-tag"></i></span>
+                    <span class="crm-pill">Source</span>
+                </div>
+                <div class="crm-stat-value">${item.value ?? 0}</div>
+                <div class="crm-stat-label">${item.source || 'Other'}</div>
+            </article>
+        `;
+    }).join('');
+}
+
 // Setup event listeners
 function setupEventListeners() {
     // Page header date range (if present)
@@ -62,19 +108,21 @@ function setupEventListeners() {
     const perfRoleFilter = document.getElementById('perf-role-filter');
     const perfDateRange = document.getElementById('perf-date-range');
     const perfCustomWrap = document.getElementById('perf-custom-date-wrap');
-    perfRoleFilter?.addEventListener('change', () => { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); });
+    perfRoleFilter?.addEventListener('change', () => { loadTelecallerStats(); loadLeadsPendingResponse(); loadNewLeadsNotCompleted(); loadAverageResponseTime(); });
     perfDateRange?.addEventListener('change', function() {
         const isCustom = this.value === 'custom';
         if (perfCustomWrap) perfCustomWrap.classList.toggle('d-none', !isCustom);
         loadTelecallerStats();
+        loadSourceDistribution();
         loadLeadsPendingResponse();
+        loadNewLeadsNotCompleted();
         loadAverageResponseTime();
     });
     if (perfCustomWrap && perfDateRange) {
         perfCustomWrap.classList.toggle('d-none', perfDateRange.value !== 'custom');
     }
-    document.getElementById('perf-date-start')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); } });
-    document.getElementById('perf-date-end')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); } });
+    document.getElementById('perf-date-start')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadSourceDistribution(); loadLeadsPendingResponse(); loadNewLeadsNotCompleted(); loadAverageResponseTime(); } });
+    document.getElementById('perf-date-end')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadSourceDistribution(); loadLeadsPendingResponse(); loadNewLeadsNotCompleted(); loadAverageResponseTime(); } });
 
     // Leads Allocated section: date filter (filters both Leads Allocated and Average Response; syncs with perf)
     const leadsAllocDate = document.getElementById('leads-allocated-date-range');
@@ -85,7 +133,9 @@ function setupEventListeners() {
             perfDateRange.value = this.value;
             if (perfCustomWrap) perfCustomWrap.classList.toggle('d-none', this.value !== 'custom');
             if (leadsAllocCustomWrap) leadsAllocCustomWrap.classList.toggle('d-none', this.value !== 'custom');
+            loadSourceDistribution();
             loadLeadsPendingResponse();
+            loadNewLeadsNotCompleted();
             loadAverageResponseTime();
         });
     }
@@ -95,13 +145,17 @@ function setupEventListeners() {
     document.getElementById('leads-allocated-date-start')?.addEventListener('change', function() {
         var perfStart = document.getElementById('perf-date-start');
         if (perfStart) perfStart.value = this.value;
+        loadSourceDistribution();
         loadLeadsPendingResponse();
+        loadNewLeadsNotCompleted();
         loadAverageResponseTime();
     });
     document.getElementById('leads-allocated-date-end')?.addEventListener('change', function() {
         var perfEnd = document.getElementById('perf-date-end');
         if (perfEnd) perfEnd.value = this.value;
+        loadSourceDistribution();
         loadLeadsPendingResponse();
+        loadNewLeadsNotCompleted();
         loadAverageResponseTime();
     });
     perfDateRange?.addEventListener('change', function syncPerfToLeadsAlloc() {
@@ -404,6 +458,61 @@ async function loadLeadsPendingResponse() {
         tbody.innerHTML = html;
     } catch (error) {
         console.error('Error loading leads pending response:', error);
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Error loading data.</td></tr>';
+    }
+}
+
+async function loadNewLeadsNotCompleted() {
+    const tbody = document.getElementById('new-leads-not-completed-tbody');
+    if (!tbody) return;
+
+    try {
+        var params = getLeadsAllocatedDateParams();
+        let url = '/dashboard/new-leads-not-completed?date_range=' + encodeURIComponent(params.dateRange);
+        if (params.dateRange === 'custom') {
+            if (params.start) url += '&start_date=' + encodeURIComponent(params.start);
+            if (params.end) url += '&end_date=' + encodeURIComponent(params.end);
+        }
+
+        const raw = await apiRequest(url);
+        const serverNow = raw && raw.server_now ? raw.server_now : null;
+        const data = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No new leads pending completion.</td></tr>';
+            return;
+        }
+
+        const leadShowBase = window.location.origin + '/leads';
+        let html = '';
+
+        data.forEach(function(row) {
+            const leads = row.leads || [];
+            const oldestAssign = row.oldest_assigned_at ? formatAssignedAtPending(row.oldest_assigned_at, serverNow) : '—';
+            const rowId = 'new-pending-row-' + row.user_id;
+            const detailId = 'new-pending-detail-' + row.user_id;
+
+            html += '<tr class="leads-pending-user-row" data-user-id="' + row.user_id + '" style="cursor: pointer;" onclick="toggleLeadsPendingDetail(\'' + detailId + '\', \'' + rowId + '\')">' +
+                '<td><i class="fas fa-chevron-right" id="chevron-' + rowId + '"></i></td>' +
+                '<td>' + escapeHtmlPending(row.user_name || '') + '</td>' +
+                '<td class="text-center">' + (row.pending_new_count || 0) + '</td>' +
+                '<td>' + oldestAssign + '</td>' +
+                '</tr>' +
+                '<tr id="' + detailId + '" class="leads-pending-detail-row" style="display: none;">' +
+                '<td colspan="4" style="padding: 0; background: #f8f9fa;">' +
+                '<div class="p-3 ps-5">' +
+                '<table class="table table-sm table-bordered mb-0">' +
+                '<thead><tr><th>Lead Name</th><th>Phone</th><th>Assigned At</th><th></th></tr></thead>' +
+                '<tbody>' +
+                (leads.length === 0 ? '<tr><td colspan="4" class="text-center text-muted py-2">No new leads pending completion.</td></tr>' : leads.map(function(lead) {
+                    return '<tr><td>' + escapeHtmlPending(lead.name || '—') + '</td><td>' + maskPhonePending(lead.phone) + '</td><td>' + formatAssignedAtFullPending(lead.assigned_at) + '</td><td><a href="' + leadShowBase + '/' + lead.lead_id + '" class="text-primary small">View</a></td></tr>';
+                }).join('')) +
+                '</tbody></table></div></td></tr>';
+        });
+
+        tbody.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading new leads not completed:', error);
         tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Error loading data.</td></tr>';
     }
 }

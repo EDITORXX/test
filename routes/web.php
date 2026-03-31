@@ -391,7 +391,32 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('hr-manager.hiring.index');
         }
         // CRM + Admin + baaki sab: CRM dashboard open
-        return view('crm.dashboard');
+        $startDate = now()->copy()->startOfMonth();
+        $endDate = now()->copy()->endOfMonth();
+
+        $sourceDistribution = \App\Models\Lead::query()
+            ->select('source', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('source')
+            ->get()
+            ->reduce(function (array $carry, \App\Models\Lead $lead) {
+                $label = \App\Models\Lead::displaySourceLabel($lead->source);
+                $carry[$label] = ($carry[$label] ?? 0) + (int) ($lead->total ?? 0);
+                return $carry;
+            }, []);
+
+        $initialSourceDistribution = collect($sourceDistribution)
+            ->map(fn (int $value, string $source) => [
+                'source' => $source,
+                'value' => $value,
+            ])
+            ->sortByDesc('value')
+            ->values()
+            ->all();
+
+        return view('crm.dashboard', [
+            'initialSourceDistribution' => $initialSourceDistribution,
+        ]);
     })->name('dashboard');
 
     Route::middleware(['auth', 'role:hr_manager'])->prefix('hr-manager')->name('hr-manager.')->group(function () {
@@ -688,6 +713,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'dashboard'])->name('dashboard');
         Route::get('/dashboard/data', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'getDashboardData'])->name('dashboard.data');
+        Route::post('/dashboard/response-time/{user}/reset', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'resetResponseTime'])->name('dashboard.response-time.reset');
         Route::get('/profile', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'profile'])->name('profile');
         Route::get('/lead-download-requests', [\App\Http\Controllers\Admin\LeadDownloadRequestController::class, 'index'])->name('lead-download-requests.index');
         Route::post('/lead-download-requests/{leadDownloadRequest}/approve', [\App\Http\Controllers\Admin\LeadDownloadRequestController::class, 'approve'])->name('lead-download-requests.approve');
@@ -759,6 +785,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/leads/bulk-calling-tasks', [\App\Http\Controllers\LeadController::class, 'bulkCreateCallingTasks'])
         ->middleware('role:admin,crm')
         ->name('leads.bulk-calling-tasks');
+    Route::delete('/leads/bulk-delete', [\App\Http\Controllers\LeadController::class, 'bulkDestroy'])
+        ->middleware('role:admin,crm')
+        ->name('leads.bulk-delete');
     Route::resource('leads', \App\Http\Controllers\LeadController::class);
     Route::get('/leads/{lead}/short-details', [\App\Http\Controllers\LeadController::class, 'shortDetails'])->name('leads.short-details');
     
@@ -936,6 +965,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/support')->name('admin.
 Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
     Route::get('/', [\App\Http\Controllers\WhatsAppChatController::class, 'index'])->name('index');
     Route::get('/conversations', [\App\Http\Controllers\WhatsAppChatController::class, 'getConversations'])->name('conversations.index');
+        Route::get('/leads', [\App\Http\Controllers\WhatsAppChatController::class, 'getLeads'])->name('leads.index');
     Route::post('/conversations', [\App\Http\Controllers\WhatsAppChatController::class, 'createConversation'])->name('conversations.create');
     Route::get('/conversations/{id}', [\App\Http\Controllers\WhatsAppChatController::class, 'getConversation'])->name('conversations.show');
     Route::post('/messages', [\App\Http\Controllers\WhatsAppChatController::class, 'sendMessage'])->name('messages.send');

@@ -12,6 +12,16 @@
         flex-direction: column;
         gap: 24px;
     }
+    .crm-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+    }
+    .crm-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+    }
     .crm-table-shell .table,
     .crm-table-shell .table * {
         color: inherit;
@@ -68,9 +78,44 @@
         border: 1px solid rgba(220, 38, 38, 0.18);
         background: linear-gradient(135deg, #fff7f7, #fffdfd);
     }
+    .crm-hero {
+        border-radius: 24px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: linear-gradient(135deg, #eefaf5, #ffffff 55%, #f6fbef);
+        padding: 24px 32px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    }
+    .crm-hero-grid {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    .crm-hero-title {
+        margin: 0;
+        font-size: clamp(1.8rem, 3vw, 2.5rem);
+        line-height: 1.15;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #142850;
+    }
+    .crm-hero-title strong {
+        color: #138a63;
+        font-weight: 800;
+    }
     @media (max-width: 960px) {
+        .crm-grid-2,
+        .crm-grid-4 {
+            grid-template-columns: 1fr;
+        }
         .crm-table-shell .table {
             min-width: 560px;
+        }
+        .crm-hero {
+            padding: 18px 20px;
+        }
+        .crm-hero-title {
+            font-size: clamp(1.4rem, 5vw, 1.9rem);
         }
     }
 </style>
@@ -78,30 +123,22 @@
 
 @section('content')
 <div class="page-shell crm-dashboard-shell">
+    @php
+        $greetingHour = (int) now()->format('G');
+        if ($greetingHour >= 6 && $greetingHour < 12) {
+            $dashboardGreeting = 'Good morning';
+        } elseif ($greetingHour >= 12 && $greetingHour < 17) {
+            $dashboardGreeting = 'Good afternoon';
+        } elseif ($greetingHour >= 17 && $greetingHour < 21) {
+            $dashboardGreeting = 'Good evening';
+        } else {
+            $dashboardGreeting = 'Good night';
+        }
+    @endphp
     <section class="crm-hero">
         <div class="crm-hero-grid">
             <div>
-                <span class="crm-kicker">
-                    <i class="fas fa-headset"></i>
-                    CRM Command Center
-                </span>
-                <h2 class="crm-hero-title">CRM dashboard for <strong>live lead movement</strong> and response monitoring.</h2>
-                <p class="crm-hero-copy">
-                    Sales executive performance, pending-response pressure, average callback speed, and lead operations stay exactly as they are now.
-                    Sirf presentation ko premium workspace style me upgrade kiya gaya hai.
-                </p>
-            </div>
-            <div class="crm-mini-grid">
-                <div class="crm-mini-card">
-                    <div class="crm-mini-label">Workspace Mode</div>
-                    <div class="crm-mini-value">CRM</div>
-                    <div class="crm-mini-copy">Shared admin-style shell with existing CRM APIs.</div>
-                </div>
-                <div class="crm-mini-card">
-                    <div class="crm-mini-label">Sections Live</div>
-                    <div class="crm-mini-value">4</div>
-                    <div class="crm-mini-copy">Performance, pending response, average response, and lead controls.</div>
-                </div>
+                <h2 class="crm-hero-title">{{ $dashboardGreeting }}, <strong>{{ auth()->user()->name ?? 'User' }}</strong></h2>
             </div>
         </div>
     </section>
@@ -278,6 +315,66 @@
                         <i class="fas fa-spinner fa-spin"></i>
                         <p>Loading average response time...</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="crm-grid-2">
+        <div class="crm-surface">
+            <div class="crm-surface-header">
+                <div>
+                    <div class="crm-pill">Lead Sources</div>
+                    <h3 class="crm-section-title">Source-wise Lead Inflow</h3>
+                    <p class="crm-section-copy">Selected date range ke hisaab se kis source se kitni leads aayi hain.</p>
+                </div>
+            </div>
+            <div id="crm-source-distribution" class="crm-grid-4">
+                @if(!empty($initialSourceDistribution ?? []))
+                    @foreach(($initialSourceDistribution ?? []) as $item)
+                        <article class="crm-stat-card">
+                            <div class="crm-stat-top">
+                                <span class="crm-stat-icon"><i class="fas fa-tag"></i></span>
+                                <span class="crm-pill">Source</span>
+                            </div>
+                            <div class="crm-stat-value">{{ $item['value'] ?? 0 }}</div>
+                            <div class="crm-stat-label">{{ $item['source'] ?? 'Other' }}</div>
+                        </article>
+                    @endforeach
+                @else
+                    <div class="crm-empty" style="grid-column:1 / -1;">
+                        <i class="fas fa-inbox"></i>
+                        <p>No leads found for the selected date range.</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="crm-surface">
+            <div class="crm-surface-header">
+                <div>
+                    <div class="crm-pill">New Lead Queue</div>
+                    <h3 class="crm-section-title">New Leads Not Completed</h3>
+                    <p class="crm-section-copy">User-wise wo new leads jo assign ho chuki hain lekin abhi tak complete mark nahi hui hain.</p>
+                </div>
+            </div>
+            <div class="crm-table-shell">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px;"></th>
+                                <th>User Name</th>
+                                <th class="text-center">Pending New Leads</th>
+                                <th>Oldest Assign</th>
+                            </tr>
+                        </thead>
+                        <tbody id="new-leads-not-completed-tbody">
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-5">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

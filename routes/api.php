@@ -55,6 +55,7 @@ Route::middleware('throttle:60,1')->group(function () {
 
     // MCube Call Tracking Webhook (token validated inside controller)
     Route::post('/webhooks/mcube', [\App\Http\Controllers\Api\McubeWebhookController::class, 'receive']);
+    Route::post('/webhooks/whatsapp/incoming', [\App\Http\Controllers\Api\WhatsAppIncomingWebhookController::class, 'receive']);
 
     // Google Sheets Lead API (for Google Apps Script)
     Route::post('/google-sheets/leads', [\App\Http\Controllers\Api\GoogleSheetsLeadController::class, 'store']);
@@ -314,8 +315,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/dashboard/filter-roles', [CrmDashboardController::class, 'getPerformanceFilterRoles']);
             Route::get('/dashboard/telecaller-stats', [CrmDashboardController::class, 'getTelecallerStats']);
             Route::get('/dashboard/leads-pending-response', [CrmDashboardController::class, 'getLeadsPendingResponse']);
+            Route::get('/dashboard/new-leads-not-completed', [CrmDashboardController::class, 'getNewLeadsNotCompleted']);
             Route::get('/dashboard/average-response-time', [CrmDashboardController::class, 'getAverageResponseTime']);
             Route::get('/dashboard/lead-allocation-overview', [CrmDashboardController::class, 'getLeadAllocationOverview']);
+            Route::get('/dashboard/source-distribution', [CrmDashboardController::class, 'getSourceDistribution']);
             Route::get('/dashboard/daily-prospects', [CrmDashboardController::class, 'getDailyProspects']);
         });
         

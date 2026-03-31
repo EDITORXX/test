@@ -10,6 +10,7 @@ use App\Models\LeadAssignment;
 use App\Models\Meeting;
 use App\Models\Prospect;
 use App\Models\SiteVisit;
+use App\Models\Task;
 use App\Models\TelecallerTask;
 use App\Models\User;
 use App\Models\TelecallerDailyLimit;
@@ -19,10 +20,16 @@ use App\Models\UserProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\DashboardResponseTimeService;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private DashboardResponseTimeService $dashboardResponseTimeService
+    ) {
+    }
+
     /**
      * Get date range based on filter type
      */
@@ -245,19 +252,7 @@ class DashboardController extends Controller
             $dateRange = $request->get('date_range', 'this_month');
             [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
 
-            $users = User::with('role')
-                ->where('is_active', true)
-                ->whereHas('role', function ($q) {
-                    $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
-                })
-                ->get()
-                ->filter(function ($user) {
-                    if ($user->role && $user->role->slug === Role::SALES_MANAGER && $user->manager_id === null) {
-                        return false;
-                    }
-                    return true;
-                })
-                ->values();
+            $users = $this->getEligibleDashboardUsers();
 
             if ($users->isEmpty()) {
                 return response()->json(['data' => [], 'server_now' => now()->toIso8601String()]);
@@ -335,6 +330,82 @@ class DashboardController extends Controller
         }
     }
 
+    public function getNewLeadsNotCompleted(Request $request)
+    {
+        try {
+            $dateRange = $request->get('date_range', 'this_month');
+            [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
+
+            $users = $this->getEligibleDashboardUsers();
+
+            if ($users->isEmpty()) {
+                return response()->json(['data' => [], 'server_now' => now()->toIso8601String()]);
+            }
+
+            $result = [];
+
+            foreach ($users as $user) {
+                $assignmentsQuery = LeadAssignment::query()
+                    ->where('assigned_to', $user->id)
+                    ->where('is_active', true)
+                    ->whereHas('lead', function ($leadQuery) {
+                        $leadQuery->where('status', 'new');
+                    })
+                    ->with('lead:id,name,phone,status');
+
+                if ($startDate && $endDate) {
+                    $assignmentsQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+                }
+
+                $assignments = $assignmentsQuery->orderBy('assigned_at', 'desc')->get();
+                $leads = [];
+
+                foreach ($assignments as $assignment) {
+                    $lead = $assignment->lead;
+                    if (!$lead || $this->isLeadTaskCompletedForUser($user, (int) $lead->id)) {
+                        continue;
+                    }
+
+                    $leads[] = [
+                        'lead_id' => $lead->id,
+                        'name' => $lead->name,
+                        'phone' => $lead->phone,
+                        'assigned_at' => $assignment->assigned_at?->toIso8601String(),
+                    ];
+                }
+
+                $result[] = [
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'pending_new_count' => count($leads),
+                    'leads' => $leads,
+                    'oldest_assigned_at' => collect($leads)
+                        ->pluck('assigned_at')
+                        ->filter()
+                        ->sort()
+                        ->first(),
+                ];
+            }
+
+            usort($result, function (array $a, array $b) {
+                $countCompare = ($b['pending_new_count'] ?? 0) <=> ($a['pending_new_count'] ?? 0);
+                if ($countCompare !== 0) {
+                    return $countCompare;
+                }
+
+                return strcasecmp((string) ($a['user_name'] ?? ''), (string) ($b['user_name'] ?? ''));
+            });
+
+            return response()->json([
+                'data' => $result,
+                'server_now' => now()->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getNewLeadsNotCompleted: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Get user-wise average lead response time (assign to first response) for the date range.
      * Same logic as Admin getAverageResponseTimeByUser.
@@ -344,95 +415,7 @@ class DashboardController extends Controller
         try {
             $dateRange = $request->get('date_range', 'this_month');
             [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
-
-            $users = User::with('role')
-                ->where('is_active', true)
-                ->whereHas('role', function ($q) {
-                    $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
-                })
-                ->get()
-                ->filter(function ($user) {
-                    if ($user->role && $user->role->slug === Role::SALES_MANAGER && $user->manager_id === null) {
-                        return false;
-                    }
-                    return true;
-                })
-                ->values();
-
-            if ($users->isEmpty()) {
-                return response()->json(['data' => [], 'server_now' => now()->toIso8601String()]);
-            }
-
-            $result = [];
-
-            foreach ($users as $user) {
-                $userId = $user->id;
-
-                $assignmentsQuery = LeadAssignment::where('assigned_to', $userId)
-                    ->where('is_active', true);
-
-                if ($startDate && $endDate) {
-                    $assignmentsQuery->whereBetween('assigned_at', [$startDate, $endDate]);
-                }
-
-                $assignments = $assignmentsQuery->get();
-                $responseMinutesList = [];
-
-                foreach ($assignments as $a) {
-                    $assignedAt = $a->assigned_at;
-                    $leadId = $a->lead_id;
-
-                    $taskFirst = TelecallerTask::where('lead_id', $leadId)
-                        ->where('assigned_to', $userId)
-                        ->where('status', 'completed')
-                        ->min('completed_at');
-
-                    $crmFirst = DB::table('crm_assignments')
-                        ->where('lead_id', $leadId)
-                        ->where('assigned_to', $userId)
-                        ->where(function ($q) {
-                            $q->where('cnp_count', '>', 0)
-                                ->orWhere('call_status', '!=', 'pending');
-                        })
-                        ->selectRaw('MIN(COALESCE(called_at, updated_at)) as first_at')
-                        ->value('first_at');
-
-                    $firstResponse = null;
-                    if ($taskFirst && $crmFirst) {
-                        $firstResponse = Carbon::parse($taskFirst)->lt(Carbon::parse($crmFirst)) ? $taskFirst : $crmFirst;
-                    } elseif ($taskFirst) {
-                        $firstResponse = $taskFirst;
-                    } elseif ($crmFirst) {
-                        $firstResponse = $crmFirst;
-                    }
-
-                    if (!$firstResponse) {
-                        continue;
-                    }
-
-                    $firstResponseCarbon = Carbon::parse($firstResponse);
-                    if ($firstResponseCarbon->lt($assignedAt)) {
-                        continue;
-                    }
-
-                    $responseMinutesList[] = (int) round($assignedAt->diffInMinutes($firstResponseCarbon));
-                }
-
-                $avgMinutes = count($responseMinutesList) > 0
-                    ? array_sum($responseMinutesList) / count($responseMinutesList)
-                    : 0;
-                $result[] = [
-                    'user_id' => $userId,
-                    'user_name' => $user->name,
-                    'avg_response_minutes' => count($responseMinutesList) > 0 ? round($avgMinutes, 1) : 0,
-                    'responded_count' => count($responseMinutesList),
-                ];
-            }
-
-            usort($result, function ($a, $b) {
-                $cmp = (int) ($a['avg_response_minutes'] <=> $b['avg_response_minutes']);
-                return $cmp !== 0 ? $cmp : strcasecmp($a['user_name'] ?? '', $b['user_name'] ?? '');
-            });
+            $result = $this->dashboardResponseTimeService->getAverageResponseTimeByUser($startDate, $endDate);
 
             return response()->json([
                 'data' => $result,
@@ -466,6 +449,38 @@ class DashboardController extends Controller
             'scheduled_off' => $offProfiles->filter(fn ($profile) => $profile->hasUpcomingLeadOffWindow())->count(),
             'control_url' => route('lead-assignment.lead-off-users'),
         ]);
+    }
+
+    public function getSourceDistribution(Request $request)
+    {
+        $dateRange = $request->get('date_range', 'all_time');
+        [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
+
+        $rows = Lead::query()
+            ->select('source', DB::raw('COUNT(*) as total'))
+            ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->groupBy('source')
+            ->get();
+
+        $distribution = $rows
+            ->reduce(function (array $carry, Lead $lead) {
+                $label = Lead::displaySourceLabel($lead->source);
+                $carry[$label] = ($carry[$label] ?? 0) + (int) ($lead->total ?? 0);
+                return $carry;
+            }, []);
+
+        $data = collect($distribution)
+            ->map(fn (int $value, string $source) => [
+                'source' => $source,
+                'value' => $value,
+            ])
+            ->sortByDesc('value')
+            ->values()
+            ->all();
+
+        return response()->json($data);
     }
 
     /**
@@ -659,5 +674,53 @@ class DashboardController extends Controller
             }
             return $result;
         }
+    }
+
+    private function getEligibleDashboardUsers()
+    {
+        return User::with('role')
+            ->where('is_active', true)
+            ->whereHas('role', function ($q) {
+                $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
+            })
+            ->get()
+            ->filter(function ($user) {
+                if ($user->role && $user->role->slug === Role::SALES_MANAGER && $user->manager_id === null) {
+                    return false;
+                }
+
+                return true;
+            })
+            ->values();
+    }
+
+    private function isLeadTaskCompletedForUser(User $user, int $leadId): bool
+    {
+        $roleSlug = $user->role->slug ?? null;
+
+        if ($roleSlug === Role::SALES_EXECUTIVE) {
+            return TelecallerTask::query()
+                ->where('assigned_to', $user->id)
+                ->where('lead_id', $leadId)
+                ->where(function ($query) {
+                    $query->where('status', 'completed')
+                        ->orWhereNotNull('completed_at');
+                })
+                ->exists();
+        }
+
+        if (in_array($roleSlug, [Role::SALES_MANAGER, Role::SENIOR_MANAGER, Role::ASSISTANT_SALES_MANAGER], true)) {
+            return Task::query()
+                ->where('assigned_to', $user->id)
+                ->where('lead_id', $leadId)
+                ->where('type', 'phone_call')
+                ->where(function ($query) {
+                    $query->where('status', 'completed')
+                        ->orWhereNotNull('completed_at');
+                })
+                ->exists();
+        }
+
+        return false;
     }
 }
