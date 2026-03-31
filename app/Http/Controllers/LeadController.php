@@ -8,9 +8,13 @@ use App\Models\Project;
 use App\Models\LeadAssignment;
 use App\Models\Prospect;
 use App\Models\Role;
+use App\Models\Task;
+use App\Models\TelecallerTask;
 use App\Events\LeadAssigned;
+use App\Services\FormDetectionService;
 use App\Services\LeadActivityService;
 use App\Services\DynamicFormService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -71,19 +75,25 @@ class LeadController extends Controller
                 $query->whereRaw('1 = 0');
             } else {
                 $query->where(function ($q) use ($user, $teamMemberIds) {
-                    $q->whereHas('activeAssignments', function ($aq) use ($user, $teamMemberIds) {
-                        $aq->where('is_active', true)
-                           ->where(function ($aq2) use ($user, $teamMemberIds) {
-                               $aq2->where('assigned_to', $user->id)
-                                   ->orWhereIn('assigned_to', $teamMemberIds);
-                           });
-                    })
-                    ->orWhereHas('prospects', function ($pq) use ($teamMemberIds) {
-                        $pq->whereIn('telecaller_id', $teamMemberIds)
-                           ->whereIn('verification_status', ['verified', 'approved']);
-                    });
+                    $managerAndTeamIds = $teamMemberIds->merge([$user->id])->unique()->values();
+
+                    $q->whereAssignedToUsers($managerAndTeamIds)
+                        ->orWhere(function ($fallbackQuery) use ($teamMemberIds) {
+                            $fallbackQuery->whereVisibleViaProspectFallback($teamMemberIds, function ($prospectQuery) {
+                                $prospectQuery->whereIn('verification_status', ['verified', 'approved']);
+                            });
+                        });
                 });
             }
+        }
+
+        if ($user->isSalesExecutive()) {
+            $query->where(function ($visibilityQuery) use ($user) {
+                $visibilityQuery->whereAssignedToUsers([$user->id])
+                    ->orWhere(function ($fallbackQuery) use ($user) {
+                        $fallbackQuery->whereVisibleViaProspectFallback([$user->id]);
+                    });
+            });
         }
 
         // Search functionality
@@ -104,6 +114,11 @@ class LeadController extends Controller
         // Filter by source
         if ($request->filled('source')) {
             $query->where('source', Lead::normalizeSource($request->source));
+        }
+
+        [$startDate, $endDate] = $this->resolveLeadDateRange($request);
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
         }
 
         // Filter by lead type (Prospect, Visit, Revisit, Meeting, Closer)
@@ -194,7 +209,94 @@ class LeadController extends Controller
         return view('leads.index', compact('leads', 'statuses', 'filterUsers', 'ownerTransferUsers', 'view'));
     }
 
-    public function create()
+    private function resolveLeadDateRange(Request $request): array
+    {
+        $dateRange = $request->get('date_range');
+        $today = Carbon::today();
+
+        return match ($dateRange) {
+            'today' => [$today->copy()->startOfDay(), $today->copy()->endOfDay()],
+            'yesterday' => [$today->copy()->subDay()->startOfDay(), $today->copy()->subDay()->endOfDay()],
+            'this_week' => [$today->copy()->startOfWeek(), $today->copy()->endOfWeek()],
+            'this_month' => [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()],
+            'this_year' => [$today->copy()->startOfYear(), $today->copy()->endOfYear()],
+            'custom' => $this->resolveCustomLeadDateRange($request),
+            default => [null, null],
+        };
+    }
+
+    private function resolveCustomLeadDateRange(Request $request): array
+    {
+        if (!$request->filled('start_date') || !$request->filled('end_date')) {
+            return [null, null];
+        }
+
+        try {
+            return [
+                Carbon::parse($request->get('start_date'))->startOfDay(),
+                Carbon::parse($request->get('end_date'))->endOfDay(),
+            ];
+        } catch (\Throwable $e) {
+            return [null, null];
+        }
+    }
+
+    private function determineAsmTaskCategory(Task $task, Lead $lead): string
+    {
+        $prospect = $lead->prospects->sortByDesc('created_at')->first();
+        $hasPendingProspect = $prospect && in_array($prospect->verification_status ?? '', ['pending', 'pending_verification'], true);
+
+        $taskText = strtolower(trim(
+            ($task->title ?? '') . ' ' .
+            ($task->description ?? '') . ' ' .
+            ($task->notes ?? '')
+        ));
+
+        $isFollowUpTask = str_contains($taskText, 'follow-up call')
+            || str_contains($taskText, 'follow up call')
+            || str_contains($taskText, 'follow-up scheduled');
+        $isCnpRetryTask = str_contains($taskText, 'cnp retry task created')
+            || str_contains($taskText, 'cnp rescheduled')
+            || str_contains($taskText, 'previous call not picked');
+        $isCloserTask = str_contains($taskText, 'closer');
+        $isSiteVisitTask = str_contains($taskText, 'site visit') || str_contains($taskText, 'site-visit');
+        $isMeetingTask = str_contains($taskText, 'meeting id')
+            || str_contains($taskText, 'pre-meeting')
+            || (str_contains($taskText, 'meeting') && !$isSiteVisitTask);
+        $isProspectTask = !$isFollowUpTask && !$isCnpRetryTask && $hasPendingProspect;
+        $isFreshLeadTask = !$isFollowUpTask
+            && !$isCnpRetryTask
+            && !$isCloserTask
+            && !$isSiteVisitTask
+            && !$isMeetingTask
+            && !$isProspectTask;
+
+        if ($isFreshLeadTask) {
+            return 'fresh_lead';
+        }
+        if ($isFollowUpTask) {
+            return 'follow_up';
+        }
+        if ($isCloserTask) {
+            return 'closer';
+        }
+        if ($isSiteVisitTask) {
+            return 'site_visit';
+        }
+        if ($isMeetingTask) {
+            return 'meeting';
+        }
+        if ($isProspectTask) {
+            return 'prospect';
+        }
+
+        return 'other';
+    }
+
+    public function create(
+        DynamicFormService $dynamicFormService,
+        FormDetectionService $formDetectionService
+    )
     {
         $user = auth()->user();
         
@@ -217,7 +319,16 @@ class LeadController extends Controller
         // CRM panel: hide Location Details (Address, City, State, Pincode) on create form
         $showLocationDetails = !$user->isCrm();
 
-        return view('leads.create', compact('users', 'projects', 'showLocationDetails'));
+        $dynamicForm = $dynamicFormService->getPublishedFormByLocation('leads.create');
+        $fallbackFields = $formDetectionService->getFieldDefinitions('lead', 'leads.create');
+
+        return view('leads.create', compact(
+            'users',
+            'projects',
+            'showLocationDetails',
+            'dynamicForm',
+            'fallbackFields'
+        ));
     }
 
     public function store(Request $request)
@@ -324,6 +435,8 @@ class LeadController extends Controller
                     $layout = 'sales-head.layout';
                 } elseif ($user->isSalesManager()) {
                     $layout = 'sales-manager.layout';
+                } elseif ($user->isSeniorManager()) {
+                    $layout = 'sales-manager.layout';
                 } elseif ($user->isAssistantSalesManager()) {
                     $layout = 'sales-manager.layout';
                 } elseif ($user->isSalesExecutive()) {
@@ -331,6 +444,9 @@ class LeadController extends Controller
                 } elseif ($user->relationLoaded('role') && $user->role) {
                     switch ($user->role->slug) {
                         case \App\Models\Role::SALES_MANAGER:
+                            $layout = 'sales-manager.layout';
+                            break;
+                        case \App\Models\Role::SENIOR_MANAGER:
                             $layout = 'sales-manager.layout';
                             break;
                         case \App\Models\Role::ASSISTANT_SALES_MANAGER:
@@ -391,6 +507,22 @@ class LeadController extends Controller
                     ->get();
             }
 
+            $asmOpenTasks = collect();
+            if ($user && ($user->isAssistantSalesManager() || $user->isSeniorManager())) {
+                $lead->loadMissing('prospects');
+                $asmOpenTasks = Task::query()
+                    ->where('lead_id', $lead->id)
+                    ->where('assigned_to', $user->id)
+                    ->where('type', 'phone_call')
+                    ->whereIn('status', ['pending', 'in_progress', 'rescheduled'])
+                    ->orderByRaw('COALESCE(scheduled_at, updated_at, created_at) DESC')
+                    ->orderByDesc('id')
+                    ->get()
+                    ->each(function (Task $task) use ($lead) {
+                        $task->setAttribute('category', $this->determineAsmTaskCategory($task, $lead));
+                    });
+            }
+
             $dynamicFormService = app(DynamicFormService::class);
             $leadDetailRequirementsForm = $dynamicFormService->getPublishedFormByLocation('lead-detail.requirements');
             $leadDetailMeetingForm = $dynamicFormService->getPublishedFormByLocation('lead-detail.meeting');
@@ -403,6 +535,7 @@ class LeadController extends Controller
                 'responseTimeData',
                 'layout',
                 'ownerTransferUsers',
+                'asmOpenTasks',
                 'leadDetailRequirementsForm',
                 'leadDetailMeetingForm',
                 'leadDetailSiteVisitForm',
@@ -598,10 +731,58 @@ class LeadController extends Controller
         if (!$user->isAdmin() && !$user->isCrm()) {
             abort(403, 'Only Admin and CRM can delete leads.');
         }
-        $lead->delete();
+
+        DB::transaction(function () use ($lead) {
+            $this->hideOpenTasksForLeadIds([$lead->id]);
+            $lead->delete();
+        });
+
         return redirect()
             ->route('leads.index')
             ->with('success', 'Lead deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isAdmin() && !$user->isCrm()) {
+            abort(403, 'Only Admin and CRM can delete leads.');
+        }
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:leads,id'],
+        ]);
+
+        $leadIds = collect($validated['ids'])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        DB::transaction(function () use ($leadIds) {
+            $leadIdList = $leadIds->all();
+            $this->hideOpenTasksForLeadIds($leadIdList);
+            Lead::whereIn('id', $leadIdList)->delete();
+        });
+
+        return redirect()
+            ->route('leads.index')
+            ->with('success', "{$leadIds->count()} lead(s) deleted successfully.");
+    }
+
+    private function hideOpenTasksForLeadIds(array $leadIds): void
+    {
+        if (empty($leadIds)) {
+            return;
+        }
+
+        Task::whereIn('lead_id', $leadIds)
+            ->whereIn('status', ['pending', 'in_progress', 'rescheduled'])
+            ->delete();
+
+        TelecallerTask::whereIn('lead_id', $leadIds)
+            ->whereIn('status', ['pending', 'in_progress', 'rescheduled'])
+            ->delete();
     }
 
     public function shortDetails(Request $request, Lead $lead)
@@ -710,8 +891,8 @@ class LeadController extends Controller
         if ($user->isSalesHead()) {
             $teamMemberIds = $user->getAllTeamMemberIds();
             if (!empty($teamMemberIds)) {
-                return $lead->activeAssignments()->whereIn('assigned_to', $teamMemberIds)->exists() ||
-                       $lead->prospects()->whereIn('telecaller_id', $teamMemberIds)->exists();
+                return $lead->isAssignedToAnyUser($teamMemberIds) ||
+                    $lead->isVisibleViaProspectFallback($teamMemberIds);
             }
             return false;
         }
@@ -719,32 +900,28 @@ class LeadController extends Controller
         // Senior Manager, Manager, Assistant Sales Manager: can see leads from their team
         if ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
-            
-            // Check if lead is directly assigned to this manager
-            if ($lead->activeAssignments()->where('assigned_to', $user->id)->where('is_active', true)->exists()) {
+
+            if ($lead->isAssignedToUser($user->id)) {
                 return true;
             }
-            
-            // Check if lead is assigned to team members
-            if ($teamMemberIds->isNotEmpty() && $lead->activeAssignments()->whereIn('assigned_to', $teamMemberIds)->where('is_active', true)->exists()) {
+
+            if ($teamMemberIds->isNotEmpty() && $lead->isAssignedToAnyUser($teamMemberIds)) {
                 return true;
             }
-            
-            // Check if lead came from verified prospects of team members
+
             if ($teamMemberIds->isNotEmpty()) {
-                return $lead->prospects()
-                    ->whereIn('telecaller_id', $teamMemberIds)
-                    ->whereIn('verification_status', ['verified', 'approved'])
-                    ->exists();
+                return $lead->isVisibleViaProspectFallback($teamMemberIds, function ($prospectQuery) {
+                    $prospectQuery->whereIn('verification_status', ['verified', 'approved']);
+                });
             }
-            
+
             return false;
         }
 
         // Sales Executive can see only assigned leads or leads from their own prospects
         if ($user->isSalesExecutive()) {
-            return $lead->activeAssignments()->where('assigned_to', $user->id)->exists() ||
-                   $lead->prospects()->where('telecaller_id', $user->id)->exists();
+            return $lead->isAssignedToUser($user->id) ||
+                $lead->isVisibleViaProspectFallback([$user->id]);
         }
 
         return false;
@@ -778,7 +955,7 @@ class LeadController extends Controller
                     if (!$exists) {
                         app(\App\Services\TelecallerTaskService::class)->createCallingTask($lead, $assignee, $assignedBy);
                     }
-                } elseif (in_array($slug, [Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER])) {
+                } elseif (in_array($slug, [Role::SALES_MANAGER, Role::SENIOR_MANAGER, Role::ASSISTANT_SALES_MANAGER])) {
                     $exists = \App\Models\Task::where('lead_id', $lead->id)->where('assigned_to', $assignedTo)->where('type', 'phone_call')->whereIn('status', ['pending', 'in_progress'])->exists();
                     if (!$exists) {
                         \App\Models\Task::create([

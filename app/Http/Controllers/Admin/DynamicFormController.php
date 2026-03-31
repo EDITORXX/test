@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 class DynamicFormController extends Controller
 {
     private const ALLOWED_FORM_PATHS = [
+        'leads.create',
         'lead-detail.requirements',
         'lead-detail.meeting',
         'lead-detail.site-visit',
@@ -48,7 +49,7 @@ class DynamicFormController extends Controller
     {
         $names = [
             'crm.automation.leads.create' => 'Lead Creation Form',
-            'leads.create'                => 'Lead Form (Standard)',
+            'leads.create'                => 'Add Lead Form',
             'leads.edit'                  => 'Lead Edit Form',
             'lead-detail.requirements'    => 'Lead Detail Requirements Form',
             'meetings.create'             => 'Meeting Form',
@@ -79,15 +80,24 @@ class DynamicFormController extends Controller
                 ['label' => 'Notes',           'type' => 'textarea', 'name' => 'notes',    'required' => false],
             ],
             'leads.create' => [
-                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'name',     'required' => true],
-                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',    'required' => true],
-                ['label' => 'Email Address',   'type' => 'email',    'name' => 'email',    'required' => false],
-                ['label' => 'Lead Source',     'type' => 'select',   'name' => 'source',   'required' => false,
-                 'options' => ['Facebook', 'Google', 'Walk-in', 'Referral', 'Pabbly', 'Other']],
-                ['label' => 'Status',          'type' => 'select',   'name' => 'status',   'required' => false,
-                 'options' => ['New', 'Contacted', 'Interested', 'Not Interested']],
-                ['label' => 'Budget',          'type' => 'text',     'name' => 'budget',   'required' => false],
-                ['label' => 'Notes',           'type' => 'textarea', 'name' => 'notes',    'required' => false],
+                ['label' => 'Name',              'type' => 'text',     'name' => 'name',               'required' => true],
+                ['label' => 'Phone',             'type' => 'tel',      'name' => 'phone',              'required' => true],
+                ['label' => 'Email',             'type' => 'email',    'name' => 'email',              'required' => false],
+                ['label' => 'Address',           'type' => 'textarea', 'name' => 'address',            'required' => false],
+                ['label' => 'City',              'type' => 'text',     'name' => 'city',               'required' => false],
+                ['label' => 'State',             'type' => 'text',     'name' => 'state',              'required' => false],
+                ['label' => 'Pincode',           'type' => 'text',     'name' => 'pincode',            'required' => false],
+                ['label' => 'Preferred Location','type' => 'select',   'name' => 'preferred_location', 'required' => false],
+                ['label' => 'Preferred Size',    'type' => 'text',     'name' => 'preferred_size',     'required' => false],
+                ['label' => 'Preferred Projects','type' => 'select',   'name' => 'preferred_projects', 'required' => false],
+                ['label' => 'Budget',            'type' => 'select',   'name' => 'budget',             'required' => false],
+                ['label' => 'Source',            'type' => 'select',   'name' => 'source',             'required' => false],
+                ['label' => 'Use/End Use',       'type' => 'select',   'name' => 'use_end_use',        'required' => false],
+                ['label' => 'Property Type',     'type' => 'select',   'name' => 'property_type',      'required' => false],
+                ['label' => 'Possession Status', 'type' => 'select',   'name' => 'possession_status',  'required' => false],
+                ['label' => 'Assign To User',    'type' => 'select',   'name' => 'assigned_to',        'required' => false],
+                ['label' => 'Requirements',      'type' => 'textarea', 'name' => 'requirements',       'required' => false],
+                ['label' => 'Notes',             'type' => 'textarea', 'name' => 'notes',              'required' => false],
             ],
             'leads.edit' => [
                 ['label' => 'Customer Name',   'type' => 'text',     'name' => 'name',     'required' => true],
@@ -724,7 +734,7 @@ class DynamicFormController extends Controller
 
         // 2. Lead Form (Standard - Leads module)
         $addIfRouteExists('leads.create', [
-            'name'     => 'Lead Form (Standard)',
+            'name'     => 'Add Lead Form',
             'location' => 'Leads > Create',
             'path'     => 'leads.create',
             'type'     => 'lead',
