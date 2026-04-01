@@ -93,19 +93,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/targets/team-progress', [TargetController::class, 'teamProgress'])->middleware('role:sales_manager');
     Route::get('/targets/overview', [TargetController::class, 'overview'])->middleware('role:admin,crm');
 
-    // Leads
-    Route::apiResource('leads', LeadController::class)->names(['index' => 'api.leads.index', 'store' => 'api.leads.store', 'show' => 'api.leads.show', 'update' => 'api.leads.update', 'destroy' => 'api.leads.destroy']);
-    Route::post('/leads/bulk-assign', [LeadController::class, 'bulkAssign']);
-    Route::post('/leads/transfer-all-from-user', [LeadController::class, 'transferAllFromUser']);
-    Route::post('/leads/{lead}/assign', [LeadController::class, 'assign']);
-    Route::get('/leads/{lead}/requirement-form', [\App\Http\Controllers\Api\SalesManagerController::class, 'getLeadRequirementForm']);
-    Route::post('/leads/{lead}/update-requirements', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateLeadRequirements']);
+    Route::middleware('prevent.cache')->group(function () {
+        // Leads
+        Route::apiResource('leads', LeadController::class)->names(['index' => 'api.leads.index', 'store' => 'api.leads.store', 'show' => 'api.leads.show', 'update' => 'api.leads.update', 'destroy' => 'api.leads.destroy']);
+        Route::post('/leads/bulk-assign', [LeadController::class, 'bulkAssign']);
+        Route::post('/leads/transfer-all-from-user', [LeadController::class, 'transferAllFromUser']);
+        Route::post('/leads/{lead}/assign', [LeadController::class, 'assign']);
+        Route::post('/leads/{lead}/old-tasks/complete', [LeadController::class, 'completeOldTask'])->middleware('role:admin,crm');
+        Route::delete('/leads/{lead}/old-tasks', [LeadController::class, 'deleteOldTask'])->middleware('role:admin,crm');
+        Route::get('/leads/{lead}/requirement-form', [\App\Http\Controllers\Api\SalesManagerController::class, 'getLeadRequirementForm']);
+        Route::post('/leads/{lead}/update-requirements', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateLeadRequirements']);
 
-    // Site Visits
-    Route::apiResource('site-visits', SiteVisitController::class)->names('api.site-visits');
+        // Site Visits
+        Route::apiResource('site-visits', SiteVisitController::class)->names('api.site-visits');
 
-    // Follow-ups
-    Route::apiResource('follow-ups', FollowUpController::class)->names('api.follow-ups');
+        // Follow-ups
+        Route::apiResource('follow-ups', FollowUpController::class)->names('api.follow-ups');
+    });
 
     // Interested Project Names
     Route::get('/interested-project-names', [InterestedProjectNameController::class, 'index']);
@@ -127,7 +131,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/impersonate/stop', [UserController::class, 'stopImpersonation'])->middleware('permission:manage_users');
 
     // Telecaller / Sales Executive routes (both roles use same API)
-    Route::prefix('telecaller')->middleware('role:sales_executive,admin,crm,sales_manager,senior_manager,assistant_sales_manager,sales_head')->group(function () {
+    Route::prefix('telecaller')->middleware(['role:sales_executive,admin,crm,sales_manager,senior_manager,assistant_sales_manager,sales_head', 'prevent.cache'])->group(function () {
         // Auth routes
         Route::get('/whoami', [TelecallerController::class, 'whoami']);
         Route::post('/logout', [TelecallerController::class, 'logout']);
@@ -212,7 +216,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Enhanced Call Logs API (for all roles)
-    Route::prefix('call-logs')->name('api.call-logs.')->group(function () {
+    Route::prefix('call-logs')->name('api.call-logs.')->middleware('prevent.cache')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\CallLogController::class, 'index']);
         Route::post('/', [\App\Http\Controllers\Api\CallLogController::class, 'store']);
         Route::post('/bulk-sync', [\App\Http\Controllers\Api\CallLogController::class, 'bulkSync']);
@@ -224,7 +228,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Sales Manager routes (Admin, CRM, Sales Head, Senior Manager, Manager, Assistant Sales Manager)
-    Route::prefix('sales-manager')->middleware('role:admin,crm,sales_head,sales_manager,senior_manager,assistant_sales_manager')->group(function () {
+    Route::prefix('sales-manager')->middleware(['role:admin,crm,sales_head,sales_manager,senior_manager,assistant_sales_manager', 'prevent.cache'])->group(function () {
         // Profile
         Route::get('/leads-pending-response', [LeadsPendingResponseController::class, 'forCurrentUser']);
         Route::get('/profile', [\App\Http\Controllers\Api\SalesManagerController::class, 'getProfile']);
@@ -234,6 +238,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/profile/availability', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateAvailability']);
         Route::get('/dashboard-settings', [\App\Http\Controllers\Api\SalesManagerController::class, 'getDashboardSettings']);
         Route::post('/dashboard-settings', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateDashboardSettings']);
+        Route::post('/dashboard/clear-cache', [\App\Http\Controllers\Api\SalesManagerController::class, 'clearDashboardCache']);
         
         // Team management
         Route::get('/team/member/{memberId}', [\App\Http\Controllers\Api\SalesManagerController::class, 'getTeamMemberDetails']);
@@ -265,6 +270,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tasks/{task}/reject', [\App\Http\Controllers\Api\SalesManagerController::class, 'rejectProspectFromTask']);
         Route::post('/tasks/{task}/cnp', [\App\Http\Controllers\Api\SalesManagerController::class, 'markAsCNP']);
         Route::post('/tasks/{task}/complete', [\App\Http\Controllers\Api\SalesManagerController::class, 'completeTask']);
+        Route::post('/tasks/{task}/workflow-action', [\App\Http\Controllers\Api\SalesManagerController::class, 'executeTaskWorkflowAction']);
         Route::post('/tasks/remove-all-overdue', [\App\Http\Controllers\Api\SalesManagerController::class, 'removeAllOverdueTasks']);
         
         // Meetings
@@ -309,17 +315,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/login', [CrmAuthController::class, 'login']);
         
         // Dashboard API: all roles except CRM Admin and Sale Head (sbka dikhega unko chhod kar)
-        Route::middleware(['auth:sanctum', 'crm_dashboard_access'])->group(function () {
+        Route::middleware(['auth:sanctum', 'crm_dashboard_access', 'prevent.cache'])->group(function () {
             Route::get('/whoami', [CrmAuthController::class, 'whoami']);
             Route::get('/dashboard/stats', [CrmDashboardController::class, 'getStats']);
             Route::get('/dashboard/filter-roles', [CrmDashboardController::class, 'getPerformanceFilterRoles']);
             Route::get('/dashboard/telecaller-stats', [CrmDashboardController::class, 'getTelecallerStats']);
+            Route::get('/dashboard/lead-operations-summary', [CrmDashboardController::class, 'getLeadOperationsSummary']);
             Route::get('/dashboard/leads-pending-response', [CrmDashboardController::class, 'getLeadsPendingResponse']);
             Route::get('/dashboard/new-leads-not-completed', [CrmDashboardController::class, 'getNewLeadsNotCompleted']);
             Route::get('/dashboard/average-response-time', [CrmDashboardController::class, 'getAverageResponseTime']);
             Route::get('/dashboard/lead-allocation-overview', [CrmDashboardController::class, 'getLeadAllocationOverview']);
             Route::get('/dashboard/source-distribution', [CrmDashboardController::class, 'getSourceDistribution']);
+            Route::get('/dashboard/recent-leads', [CrmDashboardController::class, 'getRecentLeads']);
+            Route::get('/dashboard/fresh-lead-cnp-summary', [CrmDashboardController::class, 'getFreshLeadCnpSummary']);
             Route::get('/dashboard/daily-prospects', [CrmDashboardController::class, 'getDailyProspects']);
+            Route::post('/dashboard/clear-cache', [CrmDashboardController::class, 'clearDashboardCache']);
         });
         
         Route::middleware(['auth:sanctum', 'crm'])->group(function () {

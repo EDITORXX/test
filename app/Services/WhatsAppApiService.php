@@ -308,16 +308,13 @@ class WhatsAppApiService
             // Use configured endpoint or fallback to default
             $endpointPath = $this->settings->send_message_endpoint ?? '/api/wpbox/sendmessage';
             
-            // Build payload - try different formats with country code
+            // MCube Rengage API - correct payload format
+            $localPhone = $phone;
+            if (str_starts_with($phone, '91') && strlen($phone) == 12) {
+                $localPhone = substr($phone, 2);
+            }
             $payloadFormats = [
-                ['to' => $phone, 'message' => $message, 'country_code' => $countryCode],
-                ['phone' => $phone, 'message' => $message, 'country_code' => $countryCode],
-                ['number' => $phone, 'message' => $message, 'country_code' => $countryCode],
-                ['to' => $phone, 'text' => $message, 'country_code' => $countryCode],
-                ['phone' => $phone, 'text' => $message, 'country_code' => $countryCode],
-                // Also try without country_code field (in case API doesn't need it)
-                ['to' => $phone, 'message' => $message],
-                ['phone' => $phone, 'message' => $message],
+                ['phone' => $localPhone, 'country_code' => $countryCode, 'message' => $message],
             ];
 
             if ($templateId) {
@@ -400,6 +397,8 @@ class WhatsAppApiService
         try {
             // Try multiple common endpoints
             $testEndpoints = [
+                '/api/wpbox/getTemplates',
+                '/api/wpbox/getConversations',
                 '/status',
                 '/health',
                 '/api/status',
@@ -544,7 +543,7 @@ class WhatsAppApiService
     /**
      * Send template message
      */
-    public function sendTemplateMessage(string $to, string $templateId, array $parameters = [])
+    public function sendTemplateMessage(string $to, string $templateId, array $parameters = [], ?string $language = null)
     {
         if (!$this->isConfigured()) {
             throw new \Exception('WhatsApp API is not configured');
@@ -570,29 +569,22 @@ class WhatsAppApiService
         }
         
         // Use configured endpoint or fallback to default
-        $endpointPath = $this->settings->send_template_endpoint ?? '/api/wpbox/sendtemplatmessage';
+        $endpointPath = $this->settings->send_template_endpoint ?? '/api/wpbox/sendtemplatemessage';
         
-        // Try with country_code first, then without
+        // MCube Rengage API - correct template payload format
+        $localPhone = $phone;
+        if (str_starts_with($phone, '91') && strlen($phone) == 12) {
+            $localPhone = substr($phone, 2);
+        }
         $payload = [
-            'phone' => $phone,
-            'template_id' => $templateId,
+            'phone' => $localPhone,
             'country_code' => $countryCode,
+            'template_name' => $templateId,
+            'template_language' => $language ?: 'en_US',
+            'components' => !empty($parameters) ? [['type' => 'body', 'parameters' => $parameters]] : [['type' => 'body']],
         ];
 
-        // Add parameters if provided
-        if (!empty($parameters)) {
-            $payload['parameters'] = $parameters;
-        }
-
-        // Try with country_code first
         $result = $this->makeRequest('POST', $endpointPath, $payload);
-        
-        // If it fails with country code error, try without country_code field
-        if (!$result['success'] && isset($result['error']) && str_contains(strtolower($result['error']), 'country code')) {
-            unset($payload['country_code']);
-            $result = $this->makeRequest('POST', $endpointPath, $payload);
-        }
-        
         return $result;
     }
 

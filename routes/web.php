@@ -761,13 +761,17 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('targets', \App\Http\Controllers\Admin\TargetController::class);
         Route::post('targets/bulk-set', [\App\Http\Controllers\Admin\TargetController::class, 'bulkSet'])->name('targets.bulk-set');
         Route::get('/dead-leads', [\App\Http\Controllers\Admin\DeadLeadsController::class, 'index'])->name('dead-leads');
-        Route::get('/other-leads', [\App\Http\Controllers\Admin\OtherLeadsController::class, 'index'])->middleware('role:admin')->name('other-leads.index');
-        Route::post('/other-leads/reassign', [\App\Http\Controllers\Admin\OtherLeadsController::class, 'reassign'])->middleware('role:admin')->name('other-leads.reassign');
+        Route::get('/other-leads', [\App\Http\Controllers\Admin\OtherLeadsController::class, 'index'])->middleware('role:admin,crm')->name('other-leads.index');
+        Route::post('/other-leads/reassign', [\App\Http\Controllers\Admin\OtherLeadsController::class, 'reassign'])->middleware('role:admin,crm')->name('other-leads.reassign');
     });
     
     // CRM Automation Routes (CRM/Admin only)
     Route::middleware(['role:crm,admin'])->prefix('crm/automation')->name('crm.automation.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Crm\AutomationController::class, 'index'])->name('index');
+        Route::get('/new-lead-sla', [\App\Http\Controllers\Crm\NewLeadSlaAutomationController::class, 'index'])->name('sla.index');
+        Route::post('/new-lead-sla', [\App\Http\Controllers\Crm\NewLeadSlaAutomationController::class, 'store'])->name('sla.store');
+        Route::put('/new-lead-sla/{config}', [\App\Http\Controllers\Crm\NewLeadSlaAutomationController::class, 'update'])->name('sla.update');
+        Route::delete('/new-lead-sla/{config}', [\App\Http\Controllers\Crm\NewLeadSlaAutomationController::class, 'destroy'])->name('sla.destroy');
         Route::get('/leads/create', [\App\Http\Controllers\Crm\LeadController::class, 'create'])->name('leads.create');
         Route::post('/leads', [\App\Http\Controllers\Crm\LeadController::class, 'store'])->name('leads.store');
         Route::get('/rules', [\App\Http\Controllers\Crm\AssignmentRuleController::class, 'index'])->name('rules');

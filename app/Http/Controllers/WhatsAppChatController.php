@@ -6,6 +6,7 @@ use App\Models\WhatsAppConversation;
 use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppTemplate;
 use App\Services\WhatsAppApiService;
+use App\Services\WhatsAppConversationScopeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -14,10 +15,38 @@ use Illuminate\Support\Facades\Validator;
 class WhatsAppChatController extends Controller
 {
     protected $whatsappService;
+    protected $scopeService;
 
-    public function __construct(WhatsAppApiService $whatsappService)
+    public function __construct(
+        WhatsAppApiService $whatsappService,
+        WhatsAppConversationScopeService $scopeService
+    )
     {
         $this->whatsappService = $whatsappService;
+        $this->scopeService = $scopeService;
+    }
+
+    private function normalizeDirection(?string $direction): string
+    {
+        $value = strtolower(trim((string) $direction));
+
+        return match ($value) {
+            'sent', 'send', 'outgoing', 'from_me' => 'sent',
+            default => 'received',
+        };
+    }
+
+    private function formatMessage(WhatsAppMessage $message): array
+    {
+        return [
+            'id' => $message->id,
+            'direction' => $this->normalizeDirection($message->direction),
+            'message' => $message->message,
+            'status' => $message->status,
+            'template_id' => $message->template_id,
+            'created_at' => $message->created_at->format('Y-m-d H:i:s'),
+            'sent_at' => $message->sent_at ? $message->sent_at->format('Y-m-d H:i:s') : null,
+        ];
     }
 
     /**
@@ -26,22 +55,13 @@ class WhatsAppChatController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
-        // Admin can see all conversations, other users see only their own
-        if ($user->isAdmin()) {
-            $conversations = WhatsAppConversation::with(['messages' => function($query) {
+
+        $conversations = $this->scopeService->conversationsFor($user)
+            ->with(['messages' => function ($query) {
                 $query->latest()->limit(1);
             }, 'lead', 'user'])
             ->orderBy('updated_at', 'desc')
             ->get();
-        } else {
-            $conversations = WhatsAppConversation::where('user_id', $user->id)
-                ->with(['messages' => function($query) {
-                    $query->latest()->limit(1);
-                }, 'lead'])
-                ->orderBy('updated_at', 'desc')
-                ->get();
-        }
 
         // Auto-link conversations to leads if phone matches
         foreach ($conversations as $conversation) {
@@ -82,20 +102,12 @@ class WhatsAppChatController extends Controller
     public function getConversations(Request $request)
     {
         $user = Auth::user();
-        
-        // Admin can see all conversations, other users see only their own
-        if ($user->isAdmin()) {
-            $conversationsQuery = WhatsAppConversation::with(['messages' => function($query) {
+
+        $conversations = $this->scopeService->conversationsFor($user)
+            ->with(['messages' => function ($query) {
                 $query->latest()->limit(1);
-            }, 'lead', 'user']);
-        } else {
-            $conversationsQuery = WhatsAppConversation::where('user_id', $user->id)
-                ->with(['messages' => function($query) {
-                    $query->latest()->limit(1);
-                }, 'lead']);
-        }
-        
-        $conversations = $conversationsQuery->orderBy('updated_at', 'desc')
+            }, 'lead', 'user'])
+            ->orderBy('updated_at', 'desc')
             ->get()
             ->map(function($conversation) {
                 $latestMessage = $conversation->getLatestMessage();
@@ -139,6 +151,27 @@ class WhatsAppChatController extends Controller
     /**
      * Create new conversation (add number)
      */
+    public function getLeads(Request $request)
+    {
+        $user = Auth::user();
+        $query = $this->scopeService->visibleLeadsFor($user)
+            ->select('id', 'name', 'phone', 'status');
+
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                   ->orWhere('phone', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $leads = $query->latest()->limit(50)->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $leads,
+        ]);
+    }
+
     public function createConversation(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -207,19 +240,56 @@ class WhatsAppChatController extends Controller
     /**
      * Get conversation with messages
      */
+    private function syncMessagesFromAPI(\App\Models\WhatsAppConversation $conversation): void
+    {
+        try {
+            $phone = preg_replace('/[^0-9]/', '', $conversation->phone_number);
+            if (str_starts_with($phone, '91') && strlen($phone) == 12) {
+                $phone = substr($phone, 2);
+            }
+
+            $result = $this->whatsappService->getMessages($phone);
+
+            if (!$result['success'] || empty($result['data'])) return;
+
+            $messages = $result['data'];
+            if (!is_array($messages)) return;
+
+            foreach ($messages as $msg) {
+                $messageText = $msg['message'] ?? $msg['body'] ?? $msg['text'] ?? null;
+                $direction = $this->normalizeDirection(
+                    $msg['direction'] ?? ($msg['from_me'] ?? false ? 'outgoing' : 'incoming')
+                );
+                $externalId = $msg['id'] ?? $msg['message_id'] ?? null;
+                $sentAt = $msg['created_at'] ?? $msg['timestamp'] ?? null;
+
+                if (!$messageText || !$externalId) continue;
+
+                \App\Models\WhatsAppMessage::updateOrCreate(
+                    ['message_id' => (string)$externalId, 'conversation_id' => $conversation->id],
+                    [
+                        'direction' => $direction,
+                        'message' => $messageText,
+                        'status' => $msg['status'] ?? 'delivered',
+                        'sent_at' => $sentAt ? \Carbon\Carbon::parse($sentAt) : now(),
+                    ]
+                );
+            }
+
+            $conversation->touch();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('WhatsApp sync failed: ' . $e->getMessage());
+        }
+    }
+
     public function getConversation($id)
     {
         $user = Auth::user();
-        
-        // Admin can access all conversations, other users can only access their own
-        if ($user->isAdmin()) {
-            $conversation = WhatsAppConversation::with(['messages', 'user', 'lead'])->find($id);
-        } else {
-            $conversation = WhatsAppConversation::where('user_id', $user->id)
-                ->where('id', $id)
-                ->with(['messages', 'lead'])
-                ->first();
-        }
+
+        $conversation = $this->scopeService->conversationsFor($user)
+            ->with(['messages', 'user', 'lead'])
+            ->where('id', $id)
+            ->first();
 
         if (!$conversation) {
             return response()->json([
@@ -237,34 +307,10 @@ class WhatsAppChatController extends Controller
         // Mark as read
         $conversation->markAsRead();
 
-        $messages = $conversation->messages->map(function($message) {
-            return [
-                'id' => $message->id,
-                'direction' => $message->direction,
-                'message' => $message->message,
-                'status' => $message->status,
-                'template_id' => $message->template_id,
-                'created_at' => $message->created_at->format('Y-m-d H:i:s'),
-                'sent_at' => $message->sent_at ? $message->sent_at->format('Y-m-d H:i:s') : null,
-            ];
-        });
-
-        // Sync messages from API
         $this->syncMessagesFromAPI($conversation);
 
-        // Reload messages after sync
-        $conversation->refresh();
-        $messages = $conversation->messages->map(function($message) {
-            return [
-                'id' => $message->id,
-                'direction' => $message->direction,
-                'message' => $message->message,
-                'status' => $message->status,
-                'template_id' => $message->template_id,
-                'created_at' => $message->created_at->format('Y-m-d H:i:s'),
-                'sent_at' => $message->sent_at ? $message->sent_at->format('Y-m-d H:i:s') : null,
-            ];
-        });
+        $conversation->load('messages', 'user', 'lead');
+        $messages = $conversation->messages->map(fn ($message) => $this->formatMessage($message));
 
         return response()->json([
             'success' => true,
@@ -306,9 +352,7 @@ class WhatsAppChatController extends Controller
             ], 422);
         }
 
-        $conversation = WhatsAppConversation::where('user_id', Auth::id())
-            ->where('id', $request->conversation_id)
-            ->first();
+        $conversation = $this->scopeService->resolveConversation(Auth::user(), $request->conversation_id);
 
         if (!$conversation) {
             return response()->json([
@@ -353,6 +397,17 @@ class WhatsAppChatController extends Controller
 
             // Update conversation timestamp
             $conversation->touch();
+
+            if (Auth::user()->isAssistantSalesManager() || Auth::user()->isSeniorManager()) {
+                Log::info('Scoped WhatsApp message sent', [
+                    'sender_user_id' => Auth::id(),
+                    'sender_role' => Auth::user()->role?->slug,
+                    'conversation_id' => $conversation->id,
+                    'lead_id' => $conversation->lead_id,
+                    'message_type' => 'text',
+                    'sent_at' => now()->toDateTimeString(),
+                ]);
+            }
 
             if ($result['success']) {
                 return response()->json([
@@ -404,9 +459,8 @@ class WhatsAppChatController extends Controller
             ], 422);
         }
 
-        $conversation = WhatsAppConversation::where('user_id', Auth::id())
-            ->where('id', $request->conversation_id)
-            ->first();
+        $user = Auth::user();
+        $conversation = $this->scopeService->resolveConversation($user, $request->conversation_id);
 
         if (!$conversation) {
             return response()->json([
@@ -423,8 +477,9 @@ class WhatsAppChatController extends Controller
             // Send template message via API
             $result = $this->whatsappService->sendTemplateMessage(
                 $conversation->phone_number,
-                $request->template_id,
-                $request->parameters ?? []
+                $template?->name ?: $request->template_id,
+                $request->parameters ?? [],
+                $template?->language
             );
 
             // Map API status to database status
@@ -457,6 +512,18 @@ class WhatsAppChatController extends Controller
 
             // Update conversation timestamp
             $conversation->touch();
+
+            if ($user->isAssistantSalesManager() || $user->isSeniorManager()) {
+                Log::info('Scoped WhatsApp template sent', [
+                    'sender_user_id' => $user->id,
+                    'sender_role' => $user->role?->slug,
+                    'conversation_id' => $conversation->id,
+                    'lead_id' => $conversation->lead_id,
+                    'message_type' => 'template',
+                    'template_id' => $request->template_id,
+                    'sent_at' => now()->toDateTimeString(),
+                ]);
+            }
 
             if ($result['success']) {
                 return response()->json([
@@ -518,8 +585,36 @@ class WhatsAppChatController extends Controller
                     'content' => $template->content,
                     'category' => $template->category,
                     'language' => $template->language,
+                    'template_name' => $template->name,
                 ];
             }),
+        ]);
+    }
+
+    public function syncMessages($id)
+    {
+        $user = Auth::user();
+
+        $conversation = $this->scopeService->resolveConversation($user, $id);
+
+        if (!$conversation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Conversation not found',
+            ], 404);
+        }
+
+        $this->syncMessagesFromAPI($conversation);
+        $conversation->load('messages');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'messages' => $conversation->messages
+                    ->sortBy('created_at')
+                    ->values()
+                    ->map(fn ($message) => $this->formatMessage($message)),
+            ],
         ]);
     }
 
@@ -529,15 +624,8 @@ class WhatsAppChatController extends Controller
     public function markAsRead($id)
     {
         $user = Auth::user();
-        
-        // Admin can mark any conversation as read, other users can only mark their own
-        if ($user->isAdmin()) {
-            $conversation = WhatsAppConversation::find($id);
-        } else {
-            $conversation = WhatsAppConversation::where('user_id', $user->id)
-                ->where('id', $id)
-                ->first();
-        }
+
+        $conversation = $this->scopeService->resolveConversation($user, $id);
 
         if (!$conversation) {
             return response()->json([
@@ -560,15 +648,8 @@ class WhatsAppChatController extends Controller
     public function deleteConversation($id)
     {
         $user = Auth::user();
-        
-        // Admin can delete any conversation, other users can only delete their own
-        if ($user->isAdmin()) {
-            $conversation = WhatsAppConversation::find($id);
-        } else {
-            $conversation = WhatsAppConversation::where('user_id', $user->id)
-                ->where('id', $id)
-                ->first();
-        }
+
+        $conversation = $this->scopeService->resolveConversation($user, $id);
 
         if (!$conversation) {
             return response()->json([
@@ -656,9 +737,9 @@ class WhatsAppChatController extends Controller
                         ['template_id' => $templateId],
                         [
                             'name' => $template['name'] ?? $template['template_name'] ?? 'Untitled Template',
-                            'content' => $template['content'] ?? $template['body'] ?? $template['message'] ?? '',
+                            'content' => WhatsAppTemplate::extractContent($template),
                             'category' => $template['category'] ?? $template['type'] ?? null,
-                            'language' => $template['language'] ?? $template['lang'] ?? 'en',
+                            'language' => $template['language'] ?? data_get($template, 'language.code') ?? $template['lang'] ?? 'en',
                             'is_active' => ($template['status'] ?? $template['state'] ?? 'APPROVED') === 'APPROVED',
                         ]
                     );

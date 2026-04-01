@@ -373,42 +373,45 @@
 
 <!-- Add Contact Modal -->
 <div id="addContactModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] flex flex-col">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold">Add New Contact</h3>
+            <h3 class="text-lg font-semibold">New Conversation</h3>
             <button onclick="closeAddContactModal()" class="text-gray-500 hover:text-gray-700">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form id="addContactForm" onsubmit="event.preventDefault(); createConversation();">
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                <input type="text" 
-                       id="newPhoneNumber" 
-                       required
-                       placeholder="+91 9876543210 or 9876543210"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                <p class="text-xs text-gray-500 mt-1">Include country code (e.g., +91 for India)</p>
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Contact Name (Optional)</label>
-                <input type="text" 
-                       id="newContactName" 
-                       placeholder="Enter name"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-            </div>
-            <div class="flex justify-end space-x-3">
-                <button type="button" 
-                        onclick="closeAddContactModal()" 
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                    Cancel
-                </button>
-                <button type="submit" 
-                        class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d]">
-                    Add Contact
-                </button>
-            </div>
-        </form>
+        <!-- Search leads -->
+        <div class="mb-3">
+            <input type="text" 
+                   id="leadSearch"
+                   oninput="searchLeads(this.value)"
+                   placeholder="Search leads by name or phone..."
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+        </div>
+        <!-- Leads list -->
+        <div id="leadsList" class="flex-1 overflow-y-auto max-h-64 border border-gray-200 rounded-lg mb-4">
+            <div class="p-4 text-center text-gray-500 text-sm" id="leadsLoading">Loading leads...</div>
+        </div>
+        <!-- Manual entry -->
+        <div class="border-t pt-3">
+            <p class="text-xs text-gray-500 mb-2">Or enter manually:</p>
+            <form id="addContactForm" onsubmit="event.preventDefault(); createConversation();">
+                <div class="flex gap-2">
+                    <input type="text" 
+                           id="newPhoneNumber" 
+                           placeholder="Phone number"
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm">
+                    <input type="text" 
+                           id="newContactName" 
+                           placeholder="Name (optional)"
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg text-sm">
+                        Add
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -476,6 +479,11 @@ const csrfToken = getCsrfToken();
 const currentUserId = {{ auth()->id() }};
 let currentConversationId = null;
 let messagePollingInterval = null;
+
+function isOutgoingMessage(message) {
+    const direction = (message?.direction || '').toString().toLowerCase();
+    return ['sent', 'send', 'outgoing', 'from_me'].includes(direction);
+}
 
 // Load conversation
 function loadConversation(conversationId) {
@@ -682,20 +690,22 @@ function loadMessages(messages) {
     
     messages.forEach(message => {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `flex ${message.direction === 'sent' ? 'justify-end' : 'justify-start'}`;
+        const isOutgoing = isOutgoingMessage(message);
+        messageDiv.className = `flex ${isOutgoing ? 'justify-end' : 'justify-start'}`;
+        messageDiv.setAttribute('data-message-id', message.id);
         
         const bubble = document.createElement('div');
         bubble.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-            message.direction === 'sent' 
+            isOutgoing
                 ? 'bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white' 
                 : 'bg-white text-gray-900 border border-gray-200'
         }`;
         
         bubble.innerHTML = `
-            <p class="text-sm ${message.direction === 'sent' ? 'text-white' : 'text-gray-900'}">${escapeHtml(message.message)}</p>
+            <p class="text-sm ${isOutgoing ? 'text-white' : 'text-gray-900'}">${escapeHtml(message.message)}</p>
             <div class="flex items-center justify-end mt-1 space-x-1">
-                <span class="text-xs ${message.direction === 'sent' ? 'text-white opacity-90' : 'text-gray-600'}">${formatTime(message.created_at)}</span>
-                ${message.direction === 'sent' ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs text-white opacity-90"></i>` : ''}
+                <span class="text-xs ${isOutgoing ? 'text-white opacity-90' : 'text-gray-600'}">${formatTime(message.created_at)}</span>
+                ${isOutgoing ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs text-white opacity-90"></i>` : ''}
             </div>
         `;
         
@@ -766,6 +776,39 @@ function sendMessage() {
 }
 
 // Create new conversation
+async function searchLeads(query) {
+    const list = document.getElementById('leadsList');
+    list.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">Loading...</div>';
+    try {
+        const res = await fetch('/chat/leads?search=' + encodeURIComponent(query), {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+        });
+        const data = await res.json();
+        if (data.data && data.data.length > 0) {
+            list.innerHTML = data.data.map(function(lead) {
+                return '<div onclick="selectLead(\'' + lead.phone + '\', \'' + lead.name.replace(/\'/g, "\\'" ) + '\')"\
+                     class="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 flex justify-between items-center">' +
+                    '<div>' +
+                        '<div class="font-medium text-sm">' + lead.name + '</div>' +
+                        '<div class="text-xs text-gray-500">' + lead.phone + '</div>' +
+                    '</div>' +
+                    '<span class="text-xs bg-gray-100 px-2 py-1 rounded">' + (lead.status || '') + '</span>' +
+                '</div>';
+            }).join('');
+        } else {
+            list.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">No leads found</div>';
+        }
+    } catch(e) {
+        list.innerHTML = '<div class="p-4 text-center text-red-500 text-sm">Error loading leads</div>';
+    }
+}
+
+function selectLead(phone, name) {
+    document.getElementById('newPhoneNumber').value = phone;
+    document.getElementById('newContactName').value = name;
+    createConversation();
+}
+
 function createConversation() {
     const phone = document.getElementById('newPhoneNumber').value.trim();
     const name = document.getElementById('newContactName').value.trim();
@@ -990,7 +1033,7 @@ function sendTemplate(templateId) {
 // Modal functions
 function openAddContactModal() {
     document.getElementById('addContactModal').classList.remove('hidden');
-    document.getElementById('newPhoneNumber').focus();
+    searchLeads('');
 }
 
 function closeAddContactModal() {
@@ -1077,7 +1120,7 @@ function startMessagePolling() {
 }
 
 function syncMessagesFromAPI(conversationId) {
-    fetch(`{{ route('chat.conversations.sync-messages', '') }}/${conversationId}`, {
+    fetch(`/chat/conversations/${conversationId}/sync-messages`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': getCsrfToken(),
@@ -1119,21 +1162,22 @@ function syncMessagesFromAPI(conversationId) {
 function addMessageToUI(message) {
     const container = document.getElementById('messagesContainer');
     const messageDiv = document.createElement('div');
-    messageDiv.className = `flex ${message.direction === 'sent' ? 'justify-end' : 'justify-start'} mb-2`;
+    const isOutgoing = isOutgoingMessage(message);
+    messageDiv.className = `flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-2`;
     messageDiv.setAttribute('data-message-id', message.id);
     
     const bubble = document.createElement('div');
     bubble.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-        message.direction === 'sent' 
+        isOutgoing
             ? 'bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white' 
             : 'bg-white text-gray-900 border border-gray-200'
     }`;
     
     bubble.innerHTML = `
-        <p class="text-sm ${message.direction === 'sent' ? 'text-white' : 'text-gray-900'}">${escapeHtml(message.message)}</p>
+        <p class="text-sm ${isOutgoing ? 'text-white' : 'text-gray-900'}">${escapeHtml(message.message)}</p>
         <div class="flex items-center justify-end mt-1 space-x-1">
-            <span class="text-xs ${message.direction === 'sent' ? 'text-white opacity-90' : 'text-gray-600'}">${formatTime(message.created_at)}</span>
-            ${message.direction === 'sent' ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs text-white opacity-90"></i>` : ''}
+            <span class="text-xs ${isOutgoing ? 'text-white opacity-90' : 'text-gray-600'}">${formatTime(message.created_at)}</span>
+            ${isOutgoing ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs text-white opacity-90"></i>` : ''}
         </div>
     `;
     
