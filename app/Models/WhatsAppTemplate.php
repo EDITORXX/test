@@ -24,8 +24,27 @@ class WhatsAppTemplate extends Model
         'is_active' => 'boolean',
     ];
 
+    public static function normalizeTemplatePayload(array $template): array
+    {
+        if (isset($template['templates']) && is_array($template['templates'])) {
+            $template = $template['templates'];
+        }
+
+        $components = $template['components'] ?? [];
+        if (is_string($components)) {
+            $decoded = json_decode($components, true);
+            $components = is_array($decoded) ? $decoded : [];
+        }
+
+        $template['components'] = $components;
+
+        return $template;
+    }
+
     public static function extractContent(array $template): string
     {
+        $template = self::normalizeTemplatePayload($template);
+
         $content = $template['content']
             ?? $template['body']
             ?? $template['message']
@@ -35,13 +54,7 @@ class WhatsAppTemplate extends Model
         if (is_string($content) && trim($content) !== '') {
             return trim($content);
         }
-
         $components = $template['components'] ?? [];
-        if (is_string($components)) {
-            $decoded = json_decode($components, true);
-            $components = is_array($decoded) ? $decoded : [];
-        }
-
         if (!is_array($components)) {
             return '';
         }
@@ -67,6 +80,8 @@ class WhatsAppTemplate extends Model
     public static function syncFromAPI(array $templates): void
     {
         foreach ($templates as $template) {
+            $template = self::normalizeTemplatePayload($template);
+
             self::updateOrCreate(
                 ['template_id' => $template['id'] ?? $template['template_id']],
                 [

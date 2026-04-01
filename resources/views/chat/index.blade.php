@@ -432,6 +432,13 @@
                 </button>
             </div>
         </div>
+        <div class="mb-4">
+            <input type="text"
+                   id="templateSearch"
+                   placeholder="Search template by name, id, category..."
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                   oninput="renderTemplatesList(this.value)">
+        </div>
         <div id="templatesList" class="flex-1 overflow-y-auto space-y-2">
             <div class="text-center text-gray-500 py-8">
                 <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
@@ -479,6 +486,8 @@ const csrfToken = getCsrfToken();
 const currentUserId = {{ auth()->id() }};
 let currentConversationId = null;
 let messagePollingInterval = null;
+let selectedTemplateId = null;
+window.templatesData = [];
 
 function isOutgoingMessage(message) {
     const direction = (message?.direction || '').toString().toLowerCase();
@@ -950,6 +959,54 @@ function closeTemplateModal() {
 
 let selectedTemplateId = null;
 
+function renderTemplatesList(searchTerm = '') {
+    const container = document.getElementById('templatesList');
+    const term = (searchTerm || '').trim().toLowerCase();
+    const templates = Array.isArray(window.templatesData) ? window.templatesData : [];
+    const filteredTemplates = term
+        ? templates.filter((template) => {
+            return [
+                template.name,
+                template.template_id,
+                template.category,
+                template.language,
+                template.content
+            ].filter(Boolean).some(value => String(value).toLowerCase().includes(term));
+        })
+        : templates;
+
+    if (filteredTemplates.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fas fa-search text-2xl mb-2"></i><p>No templates match your search</p></div>';
+        return;
+    }
+
+    container.innerHTML = filteredTemplates.map((template) => {
+        const index = templates.findIndex((item) => item.template_id === template.template_id);
+        return `
+            <div class="p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all cursor-pointer group" data-template-index="${index}">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900 mb-1">${escapeHtml(template.name || template.template_id || 'Unnamed Template')}</h4>
+                        <p class="text-sm text-gray-600 line-clamp-2">${escapeHtml(template.content || template.body || 'No content available')}</p>
+                        ${template.category ? `<span class="inline-block mt-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">${escapeHtml(template.category)}</span>` : ''}
+                        ${template.language ? `<span class="inline-block mt-2 ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded">${escapeHtml(template.language)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="flex items-center justify-end space-x-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="previewTemplateByIndex(${index})" 
+                            class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                        <i class="fas fa-eye mr-1"></i>Preview
+                    </button>
+                    <button onclick="sendTemplate('${template.template_id}')" 
+                            class="px-3 py-1 text-xs bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded hover:from-[#205A44] hover:to-[#15803d]">
+                        <i class="fas fa-paper-plane mr-1"></i>Send
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 function loadTemplates() {
     fetch('{{ route("chat.templates.index") }}', {
         headers: {
@@ -960,35 +1017,11 @@ function loadTemplates() {
     })
     .then(response => response.json())
     .then(data => {
-        const container = document.getElementById('templatesList');
         if (data.success && data.data.length > 0) {
-            // Store templates globally for preview
             window.templatesData = data.data;
-            
-            container.innerHTML = data.data.map((template, index) => `
-                <div class="p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all cursor-pointer group" data-template-index="${index}">
-                    <div class="flex items-start justify-between mb-2">
-                        <div class="flex-1">
-                            <h4 class="font-semibold text-gray-900 mb-1">${escapeHtml(template.name || template.template_id || 'Unnamed Template')}</h4>
-                            <p class="text-sm text-gray-600 line-clamp-2">${escapeHtml(template.content || template.body || 'No content available')}</p>
-                            ${template.category ? `<span class="inline-block mt-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">${escapeHtml(template.category)}</span>` : ''}
-                            ${template.language ? `<span class="inline-block mt-2 ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded">${escapeHtml(template.language)}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end space-x-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="previewTemplateByIndex(${index})" 
-                                class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
-                            <i class="fas fa-eye mr-1"></i>Preview
-                        </button>
-                        <button onclick="sendTemplate('${template.template_id}')" 
-                                class="px-3 py-1 text-xs bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded hover:from-[#205A44] hover:to-[#15803d]">
-                            <i class="fas fa-paper-plane mr-1"></i>Send
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+            renderTemplatesList(document.getElementById('templateSearch')?.value || '');
         } else {
-            container.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fas fa-inbox text-3xl mb-2"></i><p>No templates available. Click "Sync Templates" to load templates from API.</p></div>';
+            document.getElementById('templatesList').innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fas fa-inbox text-3xl mb-2"></i><p>No templates available. Click "Sync Templates" to load templates from API.</p></div>';
         }
     })
     .catch(error => {
@@ -997,9 +1030,6 @@ function loadTemplates() {
     });
 }
 
-// Store templates data globally
-window.templatesData = [];
-
 function previewTemplateByIndex(index) {
     if (!window.templatesData || !window.templatesData[index]) {
         alert('Template data not found');
@@ -1007,7 +1037,42 @@ function previewTemplateByIndex(index) {
     }
     
     const template = window.templatesData[index];
-    previewTemplate(template);
+    ensureTemplateContent(template)
+        .then(previewTemplate)
+        .catch((error) => {
+            console.error('Error loading template detail:', error);
+            previewTemplate(template);
+        });
+}
+
+function ensureTemplateContent(template) {
+    const hasContent = Boolean((template.content || '').trim());
+    if (hasContent) {
+        return Promise.resolve(template);
+    }
+
+    return fetch(`{{ route('chat.templates.show', '') }}/${template.template_id}`, {
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success || !data.data) {
+            return template;
+        }
+
+        const enriched = { ...template, ...data.data };
+        const index = window.templatesData.findIndex(item => item.template_id === template.template_id);
+        if (index >= 0) {
+            window.templatesData[index] = enriched;
+        }
+
+        renderTemplatesList(document.getElementById('templateSearch')?.value || '');
+        return enriched;
+    });
 }
 
 function previewTemplate(template) {

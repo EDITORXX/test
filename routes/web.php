@@ -975,6 +975,7 @@ Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
     Route::post('/messages', [\App\Http\Controllers\WhatsAppChatController::class, 'sendMessage'])->name('messages.send');
     Route::post('/messages/template', [\App\Http\Controllers\WhatsAppChatController::class, 'sendTemplateMessage'])->name('messages.template');
     Route::get('/templates', [\App\Http\Controllers\WhatsAppChatController::class, 'getTemplates'])->name('templates.index');
+    Route::get('/templates/{id}', [\App\Http\Controllers\WhatsAppChatController::class, 'getTemplate'])->name('templates.show');
     Route::post('/templates/sync', [\App\Http\Controllers\WhatsAppChatController::class, 'syncTemplates'])->name('templates.sync');
     Route::post('/conversations/{id}/sync-messages', [\App\Http\Controllers\WhatsAppChatController::class, 'syncMessages'])->name('conversations.sync-messages');
     Route::put('/conversations/{id}/read', [\App\Http\Controllers\WhatsAppChatController::class, 'markAsRead'])->name('conversations.read');

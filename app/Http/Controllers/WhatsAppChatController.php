@@ -70,6 +70,36 @@ class WhatsAppChatController extends Controller
             ?: 'Failed to send template message';
     }
 
+    private function resolveTemplateForConversation(string $templateId): ?WhatsAppTemplate
+    {
+        $template = WhatsAppTemplate::where('template_id', $templateId)->first();
+
+        if ($template && filled($template->content)) {
+            return $template;
+        }
+
+        $result = $this->whatsappService->getTemplate($templateId);
+        if (!($result['success'] ?? false)) {
+            return $template;
+        }
+
+        $payload = \App\Models\WhatsAppTemplate::normalizeTemplatePayload($result['data'] ?? []);
+        $resolvedTemplateId = $payload['id'] ?? $payload['template_id'] ?? $templateId;
+
+        $template = WhatsAppTemplate::updateOrCreate(
+            ['template_id' => (string) $resolvedTemplateId],
+            [
+                'name' => $payload['name'] ?? ($template?->name ?: 'Untitled Template'),
+                'content' => WhatsAppTemplate::extractContent($payload),
+                'category' => $payload['category'] ?? $template?->category,
+                'language' => $payload['language'] ?? data_get($payload, 'language.code') ?? ($template?->language ?: 'en'),
+                'is_active' => (($payload['status'] ?? 'APPROVED') === 'APPROVED'),
+            ]
+        );
+
+        return $template;
+    }
+
     private function extractMessagesFromConversationPayload(array $result, WhatsAppConversation $conversation): array
     {
         $targetPhone = preg_replace('/[^0-9]/', '', $conversation->phone_number);
@@ -534,8 +564,8 @@ class WhatsAppChatController extends Controller
 
         try {
             // Get template content
-            $template = WhatsAppTemplate::where('template_id', $request->template_id)->first();
-            $messageContent = $template ? $template->content : 'Template message';
+            $template = $this->resolveTemplateForConversation($request->template_id);
+            $messageContent = $template?->content ?: ('Template: ' . ($template?->name ?: $request->template_id));
 
             // Send template message via API
             $result = $this->whatsappService->sendTemplateMessage(
@@ -652,6 +682,31 @@ class WhatsAppChatController extends Controller
                     'template_name' => $template->name,
                 ];
             }),
+        ]);
+    }
+
+    public function getTemplate($id)
+    {
+        $template = $this->resolveTemplateForConversation($id);
+
+        if (!$template) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Template not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $template->id,
+                'template_id' => $template->template_id,
+                'name' => $template->name,
+                'content' => $template->content,
+                'category' => $template->category,
+                'language' => $template->language,
+                'template_name' => $template->name,
+            ],
         ]);
     }
 
