@@ -49,6 +49,55 @@ class WhatsAppChatController extends Controller
         ];
     }
 
+    private function templateSendSucceeded(array $result): bool
+    {
+        if (!($result['success'] ?? false)) {
+            return false;
+        }
+
+        $status = strtolower((string) data_get($result, 'data.status', ''));
+        if ($status === 'error' || $status === 'failed' || $status === 'failure') {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function templateSendError(array $result): string
+    {
+        return data_get($result, 'data.message')
+            ?: data_get($result, 'error')
+            ?: 'Failed to send template message';
+    }
+
+    private function extractMessagesFromConversationPayload(array $result, WhatsAppConversation $conversation): array
+    {
+        $targetPhone = preg_replace('/[^0-9]/', '', $conversation->phone_number);
+        $variants = array_values(array_unique(array_filter([
+            $targetPhone,
+            str_starts_with($targetPhone, '91') && strlen($targetPhone) === 12 ? substr($targetPhone, 2) : null,
+            strlen($targetPhone) === 10 ? '91' . $targetPhone : null,
+        ])));
+
+        $payload = $result['data']['conversations'] ?? $result['data'] ?? [];
+        if (!is_array($payload)) {
+            return [];
+        }
+
+        foreach ($payload as $conversationPayload) {
+            $candidatePhone = preg_replace('/[^0-9]/', '', (string) ($conversationPayload['phone'] ?? ''));
+
+            if ($candidatePhone === '' || !in_array($candidatePhone, $variants, true)) {
+                continue;
+            }
+
+            $messages = $conversationPayload['messages'] ?? [];
+            return is_array($messages) ? $messages : [];
+        }
+
+        return [];
+    }
+
     /**
      * Display chat interface
      */
@@ -244,24 +293,38 @@ class WhatsAppChatController extends Controller
     {
         try {
             $phone = preg_replace('/[^0-9]/', '', $conversation->phone_number);
-            if (str_starts_with($phone, '91') && strlen($phone) == 12) {
-                $phone = substr($phone, 2);
+            $localPhone = str_starts_with($phone, '91') && strlen($phone) === 12
+                ? substr($phone, 2)
+                : $phone;
+
+            $result = $this->whatsappService->getMessages($localPhone);
+            $messages = ($result['success'] ?? false) && is_array($result['data'] ?? null)
+                ? $result['data']
+                : [];
+
+            if (empty($messages)) {
+                $conversationResult = $this->whatsappService->getConversations($phone);
+                $messages = $this->extractMessagesFromConversationPayload($conversationResult, $conversation);
             }
 
-            $result = $this->whatsappService->getMessages($phone);
-
-            if (!$result['success'] || empty($result['data'])) return;
-
-            $messages = $result['data'];
-            if (!is_array($messages)) return;
+            if (!is_array($messages) || empty($messages)) {
+                return;
+            }
 
             foreach ($messages as $msg) {
-                $messageText = $msg['message'] ?? $msg['body'] ?? $msg['text'] ?? null;
+                $messageText = $msg['message']
+                    ?? $msg['body']
+                    ?? $msg['text']
+                    ?? $msg['value']
+                    ?? $msg['original_message']
+                    ?? null;
                 $direction = $this->normalizeDirection(
-                    $msg['direction'] ?? ($msg['from_me'] ?? false ? 'outgoing' : 'incoming')
+                    $msg['direction']
+                    ?? (($msg['from_me'] ?? false) ? 'outgoing' : null)
+                    ?? (($msg['is_message_by_contact'] ?? false) ? 'incoming' : 'outgoing')
                 );
-                $externalId = $msg['id'] ?? $msg['message_id'] ?? null;
-                $sentAt = $msg['created_at'] ?? $msg['timestamp'] ?? null;
+                $externalId = $msg['fb_message_id'] ?? $msg['id'] ?? $msg['message_id'] ?? null;
+                $sentAt = $msg['created_at'] ?? $msg['timestamp'] ?? $msg['reply_at'] ?? null;
 
                 if (!$messageText || !$externalId) continue;
 
@@ -483,8 +546,9 @@ class WhatsAppChatController extends Controller
             );
 
             // Map API status to database status
+            $sendSucceeded = $this->templateSendSucceeded($result);
             $dbStatus = 'sent'; // Default
-            if ($result['success']) {
+            if ($sendSucceeded) {
                 $apiStatus = $result['data']['status'] ?? null;
                 // Map API status values to database enum values
                 if ($apiStatus === 'success' || $apiStatus === 'sent' || $apiStatus === 'delivered' || $apiStatus === 'read') {
@@ -501,13 +565,13 @@ class WhatsAppChatController extends Controller
                 'conversation_id' => $conversation->id,
                 'user_id' => Auth::id(),
                 'direction' => 'sent',
-                'message' => $messageContent,
-                'message_id' => $result['success'] ? ($result['data']['id'] ?? $result['data']['message_id'] ?? null) : null,
+                'message' => $messageContent ?: ($template?->name ?: 'Template message'),
+                'message_id' => $sendSucceeded ? ($result['data']['id'] ?? $result['data']['message_id'] ?? null) : null,
                 'template_id' => $request->template_id,
                 'status' => $dbStatus,
-                'error_message' => $result['success'] ? null : ($result['error'] ?? 'Failed to send template message'),
+                'error_message' => $sendSucceeded ? null : $this->templateSendError($result),
                 'api_response' => $result,
-                'sent_at' => $result['success'] ? now() : null,
+                'sent_at' => $sendSucceeded ? now() : null,
             ]);
 
             // Update conversation timestamp
@@ -525,7 +589,7 @@ class WhatsAppChatController extends Controller
                 ]);
             }
 
-            if ($result['success']) {
+            if ($sendSucceeded) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Template message sent successfully',
@@ -542,7 +606,7 @@ class WhatsAppChatController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to send template message',
-                    'error' => $result['error'] ?? 'Unknown error',
+                    'error' => $this->templateSendError($result),
                     'data' => [
                         'id' => $message->id,
                         'status' => $message->status,
@@ -566,8 +630,8 @@ class WhatsAppChatController extends Controller
         // First try to get from database
         $templates = WhatsAppTemplate::getAvailableTemplates();
 
-        // If no templates in database, try to fetch from API
-        if ($templates->isEmpty()) {
+        // If no templates in database or preview content is blank, refresh from API
+        if ($templates->isEmpty() || $templates->contains(fn ($template) => blank($template->content))) {
             $apiResult = $this->whatsappService->getTemplates();
             if ($apiResult['success'] && !empty($apiResult['data'])) {
                 WhatsAppTemplate::syncFromAPI($apiResult['data']);

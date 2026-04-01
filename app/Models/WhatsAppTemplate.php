@@ -37,6 +37,11 @@ class WhatsAppTemplate extends Model
         }
 
         $components = $template['components'] ?? [];
+        if (is_string($components)) {
+            $decoded = json_decode($components, true);
+            $components = is_array($decoded) ? $decoded : [];
+        }
+
         if (!is_array($components)) {
             return '';
         }

@@ -485,6 +485,98 @@ function isOutgoingMessage(message) {
     return ['sent', 'send', 'outgoing', 'from_me'].includes(direction);
 }
 
+function escapeJsString(value) {
+    return String(value ?? '')
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\r?\n/g, ' ');
+}
+
+function renderConversationsList(conversations) {
+    const container = document.getElementById('conversationsList');
+    if (!container) {
+        return;
+    }
+
+    if (!Array.isArray(conversations) || conversations.length === 0) {
+        container.innerHTML = `
+            <div class="p-8 text-center text-gray-500">
+                <i class="fab fa-whatsapp text-4xl mb-4 text-gray-300"></i>
+                <p>No conversations yet</p>
+                <button onclick="openAddContactModal()" 
+                        class="mt-4 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Start New Chat
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = conversations.map((conversation) => {
+        const latestMessage = conversation.latest_message;
+        const unreadCount = Number(conversation.unread_count || 0);
+        const isActive = String(conversation.id) === String(currentConversationId);
+        const contactName = conversation.contact_name || conversation.phone_number || 'Unknown Contact';
+        const lead = conversation.lead;
+        const ownerBadge = conversation.user_name && conversation.user_id !== currentUserId
+            ? `<span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium whitespace-nowrap" title="Conversation Owner">
+                    <i class="fas fa-user mr-1"></i>${escapeHtml(conversation.user_name)}
+               </span>`
+            : '';
+
+        return `
+            <div class="conversation-item p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${isActive ? 'bg-green-50 border-green-200' : ''}"
+                 data-conversation-id="${conversation.id}"
+                 onclick="loadConversation(${conversation.id})">
+                <div class="flex items-start">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center text-white font-semibold mr-3">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center space-x-2 flex-1 min-w-0">
+                                <h3 class="font-semibold text-gray-900 truncate">${escapeHtml(contactName)}</h3>
+                                ${lead ? `<span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium whitespace-nowrap" title="Linked to Lead">
+                                    <i class="fas fa-link mr-1"></i>Lead
+                                </span>` : ''}
+                                ${ownerBadge}
+                            </div>
+                            ${latestMessage ? `<span class="text-xs text-gray-500 ml-2 whitespace-nowrap">${formatTime(latestMessage.created_at)}</span>` : ''}
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm text-gray-600 truncate">${escapeHtml(latestMessage?.message || 'No messages yet')}</p>
+                            ${unreadCount > 0 ? `<span class="ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full font-semibold">${unreadCount}</span>` : ''}
+                        </div>
+                        ${lead ? `<div class="mt-1 text-xs text-gray-500">
+                            <i class="fas fa-user mr-1"></i>${escapeHtml(lead.name || '')} • 
+                            <span class="capitalize">${escapeHtml(lead.status || '')}</span>
+                        </div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function refreshConversations() {
+    fetch('{{ route("chat.conversations.index") }}', {
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            renderConversationsList(data.data || []);
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing conversations:', error);
+    });
+}
+
 // Load conversation
 function loadConversation(conversationId) {
     currentConversationId = conversationId;
@@ -1112,6 +1204,8 @@ function startMessagePolling() {
     }
     
     messagePollingInterval = setInterval(() => {
+        refreshConversations();
+
         if (currentConversationId) {
             // Sync messages from API first, then reload conversation
             syncMessagesFromAPI(currentConversationId);
@@ -1199,5 +1293,7 @@ document.getElementById('addContactModal')?.addEventListener('click', function(e
 document.getElementById('templateModal')?.addEventListener('click', function(e) {
     if (e.target === this) closeTemplateModal();
 });
+
+startMessagePolling();
 </script>
 @endsection
