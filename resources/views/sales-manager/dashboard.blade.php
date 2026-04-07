@@ -112,6 +112,12 @@
         display: none;
         width: 100%;
     }
+    .asm-dashboard-filter-mobile-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
     .asm-dashboard-filter-select {
         width: 100%;
         min-height: 42px;
@@ -122,6 +128,26 @@
         font-weight: 600;
         color: #174130;
         background: #fff;
+    }
+    .asm-dashboard-cache-btn {
+        border: 1px solid #d2ddd5;
+        background: #fff;
+        color: #174130;
+        border-radius: 12px;
+        padding: 0 14px;
+        min-height: 42px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+    .asm-dashboard-cache-btn:hover {
+        background: #f2f7f4;
+        border-color: #bfd0c6;
+    }
+    .asm-dashboard-cache-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
     }
     .asm-dashboard-filter-chip {
         border: 1px solid #d2ddd5;
@@ -139,6 +165,9 @@
         color: #fff;
         border-color: transparent;
         box-shadow: 0 10px 18px rgba(6, 58, 28, 0.18);
+    }
+    .asm-dashboard-filter-chip.asm-dashboard-cache-btn {
+        padding: 9px 14px;
     }
     .asm-dashboard-custom-range {
         display: none;
@@ -212,12 +241,28 @@
             display: block;
             width: 100%;
         }
+        .asm-dashboard-filter-mobile-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
         .asm-dashboard-filter-select {
             min-height: 38px;
             border-radius: 12px;
             padding: 0 36px 0 12px;
             font-size: 12px;
             min-width: 128px;
+            box-shadow: 0 6px 18px rgba(6, 58, 28, 0.08);
+        }
+        .asm-dashboard-filter-mobile-wrap .asm-dashboard-filter-select {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .asm-dashboard-cache-btn {
+            min-height: 38px;
+            padding: 0 12px;
+            border-radius: 12px;
             box-shadow: 0 6px 18px rgba(6, 58, 28, 0.08);
         }
         .asm-dashboard-custom-range {
@@ -424,65 +469,156 @@
         }
     }
     
-    /* Recent Tasks Section Styles */
-    .recent-tasks-grid {
+    /* Mobile task digest */
+    .recent-tasks-mobile {
+        display: none;
+        margin-bottom: 18px;
+    }
+    .mobile-task-stack {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 16px;
     }
-    
-    .recent-task-card {
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-height: 100px;
-    }
-    
-    .recent-task-card .task-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: #063A1C;
-        margin: 0;
-        line-height: 1.4;
+    .mobile-task-panel {
+        background: #fff;
+        border: 1px solid #e7ece9;
+        border-radius: 22px;
+        box-shadow: 0 12px 30px rgba(15, 45, 34, 0.08);
         overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
     }
-    
-    .recent-task-card .task-time {
-        font-size: 11px;
-        color: #6b7280;
+    .mobile-task-panel.pending-panel {
+        border-top: 4px solid #d8b4fe;
+    }
+    .mobile-task-panel.overdue-panel {
+        border-top: 4px solid #fb923c;
+    }
+    .mobile-task-panel-head {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 16px 10px;
     }
-    
-    .recent-task-card .call-btn {
-        width: 100%;
-        padding: 8px 12px;
-        background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);
-        color: white;
-        border: none;
-        border-radius: 6px;
+    .mobile-task-panel-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #10281f;
+    }
+    .mobile-task-panel-subtitle {
+        margin-top: 2px;
         font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
+        color: #75877d;
+    }
+    .mobile-task-panel-count {
+        min-width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        padding: 0 12px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        transition: all 0.2s;
-        margin-top: auto;
+        font-size: 16px;
+        font-weight: 800;
     }
-    
-    .recent-task-card .call-btn:hover {
-        background: linear-gradient(135deg, #205A44 0%, #15803d 100%);
-        transform: translateY(-1px);
+    .pending-panel .mobile-task-panel-count {
+        background: #f3e8ff;
+        color: #7c3aed;
+    }
+    .overdue-panel .mobile-task-panel-count {
+        background: #fff1e8;
+        color: #ea580c;
+    }
+    .mobile-task-list {
+        display: grid;
+        gap: 10px;
+        padding: 0 12px 6px;
+    }
+    .mobile-task-card {
+        display: flex;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fbfcfc 0%, #f4f8f6 100%);
+        border: 1px solid #ebf0ed;
+        text-decoration: none;
+        color: inherit;
+    }
+    .mobile-task-accent {
+        width: 4px;
+        flex: 0 0 4px;
+        border-radius: 999px;
+        background: #d8b4fe;
+    }
+    .overdue-panel .mobile-task-accent {
+        background: #fb923c;
+    }
+    .mobile-task-body {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .mobile-task-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .mobile-task-title {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.45;
+        color: #1a3027;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .mobile-task-time {
+        font-size: 11px;
+        font-weight: 700;
+        color: #5c6d64;
+        white-space: nowrap;
+    }
+    .mobile-task-meta {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #354d42;
+        line-height: 1.45;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .mobile-task-age {
+        margin-top: 6px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .pending-panel .mobile-task-age {
+        color: #6d28d9;
+    }
+    .overdue-panel .mobile-task-age {
+        color: #c2410c;
+    }
+    .mobile-task-footer {
+        padding: 6px 16px 16px;
+        display: flex;
+        justify-content: center;
+    }
+    .mobile-task-more {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #2563eb;
+        text-decoration: none;
+    }
+    .mobile-task-empty {
+        padding: 8px 16px 18px;
+        font-size: 13px;
+        color: #6b7d73;
+        text-align: center;
     }
     
     /* Desktop: Hide Recent Tasks, Show Quick Actions */
@@ -539,15 +675,6 @@
         }
         .quick-actions-section {
             display: none !important;
-        }
-        
-        .recent-tasks-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-        
-        .recent-task-card {
-            padding: 12px;
         }
         
         /* Royal Green Background for All Dashboard Cards on Mobile */
@@ -909,6 +1036,12 @@
         box-shadow: 0 20px 40px rgba(6, 58, 28, 0.22) !important;
         border-color: rgba(255,255,255,0.16);
     }
+    .asm-stat-card.is-hidden {
+        display: none !important;
+    }
+    .asm-stat-card.total-leads-card {
+        background: linear-gradient(135deg, #063a1c 0%, #0f5b45 52%, #1b7f5e 100%) !important;
+    }
     .asm-panel {
         background: #fff;
         border: 1px solid #e4e0d7;
@@ -946,8 +1079,14 @@
         .asm-stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
         }
+        .asm-stat-card.total-leads-card {
+            grid-column: 1 / -1;
+        }
         .asm-stat-card {
             padding: 16px !important;
+        }
+        .asm-stat-card.total-leads-card .stat-value {
+            font-size: 38px;
         }
         .asm-stat-card .stat-value {
             font-size: 24px;
@@ -975,18 +1114,22 @@
                     <button type="button" class="asm-dashboard-filter-chip" data-dashboard-filter="this_week">This Week</button>
                     <button type="button" class="asm-dashboard-filter-chip" data-dashboard-filter="this_month">This Month</button>
                     <button type="button" class="asm-dashboard-filter-chip" data-dashboard-filter="custom">Custom</button>
+                    <button type="button" class="asm-dashboard-filter-chip asm-dashboard-cache-btn" data-dashboard-clear-cache>Clear Cache</button>
                 </div>
                 <div class="asm-dashboard-filter-mobile">
-                    <select id="asmDashboardFilterSelect" class="asm-dashboard-filter-select">
-                        <option value="today">Today</option>
-                        <option value="this_week">This Week</option>
-                        <option value="this_month">This Month</option>
-                        <option value="custom">Custom Range</option>
-                    </select>
+                    <div class="asm-dashboard-filter-mobile-wrap">
+                        <select id="asmDashboardFilterSelect" class="asm-dashboard-filter-select">
+                            <option value="today">Today</option>
+                            <option value="this_week">This Week</option>
+                            <option value="this_month">This Month</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                        <button type="button" class="asm-dashboard-cache-btn" data-dashboard-clear-cache>Clear Cache</button>
+                    </div>
                 </div>
             </div>
         </div>
-        <h2>Good morning, <span>{{ auth()->user()->name }}</span></h2>
+        <h2>{{ $greeting }}, <span>{{ auth()->user()->name }}</span></h2>
         <div class="asm-dashboard-custom-range" id="asmDashboardCustomRange">
             <input type="date" id="asmDashboardStartDate" class="asm-dashboard-date-input">
             <input type="date" id="asmDashboardEndDate" class="asm-dashboard-date-input">
@@ -1003,6 +1146,9 @@
                 </a>
                 <a href="{{ route('sales-manager.tasks', ['status' => 'overdue']) }}" class="asm-mini-metric-link" id="asmTodayFocusOverdueCard">
                     <strong id="overdueTasksHero">0</strong><span>Overdue</span>
+                </a>
+                <a href="{{ route('sales-manager.tasks', ['date_filter' => 'custom', 'custom_date' => now()->subDay()->format('Y-m-d')]) }}" class="asm-mini-metric-link" id="asmTodayFocusPreviousOverdueCard">
+                    <strong id="previousDayOverdueHero">0</strong><span>Prev Day Overdue</span>
                 </a>
                 <a href="{{ route('sales-manager.meetings', ['date_filter' => 'today']) }}" class="asm-mini-metric-link" id="asmTodayFocusMeetingsCard">
                     <strong id="todayMeetingsHero">0</strong>
@@ -1034,13 +1180,13 @@
 <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 mb-6 stats-grid asm-stats-grid" id="asmStatsGrid">
     <!-- Stats Cards - Reordered for mobile: Leads Received, Today Prospects, Pending Verifications, Over Due Task, Team Members -->
     
-    <!-- 1. Leads Received -->
-    <a href="{{ route('sales-manager.leads') }}" class="rounded-lg shadow p-6 dashboard-card asm-stat-card asm-stat-link" id="asmStatLeadsReceived">
+    <!-- 1. Total Leads -->
+    <a href="{{ route('sales-manager.leads') }}" class="rounded-lg shadow p-6 dashboard-card asm-stat-card asm-stat-link total-leads-card" id="asmStatLeadsReceived">
         <div class="stat-head">
             <div>
-                <p class="stat-kicker">Pipeline</p>
+                <p class="stat-kicker">Portfolio</p>
                 <h3 class="stat-value mt-1" id="assignedLeads">0</h3>
-                <p class="stat-label">Leads Received</p>
+                <p class="stat-label">Total Leads</p>
             </div>
             <span class="stat-icon"><i class="fas fa-user-friends"></i></span>
         </div>
@@ -1082,6 +1228,17 @@
         </div>
     </a>
 
+    <a href="{{ route('sales-manager.tasks', ['date_filter' => 'custom', 'custom_date' => now()->subDay()->format('Y-m-d')]) }}" class="rounded-lg shadow p-6 dashboard-card asm-stat-card asm-stat-link" id="asmStatPreviousDayOverdueTasks">
+        <div class="stat-head">
+            <div>
+                <p class="stat-kicker">Carry Forward</p>
+                <h3 class="stat-value mt-1" id="previousDayOverdueTasks">0</h3>
+                <p class="stat-label">Previous Day Overdue</p>
+            </div>
+            <span class="stat-icon"><i class="fas fa-history"></i></span>
+        </div>
+    </a>
+
     <!-- 5. Team Members (hidden on mobile) -->
     <a href="{{ route('sales-manager.team') }}" class="rounded-lg shadow p-6 dashboard-card team-members-card asm-stat-card asm-stat-link" id="asmStatTeamMembers">
         <div class="stat-head">
@@ -1095,7 +1252,7 @@
     </a>
 
     <!-- 6. Pending Tasks (kept for desktop) -->
-    <a href="{{ route('sales-manager.tasks', ['status' => 'pending']) }}" class="rounded-lg shadow p-6 dashboard-card asm-stat-card asm-stat-link" id="asmStatPendingTasks">
+    <a href="{{ route('sales-manager.tasks', ['status' => 'pending']) }}" class="rounded-lg shadow p-6 dashboard-card asm-stat-card asm-stat-link is-hidden" id="asmStatPendingTasks">
         <div class="stat-head">
             <div>
                 <p class="stat-kicker">Backlog</p>
@@ -1107,7 +1264,7 @@
     </a>
 
     <!-- 7. No response yet -->
-    <a href="#smNoResponseSection" class="rounded-lg shadow p-6 dashboard-card asm-stat-card asm-stat-link" id="asmStatNoResponseYet">
+    <a href="#smNoResponseSection" class="rounded-lg shadow p-6 dashboard-card asm-stat-card asm-stat-link is-hidden" id="asmStatNoResponseYet">
         <div class="stat-head">
             <div>
                 <p class="stat-kicker">Risk</p>
@@ -1118,6 +1275,48 @@
         </div>
     </a>
 </div>
+
+<section class="recent-tasks-mobile" id="asmMobileTaskDigest">
+    <div class="mobile-task-stack">
+        <article class="mobile-task-panel pending-panel">
+            <div class="mobile-task-panel-head">
+                <div>
+                    <h2 class="mobile-task-panel-title">Pending tasks</h2>
+                    <div class="mobile-task-panel-subtitle">Due soon and today&apos;s queue</div>
+                </div>
+                <span class="mobile-task-panel-count" id="asmPendingMobileCount">0</span>
+            </div>
+            <div class="mobile-task-list" id="asmPendingMobileList">
+                <div class="mobile-task-empty">Loading pending tasks...</div>
+            </div>
+            <div class="mobile-task-footer">
+                <a href="{{ route('sales-manager.tasks', ['status' => 'pending']) }}" class="mobile-task-more" id="asmPendingMobileMore">
+                    <span>View all pending</span>
+                    <i class="fas fa-chevron-down text-[11px]"></i>
+                </a>
+            </div>
+        </article>
+
+        <article class="mobile-task-panel overdue-panel">
+            <div class="mobile-task-panel-head">
+                <div>
+                    <h2 class="mobile-task-panel-title">Overdue tasks</h2>
+                    <div class="mobile-task-panel-subtitle">Oldest tasks needing action now</div>
+                </div>
+                <span class="mobile-task-panel-count" id="asmOverdueMobileCount">0</span>
+            </div>
+            <div class="mobile-task-list" id="asmOverdueMobileList">
+                <div class="mobile-task-empty">Loading overdue tasks...</div>
+            </div>
+            <div class="mobile-task-footer">
+                <a href="{{ route('sales-manager.tasks', ['status' => 'overdue']) }}" class="mobile-task-more" id="asmOverdueMobileMore">
+                    <span>View all overdue</span>
+                    <i class="fas fa-chevron-down text-[11px]"></i>
+                </a>
+            </div>
+        </article>
+    </div>
+</section>
 
 <!-- Leads allocated – no response yet (SM/ASM) -->
 <div id="smNoResponseSection" class="bg-white rounded-lg shadow p-6 mb-6 asm-panel">
@@ -1319,13 +1518,30 @@
     const API_BASE_URL = '{{ url("/api/sales-manager") }}';
     const API_TOKEN = '{{ $api_token ?? session("api_token") ?? "" }}';
     
-    // Store token in localStorage if available
-    if (API_TOKEN) {
-        localStorage.setItem('sales_manager_token', API_TOKEN);
-    }
-    
     function getToken() {
-        return API_TOKEN || localStorage.getItem('sales_manager_token') || '{{ session("api_token") ?? "" }}';
+        return typeof window.getManagerApiToken === 'function'
+            ? window.getManagerApiToken()
+            : (API_TOKEN || '{{ session("api_token") ?? "" }}');
+    }
+
+    function getDashboardManagerAuthHeaders(extraHeaders = {}) {
+        if (typeof window.getManagerAuthHeaders === 'function') {
+            return window.getManagerAuthHeaders(extraHeaders);
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const token = getToken();
+        const headers = {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        return { ...headers, ...extraHeaders };
     }
 
     async function apiCall(endpoint, options = {}) {
@@ -1340,11 +1556,11 @@
         
         const defaultOptions = {
             headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
+                ...getDashboardManagerAuthHeaders({
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'X-CSRF-TOKEN': csrfToken,
+                }),
             },
         };
 
@@ -1359,9 +1575,9 @@
 
             console.log(`API Response Status: ${response.status} for ${endpoint}`);
 
-            if (response.status === 401) {
+            if (response.status === 401 || response.status === 403) {
                 console.error('Unauthorized - token invalid');
-                localStorage.removeItem('sales_manager_token');
+                window.handleManagerAuthFailure('dashboard');
                 window.location.href = '{{ route("login") }}';
                 return null;
             }
@@ -1527,6 +1743,48 @@
                 end_date: endDate
             });
         });
+
+        document.querySelectorAll('[data-dashboard-clear-cache]').forEach(function (button) {
+            button.addEventListener('click', clearAsmDashboardCache);
+        });
+    }
+
+    async function clearAsmDashboardCache() {
+        const buttons = document.querySelectorAll('[data-dashboard-clear-cache]');
+        const status = document.getElementById('asmDashboardFilterStatus');
+
+        buttons.forEach(function (button) {
+            button.disabled = true;
+            button.dataset.originalLabel = button.dataset.originalLabel || button.textContent.trim();
+            button.textContent = 'Clearing...';
+        });
+
+        if (status) {
+            status.textContent = 'Clearing dashboard cache...';
+        }
+
+        try {
+            const response = await apiCall('/dashboard/clear-cache', { method: 'POST' });
+
+            if (!response || response.success === false) {
+                throw new Error(response?.message || 'Failed to clear dashboard cache.');
+            }
+
+            if (status) {
+                status.textContent = response.message || 'Dashboard cache cleared successfully.';
+            }
+
+            await loadDashboardData();
+        } catch (error) {
+            if (status) {
+                status.textContent = error.message || 'Failed to clear dashboard cache.';
+            }
+        } finally {
+            buttons.forEach(function (button) {
+                button.disabled = false;
+                button.textContent = button.dataset.originalLabel || 'Clear Cache';
+            });
+        }
     }
 
     async function loadSmLeadsPendingResponse() {
@@ -1584,8 +1842,10 @@
                 document.getElementById('pendingTasks').textContent = profile.team_stats.pending_tasks || 0;
                 // Get overdue tasks count
                 document.getElementById('overdueTasks').textContent = profile.team_stats.overdue_tasks || 0;
+                document.getElementById('previousDayOverdueTasks').textContent = profile.team_stats.previous_day_overdue_tasks || 0;
                 const freshLeadsHero = document.getElementById('freshLeadsHero');
                 const overdueTasksHero = document.getElementById('overdueTasksHero');
+                const previousDayOverdueHero = document.getElementById('previousDayOverdueHero');
                 const todayMeetingsHero = document.getElementById('todayMeetingsHero');
                 const todayVisitsHero = document.getElementById('todayVisitsHero');
                 const todayFollowupsHero = document.getElementById('todayFollowupsHero');
@@ -1594,6 +1854,7 @@
                 const todayFollowups = profile.team_stats.today_followups_count || 0;
                 if (freshLeadsHero) freshLeadsHero.textContent = profile.team_stats.fresh_leads_today || 0;
                 if (overdueTasksHero) overdueTasksHero.textContent = profile.team_stats.overdue_tasks || 0;
+                if (previousDayOverdueHero) previousDayOverdueHero.textContent = profile.team_stats.previous_day_overdue_tasks || 0;
                 if (todayMeetingsHero) todayMeetingsHero.textContent = todayMeetings;
                 if (todayVisitsHero) todayVisitsHero.textContent = todayVisits;
                 if (todayFollowupsHero) todayFollowupsHero.textContent = todayFollowups;
@@ -1605,13 +1866,15 @@
 
             // Load leads pending response (count + table)
             loadSmLeadsPendingResponse();
+            await loadRecentTasks();
 
             // Load dashboard data for incentives and targets
             try {
                 const dashboardData = await fetch(`{{ url("/api/dashboard") }}?${dashboardParams.toString()}`, {
                     headers: {
-                        'Authorization': `Bearer ${getToken()}`,
-                        'Accept': 'application/json',
+                        ...getDashboardManagerAuthHeaders({
+                            'Authorization': `Bearer ${getToken()}`,
+                        }),
                     }
                 });
 
@@ -1842,9 +2105,9 @@
         try {
             const response = await fetch('/api/sales-manager/dashboard-settings', {
                 headers: {
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`,
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    ...getDashboardManagerAuthHeaders({
+                        'Authorization': `Bearer ${getToken()}`,
+                    }),
                 },
                 credentials: 'same-origin'
             });
@@ -2027,78 +2290,138 @@
         }).join('');
     }
 
+    function formatMobileTaskRelativeLabel(task, isOverdue) {
+        const scheduledAt = task?.scheduled_at ? new Date(task.scheduled_at) : null;
+        if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) {
+            return isOverdue ? 'Needs attention' : 'Scheduled task';
+        }
+
+        const diffMs = scheduledAt.getTime() - Date.now();
+        const minutes = Math.max(1, Math.round(Math.abs(diffMs) / 60000));
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+
+        let duration = '';
+        if (hours > 0) {
+            duration = `${hours}h`;
+            if (remainingMinutes > 0) {
+                duration += ` ${remainingMinutes}m`;
+            }
+        } else {
+            duration = `${minutes}m`;
+        }
+
+        return isOverdue ? `Overdue by ${duration}` : `Due in ${duration}`;
+    }
+
+    function syncMobileTaskDigestLinks() {
+        const params = getDashboardFilterParams();
+        const pendingLink = document.getElementById('asmPendingMobileMore');
+        const overdueLink = document.getElementById('asmOverdueMobileMore');
+        const pendingUrl = new URL(`{{ route('sales-manager.tasks', ['status' => 'pending']) }}`, window.location.origin);
+        const overdueUrl = new URL(`{{ route('sales-manager.tasks', ['status' => 'overdue']) }}`, window.location.origin);
+
+        params.forEach(function(value, key) {
+            pendingUrl.searchParams.set(key, value);
+            overdueUrl.searchParams.set(key, value);
+        });
+
+        if (pendingLink) {
+            pendingLink.href = pendingUrl.toString();
+        }
+
+        if (overdueLink) {
+            overdueLink.href = overdueUrl.toString();
+        }
+    }
+
+    function renderMobileTaskDigestList(containerId, tasks, emptyText, isOverdue) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+            container.innerHTML = `<div class="mobile-task-empty">${emptyText}</div>`;
+            return;
+        }
+
+        container.innerHTML = tasks.map(function(task) {
+            const lead = task.lead || {};
+            const displayTitle = String(task.display_title || task.title || lead.name || 'Task')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            const leadName = String(lead.name || 'Lead')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            const projectName = String(lead.project_name || lead.project || task.project_name || task.property_name || 'Opportunity')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            const scheduledText = task.scheduled_at
+                ? new Date(task.scheduled_at).toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+                : 'Not scheduled';
+            const leadUrl = task.lead?.id ? `{{ url('/leads') }}/${task.lead.id}` : `{{ route('sales-manager.tasks') }}?task=${task.id}`;
+
+            return `
+                <a href="${leadUrl}" class="mobile-task-card">
+                    <span class="mobile-task-accent"></span>
+                    <div class="mobile-task-body">
+                        <div class="mobile-task-row">
+                            <p class="mobile-task-title">${displayTitle}</p>
+                            <span class="mobile-task-time">${scheduledText}</span>
+                        </div>
+                        <div class="mobile-task-meta">${leadName} - ${projectName}</div>
+                        <div class="mobile-task-age">${formatMobileTaskRelativeLabel(task, isOverdue)}</div>
+                    </div>
+                </a>
+            `;
+        }).join('');
+    }
+
     // Load recent tasks for mobile view
     async function loadRecentTasks() {
         try {
             const isMobile = window.innerWidth <= 767;
             const recentTasksSection = document.querySelector('.recent-tasks-mobile');
-            const tasksGrid = document.getElementById('recentTasksGrid');
+            const pendingCount = document.getElementById('asmPendingMobileCount');
+            const overdueCount = document.getElementById('asmOverdueMobileCount');
+            const taskFilterQuery = getDashboardFilterParams().toString();
             
-            if (!tasksGrid) return;
+            if (!recentTasksSection) return;
             
             if (!isMobile) {
-                // Hide recent tasks section on desktop
-                if (recentTasksSection) {
-                    recentTasksSection.style.display = 'none';
-                }
+                recentTasksSection.style.display = 'none';
                 return;
             }
             
-            // Show section on mobile
-            if (recentTasksSection) {
-                recentTasksSection.style.display = 'block';
-            }
-            
-            const result = await apiCall('/tasks?status=pending');
-            
-            if (result && result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
-                const tasks = result.data.slice(0, 4); // Limit to 4 tasks
-                
-                tasksGrid.innerHTML = tasks.map(task => {
-                    const lead = task.lead || {};
-                    let leadName = lead.name || 'Prospect';
-                    
-                    // Extract name from title if needed
-                    if (task.title && !lead.name) {
-                        const titleMatch = task.title.match(/prospect verification:\s*(.+)/i);
-                        if (titleMatch) {
-                            leadName = titleMatch[1].trim();
-                        }
-                    }
-                    
-                    const scheduledAt = task.scheduled_at ? new Date(task.scheduled_at).toLocaleString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) : 'Not scheduled';
-                    
-                    const leadId = lead.id || (task.lead_id || null);
-                    
-                    return `
-                        <div class="recent-task-card">
-                            <div class="task-name">${leadName}</div>
-                            <div class="task-time">
-                                <i class="fas fa-clock" style="font-size: 10px; margin-right: 4px;"></i>
-                                ${scheduledAt}
-                            </div>
-                            <button class="call-btn" onclick="handleTaskCall(${task.id}, ${leadId ? leadId : 'null'})">
-                                <i class="fas fa-phone"></i>
-                                Call
-                            </button>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                // Hide if no tasks
-                tasksGrid.innerHTML = '';
-            }
+            recentTasksSection.style.display = 'block';
+            syncMobileTaskDigestLinks();
+
+            const [pendingResult, overdueResult] = await Promise.all([
+                apiCall(`/tasks?status=pending&${taskFilterQuery}`),
+                apiCall(`/tasks?status=overdue&${taskFilterQuery}`)
+            ]);
+
+            const pendingTasks = pendingResult?.success && Array.isArray(pendingResult.data) ? pendingResult.data : [];
+            const overdueTasks = overdueResult?.success && Array.isArray(overdueResult.data) ? overdueResult.data : [];
+
+            if (pendingCount) pendingCount.textContent = String(pendingTasks.length || 0);
+            if (overdueCount) overdueCount.textContent = String(overdueTasks.length || 0);
+
+            renderMobileTaskDigestList('asmPendingMobileList', pendingTasks.slice(0, 3), 'No pending tasks right now.', false);
+            renderMobileTaskDigestList('asmOverdueMobileList', overdueTasks.slice(0, 3), 'No overdue tasks. Good control.', true);
         } catch (error) {
             console.error('Error loading recent tasks:', error);
-            const tasksGrid = document.getElementById('recentTasksGrid');
-            if (tasksGrid) {
-                tasksGrid.innerHTML = '';
-            }
+            renderMobileTaskDigestList('asmPendingMobileList', [], 'Unable to load pending tasks.', false);
+            renderMobileTaskDigestList('asmOverdueMobileList', [], 'Unable to load overdue tasks.', true);
         }
     }
     
@@ -2113,7 +2436,7 @@
         hydrateDashboardFilterFromUrl();
         bindDashboardFilterControls();
         await loadAsmDashboardVisibility();
-        loadDashboardData();
+        await loadDashboardData();
     })();
 </script>
 @endpush
