@@ -39,6 +39,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \App\Http\Middleware\PreventCache::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\CheckMaintenanceMode::class,
         ],
 
         'api' => [
@@ -73,6 +74,7 @@ class Kernel extends HttpKernel
         'crm' => \App\Http\Middleware\CheckCrmRole::class,
         'crm_dashboard_access' => \App\Http\Middleware\CrmDashboardAccess::class,
         'restrict.test' => \App\Http\Middleware\RestrictTestRoutes::class,
+        'prevent.cache' => \App\Http\Middleware\PreventCache::class,
+        'profile.heavy' => \App\Http\Middleware\ProfileHeavyRequest::class,
     ];
 }
-
