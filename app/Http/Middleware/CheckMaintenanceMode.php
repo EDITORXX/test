@@ -42,7 +42,8 @@ class CheckMaintenanceMode
             $ownerEmail = $isFileLockEnabled
                 ? (string) ($fileLock['owner_email'] ?? SecurityLockControl::DEFAULT_OWNER_EMAIL)
                 : (string) SystemSettings::get('security_lock_owner_email', SecurityLockControl::DEFAULT_OWNER_EMAIL);
-            $hasOwnerBypass = $request->session()->get('security_lock_owner_bypass') === true;
+            $hasOwnerBypass = $request->hasSession()
+                && $request->session()->get('security_lock_owner_bypass') === true;
             $isLoginRoute = $request->is('login')
                 || $request->routeIs('login')
                 || str_starts_with($path, 'login');
