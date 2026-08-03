@@ -7,15 +7,15 @@
     <title>Security Lock Active</title>
     <style>
         :root {
-            color-scheme: light;
-            --bg: #f4f7fb;
-            --panel: #ffffff;
-            --text: #102033;
-            --muted: #5d6b7a;
-            --border: #d9e2ec;
-            --accent: #0f766e;
-            --accent-soft: #e6fffb;
-            --danger: #b42318;
+            color-scheme: dark;
+            --bg: #05070d;
+            --panel: #0b1220;
+            --text: #eef7ff;
+            --muted: #9fb1c5;
+            --border: rgba(45, 212, 191, 0.28);
+            --accent: #2dd4bf;
+            --accent-soft: rgba(45, 212, 191, 0.12);
+            --danger: #fb7185;
         }
 
         * {
@@ -27,8 +27,12 @@
             min-height: 100vh;
             font-family: Arial, Helvetica, sans-serif;
             background:
-                radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 32rem),
+                linear-gradient(rgba(45, 212, 191, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(45, 212, 191, 0.035) 1px, transparent 1px),
+                radial-gradient(circle at 18% 8%, rgba(45, 212, 191, 0.16), transparent 26rem),
+                radial-gradient(circle at 90% 20%, rgba(251, 113, 133, 0.12), transparent 24rem),
                 var(--bg);
+            background-size: 42px 42px, 42px 42px, auto, auto, auto;
             color: var(--text);
             display: flex;
             align-items: center;
@@ -38,10 +42,10 @@
 
         .lock-card {
             width: min(100%, 680px);
-            background: var(--panel);
+            background: linear-gradient(145deg, rgba(11, 18, 32, 0.96), rgba(7, 10, 18, 0.98));
             border: 1px solid var(--border);
             border-radius: 8px;
-            box-shadow: 0 24px 70px rgba(16, 32, 51, 0.12);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 42px rgba(45, 212, 191, 0.12);
             padding: clamp(24px, 5vw, 44px);
         }
 
@@ -57,12 +61,13 @@
             height: 48px;
             border-radius: 50%;
             background: var(--accent-soft);
-            border: 1px solid rgba(15, 118, 110, 0.22);
+            border: 1px solid rgba(45, 212, 191, 0.44);
             display: inline-flex;
             align-items: center;
             justify-content: center;
             color: var(--accent);
             flex: 0 0 auto;
+            box-shadow: 0 0 28px rgba(45, 212, 191, 0.25);
         }
 
         h1 {
@@ -86,17 +91,15 @@
             color: var(--muted);
         }
 
-        .reference {
-            margin-top: 26px;
+        .timer {
+            margin-top: 24px;
             padding: 14px 16px;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(251, 113, 133, 0.35);
             border-radius: 8px;
-            background: #f8fafc;
-            color: var(--danger);
-            font-size: 13px;
+            background: rgba(251, 113, 133, 0.08);
+            color: #fecdd3;
+            font-size: 15px;
             font-weight: 700;
-            letter-spacing: 0.04em;
-            overflow-wrap: anywhere;
         }
 
         @media (max-width: 520px) {
@@ -128,11 +131,11 @@
             <h1 id="security-lock-title">Security Lock Active</h1>
         </div>
 
-        <p class="lead">This system has been temporarily locked because suspicious activity was detected on the server.</p>
-        <p>Access is restricted while the owner verifies system integrity.</p>
+        <p class="lead">This system was automatically locked after suspicious activity was detected on the server.</p>
+        <p>Due to security concerns, access has been restricted while the owner verifies system integrity.</p>
         <p>If you are an authorized user, please contact the administrator.</p>
 
-        <div class="reference">Reference: SECURITY_LOCK_ACTIVE</div>
+        <div class="timer">Automatic security lock: access restricted for 2 hours.</div>
     </main>
 </body>
 </html>
