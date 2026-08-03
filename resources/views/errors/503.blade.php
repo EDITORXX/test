@@ -38,11 +38,69 @@
             align-items: center;
             justify-content: center;
             padding: 24px;
+            overflow: hidden;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                linear-gradient(to bottom, rgba(5, 7, 13, 0.12), rgba(5, 7, 13, 0.72)),
+                radial-gradient(circle at center, transparent 0, rgba(5, 7, 13, 0.62) 72%);
+            pointer-events: none;
+        }
+
+        .matrix-rain {
+            position: fixed;
+            inset: -120vh 0 0;
+            z-index: 0;
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: clamp(10px, 1.8vw, 28px);
+            padding: 0 clamp(10px, 2vw, 30px);
+            color: rgba(34, 255, 124, 0.72);
+            font: 700 clamp(14px, 2.1vw, 24px) / 1.18 Consolas, "Courier New", monospace;
+            text-shadow: 0 0 10px rgba(34, 255, 124, 0.55);
+            opacity: 0.88;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .matrix-rain span {
+            writing-mode: vertical-rl;
+            word-break: break-all;
+            animation: matrixFall var(--speed, 12s) linear infinite;
+            animation-delay: var(--delay, 0s);
+            transform: translateY(-25%);
+            filter: blur(var(--blur, 0));
+        }
+
+        .matrix-rain span:nth-child(2n) {
+            color: rgba(83, 255, 153, 0.54);
+        }
+
+        .matrix-rain span:nth-child(3n) {
+            opacity: 0.52;
+        }
+
+        @keyframes matrixFall {
+            from {
+                transform: translateY(-28%);
+            }
+
+            to {
+                transform: translateY(128%);
+            }
         }
 
         .lock-card {
+            position: relative;
+            z-index: 1;
             width: min(100%, 680px);
-            background: linear-gradient(145deg, rgba(11, 18, 32, 0.96), rgba(7, 10, 18, 0.98));
+            background: linear-gradient(145deg, rgba(11, 18, 32, 0.9), rgba(7, 10, 18, 0.96));
+            backdrop-filter: blur(10px);
             border: 1px solid var(--border);
             border-radius: 8px;
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 42px rgba(45, 212, 191, 0.12);
@@ -106,6 +164,7 @@
             body {
                 align-items: flex-start;
                 padding: 18px;
+                overflow: auto;
             }
 
             .lock-card {
@@ -115,10 +174,42 @@
             .status-row {
                 align-items: flex-start;
             }
+
+            .matrix-rain {
+                grid-template-columns: repeat(9, 1fr);
+                font-size: 15px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .matrix-rain span {
+                animation: none;
+                transform: translateY(20%);
+            }
         }
     </style>
 </head>
 <body>
+    <div class="matrix-rain" aria-hidden="true">
+        <span style="--speed: 12s; --delay: -2s;">0101011010010110SECURITYLOCKACTIVE1100101001110010</span>
+        <span style="--speed: 16s; --delay: -8s; --blur: .3px;">ACCESSDENIED0100101110010010110101011010</span>
+        <span style="--speed: 11s; --delay: -5s;">1011010010110110SERVERWATCH010011010110</span>
+        <span style="--speed: 19s; --delay: -12s; --blur: .4px;">AUTHCHECKFAILED11010010110101100101</span>
+        <span style="--speed: 13s; --delay: -7s;">001101101001011010010110LOCKED0101</span>
+        <span style="--speed: 17s; --delay: -4s;">010011001101SUSPICIOUSACTIVITY101101</span>
+        <span style="--speed: 10s; --delay: -1s;">110101001011001011010010110101001</span>
+        <span style="--speed: 15s; --delay: -9s; --blur: .2px;">INTEGRITYCHECK001101001011010101</span>
+        <span style="--speed: 18s; --delay: -11s;">010101001101011011001010SECURE</span>
+        <span style="--speed: 12s; --delay: -6s;">SYSTEMLOCKED101001011011010010</span>
+        <span style="--speed: 21s; --delay: -15s; --blur: .5px;">0100101101011010010110100110</span>
+        <span style="--speed: 14s; --delay: -3s;">SERVERMONITOR0101101001011010</span>
+        <span style="--speed: 20s; --delay: -10s;">011010010110101001011010VERIFY</span>
+        <span style="--speed: 13s; --delay: -8s; --blur: .2px;">RESTRICTEDACCESS110010101101</span>
+        <span style="--speed: 16s; --delay: -13s;">1010010110100101101001011010</span>
+        <span style="--speed: 11s; --delay: -4s;">THREATSCAN0101011010010110</span>
+        <span style="--speed: 18s; --delay: -7s; --blur: .4px;">010110100101101001011010</span>
+        <span style="--speed: 15s; --delay: -2s;">AUTOLOCK010011010110SECURITY</span>
+    </div>
     <main class="lock-card" role="main" aria-labelledby="security-lock-title">
         <div class="status-row">
             <div class="status-icon" aria-hidden="true">
