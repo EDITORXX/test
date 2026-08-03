@@ -37,15 +37,28 @@ class CheckMaintenanceMode
             && !$request->is('logout')
             && !$request->routeIs('logout')
         ) {
+            $startedAt = SystemSettings::get('security_lock_preview_started_at');
+            if (!$startedAt) {
+                $startedAt = now()->toIso8601String();
+                SystemSettings::set('security_lock_preview_started_at', $startedAt);
+            }
+
+            $startedAtTimestamp = strtotime((string) $startedAt) ?: time();
+            $expiresAtTimestamp = $startedAtTimestamp + (2 * 60 * 60);
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => 'security_lock_active',
                     'message' => 'This system has been temporarily locked because suspicious activity was detected on the server.',
                     'reference' => 'SECURITY_LOCK_ACTIVE',
+                    'expires_at' => date(DATE_ATOM, $expiresAtTimestamp),
                 ], 503);
             }
 
-            return response()->view('errors.503', [], 503);
+            return response()->view('errors.503', [
+                'lockExpiresAt' => date(DATE_ATOM, $expiresAtTimestamp),
+                'serverNow' => now()->toIso8601String(),
+            ], 503);
         }
         
         // Check if maintenance mode is enabled

@@ -279,7 +279,9 @@
     </main>
     <script>
         (function () {
-            var remaining = 2 * 60 * 60;
+            var expiresAt = new Date(@json($lockExpiresAt ?? now()->addHours(2)->toIso8601String())).getTime();
+            var serverNow = new Date(@json($serverNow ?? now()->toIso8601String())).getTime();
+            var clientStartedAt = Date.now();
             var hours = document.getElementById('lockHours');
             var minutes = document.getElementById('lockMinutes');
             var seconds = document.getElementById('lockSeconds');
@@ -289,14 +291,12 @@
             }
 
             function renderCountdown() {
+                var estimatedServerNow = serverNow + (Date.now() - clientStartedAt);
+                var remaining = Math.ceil((expiresAt - estimatedServerNow) / 1000);
                 var safeRemaining = Math.max(remaining, 0);
                 hours.textContent = pad(Math.floor(safeRemaining / 3600));
                 minutes.textContent = pad(Math.floor((safeRemaining % 3600) / 60));
                 seconds.textContent = pad(safeRemaining % 60);
-
-                if (remaining > 0) {
-                    remaining -= 1;
-                }
             }
 
             renderCountdown();
