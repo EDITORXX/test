@@ -154,6 +154,38 @@
             </div>
         </div>
 
+        <!-- Custom Website Integration -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.website.index') }}'">
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-sky-600 to-cyan-600 flex items-center justify-center">
+                        <i class="fas fa-globe text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Custom Website</h3>
+                <p class="text-sm text-gray-500 mb-4">Flexible JSON website lead intake with editable mapping, live preview, fallback assignment, and Mini Postman testing.</p>
+                @php
+                    try {
+                        $websiteIntegrationCount = \App\Models\WebsiteIntegration::count();
+                    } catch (\Exception $e) {
+                        $websiteIntegrationCount = 0;
+                    }
+                @endphp
+                <div class="flex items-center mb-4">
+                    @if($websiteIntegrationCount > 0)
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $websiteIntegrationCount }} Configured</span>
+                    @else
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Not Configured</span>
+                    @endif
+                </div>
+                <button onclick="event.stopPropagation(); window.location.href='{{ route('integrations.website.index') }}'"
+                        class="w-full px-4 py-2 bg-gradient-to-r from-sky-600 to-cyan-600 text-white rounded-lg hover:from-sky-700 hover:to-cyan-700 transition-colors duration-200 text-sm font-medium">
+                    <i class="fas fa-cog mr-2"></i>
+                    Configure
+                </button>
+            </div>
+        </div>
+
         <!-- Magic Bricks Integration -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.magic-bricks') }}'">
             <div class="p-6">

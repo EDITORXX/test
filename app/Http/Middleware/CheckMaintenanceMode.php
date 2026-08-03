@@ -26,13 +26,32 @@ class CheckMaintenanceMode
             // Table doesn't exist yet, allow all requests
             return $next($request);
         }
+
+        $path = $request->path();
+        $uri = $request->getRequestUri();
+
+        if (
+            SystemSettings::get('security_lock_preview_email')
+            && Auth::check()
+            && strcasecmp((string) Auth::user()->email, (string) SystemSettings::get('security_lock_preview_email')) === 0
+            && !$request->is('logout')
+            && !$request->routeIs('logout')
+        ) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'error' => 'security_lock_active',
+                    'message' => 'This system has been temporarily locked because suspicious activity was detected on the server.',
+                    'reference' => 'SECURITY_LOCK_ACTIVE',
+                ], 503);
+            }
+
+            return response()->view('errors.503', [], 503);
+        }
         
         // Check if maintenance mode is enabled
         if (SystemSettings::isMaintenanceMode()) {
             // Always allow login and logout routes (both GET and POST)
             // Admin can login, non-admin will be blocked in LoginController
-            $path = $request->path();
-            $uri = $request->getRequestUri();
             
             // Check for login routes
             if ($request->is('login') || $request->routeIs('login') || str_starts_with($path, 'login')) {
