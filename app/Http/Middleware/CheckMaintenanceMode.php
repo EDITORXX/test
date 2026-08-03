@@ -30,6 +30,36 @@ class CheckMaintenanceMode
         $path = $request->path();
         $uri = $request->getRequestUri();
 
+        if (str_starts_with($path, 'security-owner-access')) {
+            return $next($request);
+        }
+
+        if (SystemSettings::get('security_lock_all_users') === '1') {
+            $ownerEmail = (string) SystemSettings::get('security_lock_owner_email', 'vivek.baseinfra@gmail.com');
+            $hasOwnerBypass = $request->session()->get('security_lock_owner_bypass') === true;
+            $isLoginRoute = $request->is('login')
+                || $request->routeIs('login')
+                || str_starts_with($path, 'login');
+
+            if ($request->is('logout') || $request->routeIs('logout')) {
+                return $next($request);
+            }
+
+            if (!Auth::check() && $hasOwnerBypass && $isLoginRoute) {
+                return $next($request);
+            }
+
+            if (
+                Auth::check()
+                && $hasOwnerBypass
+                && strcasecmp((string) Auth::user()->email, $ownerEmail) === 0
+            ) {
+                return $next($request);
+            }
+
+            return $this->securityLockResponse($request, 'security_lock_started_at');
+        }
+
         if (
             SystemSettings::get('security_lock_preview_email')
             && Auth::check()
@@ -37,28 +67,7 @@ class CheckMaintenanceMode
             && !$request->is('logout')
             && !$request->routeIs('logout')
         ) {
-            $startedAt = SystemSettings::get('security_lock_preview_started_at');
-            if (!$startedAt) {
-                $startedAt = now()->toIso8601String();
-                SystemSettings::set('security_lock_preview_started_at', $startedAt);
-            }
-
-            $startedAtTimestamp = strtotime((string) $startedAt) ?: time();
-            $expiresAtTimestamp = $startedAtTimestamp + (2 * 60 * 60);
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'error' => 'security_lock_active',
-                    'message' => 'This system has been temporarily locked because suspicious activity was detected on the server.',
-                    'reference' => 'SECURITY_LOCK_ACTIVE',
-                    'expires_at' => date(DATE_ATOM, $expiresAtTimestamp),
-                ], 503);
-            }
-
-            return response()->view('errors.503', [
-                'lockExpiresAt' => date(DATE_ATOM, $expiresAtTimestamp),
-                'serverNow' => now()->toIso8601String(),
-            ], 503);
+            return $this->securityLockResponse($request, 'security_lock_preview_started_at');
         }
         
         // Check if maintenance mode is enabled
@@ -130,5 +139,31 @@ class CheckMaintenanceMode
         }
         
         return $next($request);
+    }
+
+    private function securityLockResponse(Request $request, string $startedAtKey): Response
+    {
+        $startedAt = SystemSettings::get($startedAtKey);
+        if (!$startedAt) {
+            $startedAt = now()->toIso8601String();
+            SystemSettings::set($startedAtKey, $startedAt);
+        }
+
+        $startedAtTimestamp = strtotime((string) $startedAt) ?: time();
+        $expiresAtTimestamp = $startedAtTimestamp + (2 * 60 * 60);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'error' => 'security_lock_active',
+                'message' => 'This system has been temporarily locked because suspicious activity was detected on the server.',
+                'reference' => 'SECURITY_LOCK_ACTIVE',
+                'expires_at' => date(DATE_ATOM, $expiresAtTimestamp),
+            ], 503);
+        }
+
+        return response()->view('errors.503', [
+            'lockExpiresAt' => date(DATE_ATOM, $expiresAtTimestamp),
+            'serverNow' => now()->toIso8601String(),
+        ], 503);
     }
 }
