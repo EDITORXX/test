@@ -160,6 +160,39 @@
             font-weight: 700;
         }
 
+        .countdown {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .countdown-box {
+            min-width: 0;
+            padding: 12px 10px;
+            border: 1px solid rgba(45, 212, 191, 0.26);
+            border-radius: 8px;
+            background: rgba(45, 212, 191, 0.07);
+            text-align: center;
+        }
+
+        .countdown-box strong {
+            display: block;
+            color: var(--accent);
+            font: 700 clamp(28px, 7vw, 42px) / 1 Consolas, "Courier New", monospace;
+            text-shadow: 0 0 18px rgba(45, 212, 191, 0.38);
+        }
+
+        .countdown-box span {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
         @media (max-width: 520px) {
             body {
                 align-items: flex-start;
@@ -226,7 +259,49 @@
         <p>Due to security concerns, access has been restricted while the owner verifies system integrity.</p>
         <p>If you are an authorized user, please contact the administrator.</p>
 
-        <div class="timer">Automatic security lock: access restricted for 2 hours.</div>
+        <div class="timer">
+            Automatic security lock: access restricted for 2 hours.
+            <div class="countdown" aria-label="Security lock countdown">
+                <div class="countdown-box">
+                    <strong id="lockHours">02</strong>
+                    <span>Hours</span>
+                </div>
+                <div class="countdown-box">
+                    <strong id="lockMinutes">00</strong>
+                    <span>Minutes</span>
+                </div>
+                <div class="countdown-box">
+                    <strong id="lockSeconds">00</strong>
+                    <span>Seconds</span>
+                </div>
+            </div>
+        </div>
     </main>
+    <script>
+        (function () {
+            var remaining = 2 * 60 * 60;
+            var hours = document.getElementById('lockHours');
+            var minutes = document.getElementById('lockMinutes');
+            var seconds = document.getElementById('lockSeconds');
+
+            function pad(value) {
+                return String(value).padStart(2, '0');
+            }
+
+            function renderCountdown() {
+                var safeRemaining = Math.max(remaining, 0);
+                hours.textContent = pad(Math.floor(safeRemaining / 3600));
+                minutes.textContent = pad(Math.floor((safeRemaining % 3600) / 60));
+                seconds.textContent = pad(safeRemaining % 60);
+
+                if (remaining > 0) {
+                    remaining -= 1;
+                }
+            }
+
+            renderCountdown();
+            setInterval(renderCountdown, 1000);
+        })();
+    </script>
 </body>
 </html>
