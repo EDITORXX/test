@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\SystemSettings;
+use App\Support\SecurityLockControl;
 use Illuminate\Console\Command;
 
 class SecurityLockOff extends Command
@@ -13,6 +14,16 @@ class SecurityLockOff extends Command
 
     public function handle(): int
     {
+        $config = SecurityLockControl::read();
+        $config['enabled'] = false;
+        $config['started_at'] = '';
+
+        if (!$this->option('keep-secret')) {
+            $config['secret'] = '';
+        }
+
+        SecurityLockControl::write($config);
+
         SystemSettings::set('security_lock_all_users', '0');
         SystemSettings::set('security_lock_started_at', '');
 

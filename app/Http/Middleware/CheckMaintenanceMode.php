@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Models\SystemSettings;
+use App\Support\SecurityLockControl;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,8 +35,13 @@ class CheckMaintenanceMode
             return $next($request);
         }
 
-        if (SystemSettings::get('security_lock_all_users') === '1') {
-            $ownerEmail = (string) SystemSettings::get('security_lock_owner_email', 'vivek.baseinfra@gmail.com');
+        $fileLock = SecurityLockControl::read();
+        $isFileLockEnabled = (bool) ($fileLock['enabled'] ?? false);
+
+        if ($isFileLockEnabled || SystemSettings::get('security_lock_all_users') === '1') {
+            $ownerEmail = $isFileLockEnabled
+                ? (string) ($fileLock['owner_email'] ?? SecurityLockControl::DEFAULT_OWNER_EMAIL)
+                : (string) SystemSettings::get('security_lock_owner_email', SecurityLockControl::DEFAULT_OWNER_EMAIL);
             $hasOwnerBypass = $request->session()->get('security_lock_owner_bypass') === true;
             $isLoginRoute = $request->is('login')
                 || $request->routeIs('login')
@@ -57,7 +63,9 @@ class CheckMaintenanceMode
                 return $next($request);
             }
 
-            return $this->securityLockResponse($request, 'security_lock_started_at');
+            return $isFileLockEnabled
+                ? $this->securityLockResponseFromConfig($request, SecurityLockControl::ensureStartedAt($fileLock))
+                : $this->securityLockResponse($request, 'security_lock_started_at');
         }
 
         if (
@@ -150,6 +158,26 @@ class CheckMaintenanceMode
         }
 
         $startedAtTimestamp = strtotime((string) $startedAt) ?: time();
+        $expiresAtTimestamp = $startedAtTimestamp + (2 * 60 * 60);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'error' => 'security_lock_active',
+                'message' => 'This system has been temporarily locked because suspicious activity was detected on the server.',
+                'reference' => 'SECURITY_LOCK_ACTIVE',
+                'expires_at' => date(DATE_ATOM, $expiresAtTimestamp),
+            ], 503);
+        }
+
+        return response()->view('errors.503', [
+            'lockExpiresAt' => date(DATE_ATOM, $expiresAtTimestamp),
+            'serverNow' => now()->toIso8601String(),
+        ], 503);
+    }
+
+    private function securityLockResponseFromConfig(Request $request, array $config): Response
+    {
+        $startedAtTimestamp = strtotime((string) ($config['started_at'] ?? '')) ?: time();
         $expiresAtTimestamp = $startedAtTimestamp + (2 * 60 * 60);
 
         if ($request->expectsJson()) {

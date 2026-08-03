@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\SystemSettings;
+use App\Support\SecurityLockControl;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -26,6 +27,13 @@ class SecurityLockOn extends Command
         if ($secret === '') {
             $secret = Str::random(48);
         }
+
+        SecurityLockControl::write([
+            'enabled' => true,
+            'owner_email' => $ownerEmail,
+            'secret' => $secret,
+            'started_at' => now()->toIso8601String(),
+        ]);
 
         SystemSettings::set('security_lock_all_users', '1');
         SystemSettings::set('security_lock_owner_email', $ownerEmail);
